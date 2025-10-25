@@ -1,4 +1,4 @@
-# AAAI26
+# Multimodal Homelessness Dataset
 
 This repository contains code and data for analyzing content (Reddit, X/Twitter, news articles, and meeting minutes) across multiple cities using both open-source and API-based large language models (LLMs) for classification and mitigation. Supported models include Llama 3.2, Qwen 2.5, Phi-4, GPT-4.1, Gemini 2.5 Pro, Grok-4, and fine-tuned BERT models.
 
@@ -15,8 +15,8 @@ source venv/bin/activate
 
 **Using conda:**
 ```bash
-conda create -n aaai26 python=3.10 -y
-conda activate aaai26
+conda create -n venv python=3.10 -y
+conda activate venv
 ```
 
 ### 2. Install Requirements
@@ -138,6 +138,27 @@ python scripts/finetune_bert_simple.py --source meeting_minutes --epochs 3 --bat
 ```bash
 python scripts/run_bert_all_sources_simple.py
 ```
+
+---
+
+## Run All Models (One Command)
+
+Run all transformer models (BERT, RoBERTa, ModernBERT) with and without SMOTE across all sources (reddit, x, news, meeting_minutes), and also run traditional baselines (Logistic Regression, SVM, Random Forest) without SMOTE.
+
+```bash
+python scripts/run_final_all_models_all_sources.py --also
+```
+
+Notes:
+- Skips already-completed runs automatically by checking for metrics files at `nlp_outputs/{source}/{model}_{original|smote}_metrics.json`.
+- Appends per-category rows after each transformer run to `nlp_outputs/all_transformer_results.csv` with columns: `category, country, train, val, test, synthetic, macro_f1, micro_f1, subset_accuracy, hamming_loss, precision, recall, f1, accuracy, roc_auc, average_precision`.
+- Per-model transformer outputs per source:
+  - CSV: `nlp_outputs/{source}/{model}_{original|smote}.csv`
+  - JSON: `nlp_outputs/{source}/{model}_{original|smote}_metrics.json`
+  - Weights: `models/final_{model}_best_{source}.pt`
+- Traditional baselines outputs per source (overall comparisons):
+  - `output/{source}/benchmark/benchmark_comparison_{source}.csv`
+  - `output/{source}/benchmark/benchmark_summary_{source}.json`
 
 ---
 
