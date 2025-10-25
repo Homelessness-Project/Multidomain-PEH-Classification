@@ -1,0 +1,5 @@
+Model,Macro F1,Micro F1,Best Threshold,Test Size,Num Labels
+Original,0.2769,0.3330,0.30,101,16
+Frozen,0.2706,0.3306,0.30,101,16
+Improved Bert,0.2823,0.3719,0.20,101,16
+Improved Roberta,0.2823,0.3719,0.20,101,16

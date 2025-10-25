@@ -1,0 +1,17 @@
+category,f1_score,precision,recall,threshold,synthetic_added
+ask a genuine question,0.2857142857142857,0.25,0.3333333333333333,0.4,34
+ask a rhetorical question,0.0,0.0,0.0,0.5,68
+provide a fact or claim,0.6728971962616822,0.972972972972973,0.5142857142857142,0.8,0
+provide an observation,0.058823529411764705,0.030303030303030304,1.0,0.2,69
+express their opinion,0.7578947368421053,0.6792452830188679,0.8571428571428571,0.5,0
+express others opinions,0.0,0.0,0.0,0.5,0
+money aid allocation,0.3870967741935484,0.4,0.375,0.45,33
+government critique,0.36363636363636365,0.4,0.3333333333333333,0.45,41
+societal critique,0.0,0.0,0.0,0.5,0
+solutions/interventions,0.7222222222222222,0.7222222222222222,0.7222222222222222,0.5,0
+personal interaction,0.4,0.3333333333333333,0.5,0.4,70
+media portrayal,0.0,0.0,0.0,0.5,0
+not in my backyard,0.3,0.2,0.6,0.30000000000000004,64
+harmful generalization,0.0,0.0,0.0,0.5,0
+deserving/undeserving,0.0,0.0,0.0,0.4,62
+racist,0.0,0.0,0.0,0.5,0

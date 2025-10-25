@@ -1,0 +1,609 @@
+City,Source,Total_Comments,Category,Percentage
+baltimore,news,156,Ask A Genuine Question,4.487179487179487
+baltimore,reddit,1215,Ask A Genuine Question,13.168724279835391
+baltimore,x,222,Ask A Genuine Question,6.756756756756757
+buffalo,meeting_minutes,135,Ask A Genuine Question,5.9259259259259265
+buffalo,news,196,Ask A Genuine Question,0.0
+buffalo,reddit,589,Ask A Genuine Question,11.03565365025467
+buffalo,x,101,Ask A Genuine Question,4.9504950495049505
+el paso,meeting_minutes,284,Ask A Genuine Question,14.084507042253522
+el paso,news,31,Ask A Genuine Question,0.0
+el paso,reddit,154,Ask A Genuine Question,7.142857142857142
+el paso,x,38,Ask A Genuine Question,5.263157894736842
+fayetteville,meeting_minutes,1043,Ask A Genuine Question,10.258868648130392
+fayetteville,news,32,Ask A Genuine Question,0.0
+fayetteville,reddit,102,Ask A Genuine Question,12.745098039215685
+fayetteville,x,77,Ask A Genuine Question,2.5974025974025974
+kalamazoo,news,11,Ask A Genuine Question,0.0
+kalamazoo,reddit,1939,Ask A Genuine Question,14.027849406910779
+kalamazoo,x,32,Ask A Genuine Question,6.25
+portland,meeting_minutes,6618,Ask A Genuine Question,8.355998791175582
+portland,news,397,Ask A Genuine Question,2.0151133501259446
+portland,reddit,15301,Ask A Genuine Question,13.071041108424286
+portland,x,1096,Ask A Genuine Question,6.660583941605839
+rockford,meeting_minutes,243,Ask A Genuine Question,5.761316872427984
+rockford,news,9,Ask A Genuine Question,0.0
+rockford,reddit,188,Ask A Genuine Question,15.425531914893616
+rockford,x,37,Ask A Genuine Question,5.405405405405405
+san francisco,meeting_minutes,14,Ask A Genuine Question,14.285714285714285
+san francisco,news,1537,Ask A Genuine Question,3.4482758620689653
+san francisco,reddit,14777,Ask A Genuine Question,12.932259592610137
+san francisco,x,2149,Ask A Genuine Question,5.723592368543509
+scranton,meeting_minutes,514,Ask A Genuine Question,21.78988326848249
+scranton,news,159,Ask A Genuine Question,0.628930817610063
+scranton,reddit,79,Ask A Genuine Question,13.924050632911392
+scranton,x,51,Ask A Genuine Question,7.8431372549019605
+south bend,meeting_minutes,330,Ask A Genuine Question,11.212121212121213
+south bend,news,49,Ask A Genuine Question,0.0
+south bend,reddit,196,Ask A Genuine Question,12.244897959183673
+south bend,x,60,Ask A Genuine Question,6.666666666666667
+baltimore,news,156,Ask A Rhetorical Question,3.8461538461538463
+baltimore,reddit,1215,Ask A Rhetorical Question,6.090534979423869
+baltimore,x,222,Ask A Rhetorical Question,6.756756756756757
+buffalo,meeting_minutes,135,Ask A Rhetorical Question,3.7037037037037033
+buffalo,news,196,Ask A Rhetorical Question,2.0408163265306123
+buffalo,reddit,589,Ask A Rhetorical Question,8.998302207130731
+buffalo,x,101,Ask A Rhetorical Question,5.9405940594059405
+el paso,meeting_minutes,284,Ask A Rhetorical Question,1.4084507042253522
+el paso,news,31,Ask A Rhetorical Question,3.225806451612903
+el paso,reddit,154,Ask A Rhetorical Question,7.792207792207792
+el paso,x,38,Ask A Rhetorical Question,0.0
+fayetteville,meeting_minutes,1043,Ask A Rhetorical Question,2.3010546500479387
+fayetteville,news,32,Ask A Rhetorical Question,0.0
+fayetteville,reddit,102,Ask A Rhetorical Question,8.823529411764707
+fayetteville,x,77,Ask A Rhetorical Question,2.5974025974025974
+kalamazoo,news,11,Ask A Rhetorical Question,0.0
+kalamazoo,reddit,1939,Ask A Rhetorical Question,11.1397627643115
+kalamazoo,x,32,Ask A Rhetorical Question,0.0
+portland,meeting_minutes,6618,Ask A Rhetorical Question,2.387428226050166
+portland,news,397,Ask A Rhetorical Question,3.022670025188917
+portland,reddit,15301,Ask A Rhetorical Question,12.071106463629828
+portland,x,1096,Ask A Rhetorical Question,9.854014598540147
+rockford,meeting_minutes,243,Ask A Rhetorical Question,4.938271604938271
+rockford,news,9,Ask A Rhetorical Question,0.0
+rockford,reddit,188,Ask A Rhetorical Question,10.106382978723403
+rockford,x,37,Ask A Rhetorical Question,2.7027027027027026
+san francisco,meeting_minutes,14,Ask A Rhetorical Question,0.0
+san francisco,news,1537,Ask A Rhetorical Question,5.725439167208848
+san francisco,reddit,14777,Ask A Rhetorical Question,10.841172091764228
+san francisco,x,2149,Ask A Rhetorical Question,13.7738483015356
+scranton,meeting_minutes,514,Ask A Rhetorical Question,6.614785992217899
+scranton,news,159,Ask A Rhetorical Question,3.1446540880503147
+scranton,reddit,79,Ask A Rhetorical Question,15.18987341772152
+scranton,x,51,Ask A Rhetorical Question,21.568627450980394
+south bend,meeting_minutes,330,Ask A Rhetorical Question,0.6060606060606061
+south bend,news,49,Ask A Rhetorical Question,4.081632653061225
+south bend,reddit,196,Ask A Rhetorical Question,6.122448979591836
+south bend,x,60,Ask A Rhetorical Question,6.666666666666667
+baltimore,news,156,Deserving/Undeserving,10.256410256410255
+baltimore,reddit,1215,Deserving/Undeserving,32.427983539094654
+baltimore,x,222,Deserving/Undeserving,15.315315315315313
+buffalo,meeting_minutes,135,Deserving/Undeserving,9.62962962962963
+buffalo,news,196,Deserving/Undeserving,4.591836734693878
+buffalo,reddit,589,Deserving/Undeserving,31.57894736842105
+buffalo,x,101,Deserving/Undeserving,15.841584158415841
+el paso,meeting_minutes,284,Deserving/Undeserving,15.845070422535212
+el paso,news,31,Deserving/Undeserving,3.225806451612903
+el paso,reddit,154,Deserving/Undeserving,25.97402597402597
+el paso,x,38,Deserving/Undeserving,13.157894736842104
+fayetteville,meeting_minutes,1043,Deserving/Undeserving,13.902205177372961
+fayetteville,news,32,Deserving/Undeserving,3.125
+fayetteville,reddit,102,Deserving/Undeserving,14.705882352941178
+fayetteville,x,77,Deserving/Undeserving,15.584415584415584
+kalamazoo,news,11,Deserving/Undeserving,0.0
+kalamazoo,reddit,1939,Deserving/Undeserving,36.204228984012374
+kalamazoo,x,32,Deserving/Undeserving,12.5
+portland,meeting_minutes,6618,Deserving/Undeserving,10.426110607434271
+portland,news,397,Deserving/Undeserving,7.304785894206549
+portland,reddit,15301,Deserving/Undeserving,35.04999673223973
+portland,x,1096,Deserving/Undeserving,20.346715328467152
+rockford,meeting_minutes,243,Deserving/Undeserving,12.345679012345679
+rockford,news,9,Deserving/Undeserving,0.0
+rockford,reddit,188,Deserving/Undeserving,36.702127659574465
+rockford,x,37,Deserving/Undeserving,13.513513513513514
+san francisco,meeting_minutes,14,Deserving/Undeserving,28.57142857142857
+san francisco,news,1537,Deserving/Undeserving,7.482108002602472
+san francisco,reddit,14777,Deserving/Undeserving,34.384516478310886
+san francisco,x,2149,Deserving/Undeserving,17.91530944625407
+scranton,meeting_minutes,514,Deserving/Undeserving,13.813229571984436
+scranton,news,159,Deserving/Undeserving,2.515723270440252
+scranton,reddit,79,Deserving/Undeserving,22.78481012658228
+scranton,x,51,Deserving/Undeserving,27.450980392156865
+south bend,meeting_minutes,330,Deserving/Undeserving,8.484848484848486
+south bend,news,49,Deserving/Undeserving,4.081632653061225
+south bend,reddit,196,Deserving/Undeserving,36.734693877551024
+south bend,x,60,Deserving/Undeserving,13.333333333333334
+baltimore,news,156,Express Others Opinions,23.717948717948715
+baltimore,reddit,1215,Express Others Opinions,12.427983539094651
+baltimore,x,222,Express Others Opinions,10.36036036036036
+buffalo,meeting_minutes,135,Express Others Opinions,43.7037037037037
+buffalo,news,196,Express Others Opinions,18.367346938775512
+buffalo,reddit,589,Express Others Opinions,10.865874363327674
+buffalo,x,101,Express Others Opinions,9.900990099009901
+el paso,meeting_minutes,284,Express Others Opinions,18.661971830985916
+el paso,news,31,Express Others Opinions,19.35483870967742
+el paso,reddit,154,Express Others Opinions,12.337662337662337
+el paso,x,38,Express Others Opinions,15.789473684210526
+fayetteville,meeting_minutes,1043,Express Others Opinions,25.69511025886865
+fayetteville,news,32,Express Others Opinions,9.375
+fayetteville,reddit,102,Express Others Opinions,16.666666666666664
+fayetteville,x,77,Express Others Opinions,7.792207792207792
+kalamazoo,news,11,Express Others Opinions,18.181818181818183
+kalamazoo,reddit,1939,Express Others Opinions,15.729757607013925
+kalamazoo,x,32,Express Others Opinions,6.25
+portland,meeting_minutes,6618,Express Others Opinions,20.565125415533394
+portland,news,397,Express Others Opinions,24.937027707808564
+portland,reddit,15301,Express Others Opinions,17.953074962420757
+portland,x,1096,Express Others Opinions,12.226277372262775
+rockford,meeting_minutes,243,Express Others Opinions,14.40329218106996
+rockford,news,9,Express Others Opinions,11.11111111111111
+rockford,reddit,188,Express Others Opinions,26.595744680851062
+rockford,x,37,Express Others Opinions,2.7027027027027026
+san francisco,meeting_minutes,14,Express Others Opinions,21.428571428571427
+san francisco,news,1537,Express Others Opinions,34.28757319453481
+san francisco,reddit,14777,Express Others Opinions,16.24145631724978
+san francisco,x,2149,Express Others Opinions,12.796649604467195
+scranton,meeting_minutes,514,Express Others Opinions,19.26070038910506
+scranton,news,159,Express Others Opinions,23.270440251572328
+scranton,reddit,79,Express Others Opinions,12.658227848101266
+scranton,x,51,Express Others Opinions,5.88235294117647
+south bend,meeting_minutes,330,Express Others Opinions,23.333333333333332
+south bend,news,49,Express Others Opinions,20.408163265306122
+south bend,reddit,196,Express Others Opinions,16.3265306122449
+south bend,x,60,Express Others Opinions,6.666666666666667
+baltimore,news,156,Express Their Opinion,38.46153846153847
+baltimore,reddit,1215,Express Their Opinion,83.7037037037037
+baltimore,x,222,Express Their Opinion,65.31531531531532
+buffalo,meeting_minutes,135,Express Their Opinion,81.48148148148148
+buffalo,news,196,Express Their Opinion,40.30612244897959
+buffalo,reddit,589,Express Their Opinion,82.68251273344653
+buffalo,x,101,Express Their Opinion,71.28712871287128
+el paso,meeting_minutes,284,Express Their Opinion,73.94366197183099
+el paso,news,31,Express Their Opinion,25.806451612903224
+el paso,reddit,154,Express Their Opinion,77.27272727272727
+el paso,x,38,Express Their Opinion,31.57894736842105
+fayetteville,meeting_minutes,1043,Express Their Opinion,85.52253116011505
+fayetteville,news,32,Express Their Opinion,28.125
+fayetteville,reddit,102,Express Their Opinion,84.31372549019608
+fayetteville,x,77,Express Their Opinion,68.83116883116884
+kalamazoo,news,11,Express Their Opinion,18.181818181818183
+kalamazoo,reddit,1939,Express Their Opinion,88.4476534296029
+kalamazoo,x,32,Express Their Opinion,34.375
+portland,meeting_minutes,6618,Express Their Opinion,76.56391659111515
+portland,news,397,Express Their Opinion,47.3551637279597
+portland,reddit,15301,Express Their Opinion,89.22292660610418
+portland,x,1096,Express Their Opinion,85.3102189781022
+rockford,meeting_minutes,243,Express Their Opinion,67.48971193415639
+rockford,news,9,Express Their Opinion,44.44444444444444
+rockford,reddit,188,Express Their Opinion,82.97872340425532
+rockford,x,37,Express Their Opinion,54.054054054054056
+san francisco,meeting_minutes,14,Express Their Opinion,100.0
+san francisco,news,1537,Express Their Opinion,41.314248536109304
+san francisco,reddit,14777,Express Their Opinion,87.27075861135548
+san francisco,x,2149,Express Their Opinion,86.31921824104235
+scranton,meeting_minutes,514,Express Their Opinion,76.07003891050583
+scranton,news,159,Express Their Opinion,32.70440251572327
+scranton,reddit,79,Express Their Opinion,84.81012658227847
+scranton,x,51,Express Their Opinion,78.43137254901961
+south bend,meeting_minutes,330,Express Their Opinion,77.27272727272727
+south bend,news,49,Express Their Opinion,34.69387755102041
+south bend,reddit,196,Express Their Opinion,84.6938775510204
+south bend,x,60,Express Their Opinion,56.666666666666664
+baltimore,news,156,Government Critique,21.153846153846153
+baltimore,reddit,1215,Government Critique,19.09465020576132
+baltimore,x,222,Government Critique,18.46846846846847
+buffalo,meeting_minutes,135,Government Critique,29.629629629629626
+buffalo,news,196,Government Critique,9.693877551020408
+buffalo,reddit,589,Government Critique,17.147707979626485
+buffalo,x,101,Government Critique,19.801980198019802
+el paso,meeting_minutes,284,Government Critique,22.887323943661972
+el paso,news,31,Government Critique,9.67741935483871
+el paso,reddit,154,Government Critique,18.83116883116883
+el paso,x,38,Government Critique,13.157894736842104
+fayetteville,meeting_minutes,1043,Government Critique,21.95589645254075
+fayetteville,news,32,Government Critique,3.125
+fayetteville,reddit,102,Government Critique,20.588235294117645
+fayetteville,x,77,Government Critique,18.181818181818183
+kalamazoo,news,11,Government Critique,18.181818181818183
+kalamazoo,reddit,1939,Government Critique,23.723568849922643
+kalamazoo,x,32,Government Critique,9.375
+portland,meeting_minutes,6618,Government Critique,27.24388032638259
+portland,news,397,Government Critique,30.982367758186395
+portland,reddit,15301,Government Critique,31.22671720802562
+portland,x,1096,Government Critique,32.299270072992705
+rockford,meeting_minutes,243,Government Critique,18.51851851851852
+rockford,news,9,Government Critique,0.0
+rockford,reddit,188,Government Critique,17.5531914893617
+rockford,x,37,Government Critique,13.513513513513514
+san francisco,meeting_minutes,14,Government Critique,42.857142857142854
+san francisco,news,1537,Government Critique,39.36239427456083
+san francisco,reddit,14777,Government Critique,30.520403329498546
+san francisco,x,2149,Government Critique,37.04048394602141
+scranton,meeting_minutes,514,Government Critique,26.653696498054476
+scranton,news,159,Government Critique,13.20754716981132
+scranton,reddit,79,Government Critique,20.253164556962027
+scranton,x,51,Government Critique,37.254901960784316
+south bend,meeting_minutes,330,Government Critique,18.787878787878785
+south bend,news,49,Government Critique,22.448979591836736
+south bend,reddit,196,Government Critique,18.367346938775512
+south bend,x,60,Government Critique,26.666666666666668
+baltimore,news,156,Harmful Generalization,5.769230769230769
+baltimore,reddit,1215,Harmful Generalization,25.596707818930042
+baltimore,x,222,Harmful Generalization,22.972972972972975
+buffalo,meeting_minutes,135,Harmful Generalization,2.9629629629629632
+buffalo,news,196,Harmful Generalization,1.0204081632653061
+buffalo,reddit,589,Harmful Generalization,20.71307300509338
+buffalo,x,101,Harmful Generalization,21.782178217821784
+el paso,meeting_minutes,284,Harmful Generalization,3.169014084507042
+el paso,news,31,Harmful Generalization,6.451612903225806
+el paso,reddit,154,Harmful Generalization,27.92207792207792
+el paso,x,38,Harmful Generalization,10.526315789473683
+fayetteville,meeting_minutes,1043,Harmful Generalization,2.109300095877277
+fayetteville,news,32,Harmful Generalization,0.0
+fayetteville,reddit,102,Harmful Generalization,16.666666666666664
+fayetteville,x,77,Harmful Generalization,18.181818181818183
+kalamazoo,news,11,Harmful Generalization,27.27272727272727
+kalamazoo,reddit,1939,Harmful Generalization,27.282104177411036
+kalamazoo,x,32,Harmful Generalization,12.5
+portland,meeting_minutes,6618,Harmful Generalization,3.9891205802357206
+portland,news,397,Harmful Generalization,9.82367758186398
+portland,reddit,15301,Harmful Generalization,29.965361741062672
+portland,x,1096,Harmful Generalization,43.886861313868614
+rockford,meeting_minutes,243,Harmful Generalization,5.761316872427984
+rockford,news,9,Harmful Generalization,0.0
+rockford,reddit,188,Harmful Generalization,29.78723404255319
+rockford,x,37,Harmful Generalization,18.91891891891892
+san francisco,meeting_minutes,14,Harmful Generalization,7.142857142857142
+san francisco,news,1537,Harmful Generalization,9.88939492517892
+san francisco,reddit,14777,Harmful Generalization,30.195574203153548
+san francisco,x,2149,Harmful Generalization,43.69474174034435
+scranton,meeting_minutes,514,Harmful Generalization,7.587548638132295
+scranton,news,159,Harmful Generalization,4.40251572327044
+scranton,reddit,79,Harmful Generalization,21.518987341772153
+scranton,x,51,Harmful Generalization,25.49019607843137
+south bend,meeting_minutes,330,Harmful Generalization,3.3333333333333335
+south bend,news,49,Harmful Generalization,8.16326530612245
+south bend,reddit,196,Harmful Generalization,18.367346938775512
+south bend,x,60,Harmful Generalization,13.333333333333334
+baltimore,news,156,Media Portrayal,10.897435897435898
+baltimore,reddit,1215,Media Portrayal,8.31275720164609
+baltimore,x,222,Media Portrayal,9.45945945945946
+buffalo,meeting_minutes,135,Media Portrayal,3.7037037037037033
+buffalo,news,196,Media Portrayal,3.061224489795918
+buffalo,reddit,589,Media Portrayal,4.923599320882852
+buffalo,x,101,Media Portrayal,8.91089108910891
+el paso,meeting_minutes,284,Media Portrayal,1.4084507042253522
+el paso,news,31,Media Portrayal,3.225806451612903
+el paso,reddit,154,Media Portrayal,5.844155844155844
+el paso,x,38,Media Portrayal,7.894736842105263
+fayetteville,meeting_minutes,1043,Media Portrayal,2.013422818791946
+fayetteville,news,32,Media Portrayal,0.0
+fayetteville,reddit,102,Media Portrayal,5.88235294117647
+fayetteville,x,77,Media Portrayal,5.194805194805195
+kalamazoo,news,11,Media Portrayal,0.0
+kalamazoo,reddit,1939,Media Portrayal,5.415162454873646
+kalamazoo,x,32,Media Portrayal,12.5
+portland,meeting_minutes,6618,Media Portrayal,3.5962526443034153
+portland,news,397,Media Portrayal,12.594458438287154
+portland,reddit,15301,Media Portrayal,7.149859486308084
+portland,x,1096,Media Portrayal,8.576642335766424
+rockford,meeting_minutes,243,Media Portrayal,2.880658436213992
+rockford,news,9,Media Portrayal,11.11111111111111
+rockford,reddit,188,Media Portrayal,4.25531914893617
+rockford,x,37,Media Portrayal,13.513513513513514
+san francisco,meeting_minutes,14,Media Portrayal,7.142857142857142
+san francisco,news,1537,Media Portrayal,13.467794404684449
+san francisco,reddit,14777,Media Portrayal,7.626717195641876
+san francisco,x,2149,Media Portrayal,10.609585853885529
+scranton,meeting_minutes,514,Media Portrayal,3.8910505836575875
+scranton,news,159,Media Portrayal,3.7735849056603774
+scranton,reddit,79,Media Portrayal,5.063291139240507
+scranton,x,51,Media Portrayal,7.8431372549019605
+south bend,meeting_minutes,330,Media Portrayal,5.151515151515151
+south bend,news,49,Media Portrayal,12.244897959183673
+south bend,reddit,196,Media Portrayal,2.5510204081632653
+south bend,x,60,Media Portrayal,11.666666666666666
+baltimore,news,156,Money Aid Allocation,24.358974358974358
+baltimore,reddit,1215,Money Aid Allocation,17.448559670781894
+baltimore,x,222,Money Aid Allocation,19.81981981981982
+buffalo,meeting_minutes,135,Money Aid Allocation,17.037037037037038
+buffalo,news,196,Money Aid Allocation,19.387755102040817
+buffalo,reddit,589,Money Aid Allocation,17.147707979626485
+buffalo,x,101,Money Aid Allocation,19.801980198019802
+el paso,meeting_minutes,284,Money Aid Allocation,27.816901408450708
+el paso,news,31,Money Aid Allocation,19.35483870967742
+el paso,reddit,154,Money Aid Allocation,9.090909090909092
+el paso,x,38,Money Aid Allocation,15.789473684210526
+fayetteville,meeting_minutes,1043,Money Aid Allocation,27.900287631831254
+fayetteville,news,32,Money Aid Allocation,3.125
+fayetteville,reddit,102,Money Aid Allocation,22.54901960784314
+fayetteville,x,77,Money Aid Allocation,16.883116883116884
+kalamazoo,news,11,Money Aid Allocation,0.0
+kalamazoo,reddit,1939,Money Aid Allocation,21.14492006188757
+kalamazoo,x,32,Money Aid Allocation,18.75
+portland,meeting_minutes,6618,Money Aid Allocation,25.7479601087942
+portland,news,397,Money Aid Allocation,20.40302267002519
+portland,reddit,15301,Money Aid Allocation,22.59983007646559
+portland,x,1096,Money Aid Allocation,13.503649635036496
+rockford,meeting_minutes,243,Money Aid Allocation,28.80658436213992
+rockford,news,9,Money Aid Allocation,0.0
+rockford,reddit,188,Money Aid Allocation,16.48936170212766
+rockford,x,37,Money Aid Allocation,16.216216216216218
+san francisco,meeting_minutes,14,Money Aid Allocation,14.285714285714285
+san francisco,news,1537,Money Aid Allocation,28.627195836044244
+san francisco,reddit,14777,Money Aid Allocation,24.971239087771536
+san francisco,x,2149,Money Aid Allocation,18.380642159143786
+scranton,meeting_minutes,514,Money Aid Allocation,11.089494163424124
+scranton,news,159,Money Aid Allocation,24.528301886792452
+scranton,reddit,79,Money Aid Allocation,18.9873417721519
+scranton,x,51,Money Aid Allocation,15.686274509803921
+south bend,meeting_minutes,330,Money Aid Allocation,20.0
+south bend,news,49,Money Aid Allocation,30.612244897959183
+south bend,reddit,196,Money Aid Allocation,15.816326530612246
+south bend,x,60,Money Aid Allocation,8.333333333333332
+baltimore,news,156,Not In My Backyard,3.8461538461538463
+baltimore,reddit,1215,Not In My Backyard,7.818930041152264
+baltimore,x,222,Not In My Backyard,2.2522522522522523
+buffalo,meeting_minutes,135,Not In My Backyard,6.666666666666667
+buffalo,news,196,Not In My Backyard,1.0204081632653061
+buffalo,reddit,589,Not In My Backyard,6.791171477079796
+buffalo,x,101,Not In My Backyard,4.9504950495049505
+el paso,meeting_minutes,284,Not In My Backyard,5.633802816901409
+el paso,news,31,Not In My Backyard,0.0
+el paso,reddit,154,Not In My Backyard,7.792207792207792
+el paso,x,38,Not In My Backyard,2.631578947368421
+fayetteville,meeting_minutes,1043,Not In My Backyard,7.28667305848514
+fayetteville,news,32,Not In My Backyard,0.0
+fayetteville,reddit,102,Not In My Backyard,13.725490196078432
+fayetteville,x,77,Not In My Backyard,9.090909090909092
+kalamazoo,news,11,Not In My Backyard,9.090909090909092
+kalamazoo,reddit,1939,Not In My Backyard,8.561113976276431
+kalamazoo,x,32,Not In My Backyard,3.125
+portland,meeting_minutes,6618,Not In My Backyard,4.744635841644001
+portland,news,397,Not In My Backyard,4.030226700251889
+portland,reddit,15301,Not In My Backyard,9.8490294751977
+portland,x,1096,Not In My Backyard,10.218978102189782
+rockford,meeting_minutes,243,Not In My Backyard,3.7037037037037033
+rockford,news,9,Not In My Backyard,0.0
+rockford,reddit,188,Not In My Backyard,4.25531914893617
+rockford,x,37,Not In My Backyard,2.7027027027027026
+san francisco,meeting_minutes,14,Not In My Backyard,7.142857142857142
+san francisco,news,1537,Not In My Backyard,6.5712426805465185
+san francisco,reddit,14777,Not In My Backyard,10.144142924815592
+san francisco,x,2149,Not In My Backyard,6.700791065611912
+scranton,meeting_minutes,514,Not In My Backyard,7.003891050583658
+scranton,news,159,Not In My Backyard,0.628930817610063
+scranton,reddit,79,Not In My Backyard,17.72151898734177
+scranton,x,51,Not In My Backyard,9.803921568627452
+south bend,meeting_minutes,330,Not In My Backyard,5.151515151515151
+south bend,news,49,Not In My Backyard,4.081632653061225
+south bend,reddit,196,Not In My Backyard,21.93877551020408
+south bend,x,60,Not In My Backyard,6.666666666666667
+baltimore,news,156,Personal Interaction,2.564102564102564
+baltimore,reddit,1215,Personal Interaction,21.069958847736626
+baltimore,x,222,Personal Interaction,22.972972972972975
+buffalo,meeting_minutes,135,Personal Interaction,0.7407407407407408
+buffalo,news,196,Personal Interaction,1.0204081632653061
+buffalo,reddit,589,Personal Interaction,19.864176570458405
+buffalo,x,101,Personal Interaction,28.71287128712871
+el paso,meeting_minutes,284,Personal Interaction,3.169014084507042
+el paso,news,31,Personal Interaction,6.451612903225806
+el paso,reddit,154,Personal Interaction,32.467532467532465
+el paso,x,38,Personal Interaction,13.157894736842104
+fayetteville,meeting_minutes,1043,Personal Interaction,8.341323106423777
+fayetteville,news,32,Personal Interaction,6.25
+fayetteville,reddit,102,Personal Interaction,24.509803921568626
+fayetteville,x,77,Personal Interaction,27.27272727272727
+kalamazoo,news,11,Personal Interaction,9.090909090909092
+kalamazoo,reddit,1939,Personal Interaction,18.25683341928829
+kalamazoo,x,32,Personal Interaction,6.25
+portland,meeting_minutes,6618,Personal Interaction,6.149894227863403
+portland,news,397,Personal Interaction,6.801007556675064
+portland,reddit,15301,Personal Interaction,14.097117835435593
+portland,x,1096,Personal Interaction,25.18248175182482
+rockford,meeting_minutes,243,Personal Interaction,9.053497942386832
+rockford,news,9,Personal Interaction,0.0
+rockford,reddit,188,Personal Interaction,17.5531914893617
+rockford,x,37,Personal Interaction,18.91891891891892
+san francisco,meeting_minutes,14,Personal Interaction,7.142857142857142
+san francisco,news,1537,Personal Interaction,6.245933636955107
+san francisco,reddit,14777,Personal Interaction,14.881234350680112
+san francisco,x,2149,Personal Interaction,16.472778036295953
+scranton,meeting_minutes,514,Personal Interaction,15.953307392996107
+scranton,news,159,Personal Interaction,6.289308176100629
+scranton,reddit,79,Personal Interaction,22.78481012658228
+scranton,x,51,Personal Interaction,21.568627450980394
+south bend,meeting_minutes,330,Personal Interaction,2.1212121212121215
+south bend,news,49,Personal Interaction,4.081632653061225
+south bend,reddit,196,Personal Interaction,21.428571428571427
+south bend,x,60,Personal Interaction,11.666666666666666
+baltimore,news,156,Provide A Fact Or Claim,95.51282051282051
+baltimore,reddit,1215,Provide A Fact Or Claim,66.91358024691358
+baltimore,x,222,Provide A Fact Or Claim,73.87387387387388
+buffalo,meeting_minutes,135,Provide A Fact Or Claim,85.18518518518519
+buffalo,news,196,Provide A Fact Or Claim,92.3469387755102
+buffalo,reddit,589,Provide A Fact Or Claim,67.40237691001698
+buffalo,x,101,Provide A Fact Or Claim,64.35643564356435
+el paso,meeting_minutes,284,Provide A Fact Or Claim,90.49295774647888
+el paso,news,31,Provide A Fact Or Claim,87.09677419354838
+el paso,reddit,154,Provide A Fact Or Claim,62.98701298701299
+el paso,x,38,Provide A Fact Or Claim,78.94736842105263
+fayetteville,meeting_minutes,1043,Provide A Fact Or Claim,86.38542665388303
+fayetteville,news,32,Provide A Fact Or Claim,90.625
+fayetteville,reddit,102,Provide A Fact Or Claim,66.66666666666666
+fayetteville,x,77,Provide A Fact Or Claim,72.72727272727273
+kalamazoo,news,11,Provide A Fact Or Claim,100.0
+kalamazoo,reddit,1939,Provide A Fact Or Claim,69.15936049510056
+kalamazoo,x,32,Provide A Fact Or Claim,87.5
+portland,meeting_minutes,6618,Provide A Fact Or Claim,82.20006044122091
+portland,news,397,Provide A Fact Or Claim,94.7103274559194
+portland,reddit,15301,Provide A Fact Or Claim,70.52480230050323
+portland,x,1096,Provide A Fact Or Claim,60.58394160583942
+rockford,meeting_minutes,243,Provide A Fact Or Claim,92.18106995884774
+rockford,news,9,Provide A Fact Or Claim,77.77777777777779
+rockford,reddit,188,Provide A Fact Or Claim,69.14893617021278
+rockford,x,37,Provide A Fact Or Claim,70.27027027027027
+san francisco,meeting_minutes,14,Provide A Fact Or Claim,64.28571428571429
+san francisco,news,1537,Provide A Fact Or Claim,93.88418998048145
+san francisco,reddit,14777,Provide A Fact Or Claim,73.92569533734859
+san francisco,x,2149,Provide A Fact Or Claim,65.1000465332713
+scranton,meeting_minutes,514,Provide A Fact Or Claim,75.68093385214007
+scranton,news,159,Provide A Fact Or Claim,89.937106918239
+scranton,reddit,79,Provide A Fact Or Claim,70.88607594936708
+scranton,x,51,Provide A Fact Or Claim,68.62745098039215
+south bend,meeting_minutes,330,Provide A Fact Or Claim,85.75757575757575
+south bend,news,49,Provide A Fact Or Claim,85.71428571428571
+south bend,reddit,196,Provide A Fact Or Claim,65.3061224489796
+south bend,x,60,Provide A Fact Or Claim,71.66666666666667
+baltimore,news,156,Provide An Observation,29.48717948717949
+baltimore,reddit,1215,Provide An Observation,52.42798353909465
+baltimore,x,222,Provide An Observation,35.13513513513514
+buffalo,meeting_minutes,135,Provide An Observation,9.62962962962963
+buffalo,news,196,Provide An Observation,14.795918367346939
+buffalo,reddit,589,Provide An Observation,47.198641765704586
+buffalo,x,101,Provide An Observation,43.56435643564357
+el paso,meeting_minutes,284,Provide An Observation,17.6056338028169
+el paso,news,31,Provide An Observation,41.935483870967744
+el paso,reddit,154,Provide An Observation,50.0
+el paso,x,38,Provide An Observation,34.21052631578947
+fayetteville,meeting_minutes,1043,Provide An Observation,21.476510067114095
+fayetteville,news,32,Provide An Observation,12.5
+fayetteville,reddit,102,Provide An Observation,54.90196078431373
+fayetteville,x,77,Provide An Observation,40.25974025974026
+kalamazoo,news,11,Provide An Observation,36.36363636363637
+kalamazoo,reddit,1939,Provide An Observation,44.86848891181021
+kalamazoo,x,32,Provide An Observation,18.75
+portland,meeting_minutes,6618,Provide An Observation,16.96887277122998
+portland,news,397,Provide An Observation,32.99748110831234
+portland,reddit,15301,Provide An Observation,38.18704659826155
+portland,x,1096,Provide An Observation,48.63138686131387
+rockford,meeting_minutes,243,Provide An Observation,19.34156378600823
+rockford,news,9,Provide An Observation,55.55555555555556
+rockford,reddit,188,Provide An Observation,54.78723404255319
+rockford,x,37,Provide An Observation,45.94594594594595
+san francisco,meeting_minutes,14,Provide An Observation,78.57142857142857
+san francisco,news,1537,Provide An Observation,41.314248536109304
+san francisco,reddit,14777,Provide An Observation,36.40116397103607
+san francisco,x,2149,Provide An Observation,38.15728245695673
+scranton,meeting_minutes,514,Provide An Observation,30.544747081712064
+scranton,news,159,Provide An Observation,30.81761006289308
+scranton,reddit,79,Provide An Observation,50.63291139240506
+scranton,x,51,Provide An Observation,35.294117647058826
+south bend,meeting_minutes,330,Provide An Observation,16.969696969696972
+south bend,news,49,Provide An Observation,53.06122448979592
+south bend,reddit,196,Provide An Observation,57.6530612244898
+south bend,x,60,Provide An Observation,36.666666666666664
+baltimore,news,156,Racist,0.0
+baltimore,reddit,1215,Racist,0.1646090534979424
+baltimore,x,222,Racist,0.45045045045045046
+buffalo,meeting_minutes,135,Racist,0.0
+buffalo,news,196,Racist,0.0
+buffalo,reddit,589,Racist,0.1697792869269949
+buffalo,x,101,Racist,0.0
+el paso,meeting_minutes,284,Racist,0.35211267605633806
+el paso,news,31,Racist,0.0
+el paso,reddit,154,Racist,0.0
+el paso,x,38,Racist,0.0
+fayetteville,meeting_minutes,1043,Racist,0.0
+fayetteville,news,32,Racist,0.0
+fayetteville,reddit,102,Racist,0.0
+fayetteville,x,77,Racist,0.0
+kalamazoo,news,11,Racist,0.0
+kalamazoo,reddit,1939,Racist,0.25786487880350695
+kalamazoo,x,32,Racist,0.0
+portland,meeting_minutes,6618,Racist,0.04533091568449683
+portland,news,397,Racist,0.0
+portland,reddit,15301,Racist,0.12417489053003071
+portland,x,1096,Racist,0.18248175182481752
+rockford,meeting_minutes,243,Racist,0.0
+rockford,news,9,Racist,0.0
+rockford,reddit,188,Racist,0.0
+rockford,x,37,Racist,0.0
+san francisco,meeting_minutes,14,Racist,0.0
+san francisco,news,1537,Racist,0.06506180871828238
+san francisco,reddit,14777,Racist,0.20978547743114298
+san francisco,x,2149,Racist,0.13959981386691486
+scranton,meeting_minutes,514,Racist,0.0
+scranton,news,159,Racist,0.0
+scranton,reddit,79,Racist,0.0
+scranton,x,51,Racist,0.0
+south bend,meeting_minutes,330,Racist,0.0
+south bend,news,49,Racist,0.0
+south bend,reddit,196,Racist,0.0
+south bend,x,60,Racist,0.0
+baltimore,news,156,Societal Critique,34.61538461538461
+baltimore,reddit,1215,Societal Critique,66.41975308641975
+baltimore,x,222,Societal Critique,27.927927927927925
+buffalo,meeting_minutes,135,Societal Critique,23.703703703703706
+buffalo,news,196,Societal Critique,12.755102040816327
+buffalo,reddit,589,Societal Critique,58.91341256366724
+buffalo,x,101,Societal Critique,25.742574257425744
+el paso,meeting_minutes,284,Societal Critique,18.30985915492958
+el paso,news,31,Societal Critique,25.806451612903224
+el paso,reddit,154,Societal Critique,51.94805194805194
+el paso,x,38,Societal Critique,10.526315789473683
+fayetteville,meeting_minutes,1043,Societal Critique,28.28379674017258
+fayetteville,news,32,Societal Critique,6.25
+fayetteville,reddit,102,Societal Critique,58.82352941176471
+fayetteville,x,77,Societal Critique,25.97402597402597
+kalamazoo,news,11,Societal Critique,18.181818181818183
+kalamazoo,reddit,1939,Societal Critique,75.81227436823104
+kalamazoo,x,32,Societal Critique,15.625
+portland,meeting_minutes,6618,Societal Critique,24.992444847385915
+portland,news,397,Societal Critique,38.79093198992443
+portland,reddit,15301,Societal Critique,78.0406509378472
+portland,x,1096,Societal Critique,52.55474452554745
+rockford,meeting_minutes,243,Societal Critique,25.925925925925924
+rockford,news,9,Societal Critique,0.0
+rockford,reddit,188,Societal Critique,69.14893617021278
+rockford,x,37,Societal Critique,29.72972972972973
+san francisco,meeting_minutes,14,Societal Critique,42.857142857142854
+san francisco,news,1537,Societal Critique,39.23227065712427
+san francisco,reddit,14777,Societal Critique,77.20105569466062
+san francisco,x,2149,Societal Critique,52.489530013959985
+scranton,meeting_minutes,514,Societal Critique,23.346303501945524
+scranton,news,159,Societal Critique,17.61006289308176
+scranton,reddit,79,Societal Critique,74.68354430379746
+scranton,x,51,Societal Critique,31.372549019607842
+south bend,meeting_minutes,330,Societal Critique,13.636363636363635
+south bend,news,49,Societal Critique,18.367346938775512
+south bend,reddit,196,Societal Critique,62.244897959183675
+south bend,x,60,Societal Critique,26.666666666666668
+baltimore,news,156,Solutions/Interventions,62.82051282051282
+baltimore,reddit,1215,Solutions/Interventions,34.89711934156379
+baltimore,x,222,Solutions/Interventions,46.3963963963964
+buffalo,meeting_minutes,135,Solutions/Interventions,70.37037037037037
+buffalo,news,196,Solutions/Interventions,81.63265306122449
+buffalo,reddit,589,Solutions/Interventions,29.03225806451613
+buffalo,x,101,Solutions/Interventions,32.67326732673268
+el paso,meeting_minutes,284,Solutions/Interventions,64.7887323943662
+el paso,news,31,Solutions/Interventions,54.83870967741935
+el paso,reddit,154,Solutions/Interventions,23.376623376623375
+el paso,x,38,Solutions/Interventions,36.84210526315789
+fayetteville,meeting_minutes,1043,Solutions/Interventions,63.08724832214765
+fayetteville,news,32,Solutions/Interventions,87.5
+fayetteville,reddit,102,Solutions/Interventions,36.27450980392157
+fayetteville,x,77,Solutions/Interventions,55.84415584415584
+kalamazoo,news,11,Solutions/Interventions,36.36363636363637
+kalamazoo,reddit,1939,Solutions/Interventions,31.40794223826715
+kalamazoo,x,32,Solutions/Interventions,75.0
+portland,meeting_minutes,6618,Solutions/Interventions,61.04563312178905
+portland,news,397,Solutions/Interventions,57.68261964735516
+portland,reddit,15301,Solutions/Interventions,27.926279328148485
+portland,x,1096,Solutions/Interventions,19.434306569343065
+rockford,meeting_minutes,243,Solutions/Interventions,58.0246913580247
+rockford,news,9,Solutions/Interventions,77.77777777777779
+rockford,reddit,188,Solutions/Interventions,22.340425531914892
+rockford,x,37,Solutions/Interventions,51.35135135135135
+san francisco,meeting_minutes,14,Solutions/Interventions,42.857142857142854
+san francisco,news,1537,Solutions/Interventions,54.26154847104749
+san francisco,reddit,14777,Solutions/Interventions,25.296068214116534
+san francisco,x,2149,Solutions/Interventions,15.774778966961378
+scranton,meeting_minutes,514,Solutions/Interventions,40.07782101167315
+scranton,news,159,Solutions/Interventions,60.37735849056604
+scranton,reddit,79,Solutions/Interventions,34.177215189873415
+scranton,x,51,Solutions/Interventions,33.33333333333333
+south bend,meeting_minutes,330,Solutions/Interventions,75.15151515151514
+south bend,news,49,Solutions/Interventions,69.38775510204081
+south bend,reddit,196,Solutions/Interventions,37.755102040816325
+south bend,x,60,Solutions/Interventions,43.333333333333336

@@ -1,0 +1,28 @@
+{
+  "source": "reddit",
+  "models_tested": [
+    "logistic_regression",
+    "svm",
+    "random_forest"
+  ],
+  "best_model": "logistic_regression",
+  "best_macro_f1": 0.24486671128792878,
+  "best_micro_f1": 0.5368916797488226,
+  "comparison": [
+    {
+      "model": "logistic_regression",
+      "macro_f1": 0.24486671128792878,
+      "micro_f1": 0.5368916797488226
+    },
+    {
+      "model": "svm",
+      "macro_f1": 0.13474427478575512,
+      "micro_f1": 0.5301645338208409
+    },
+    {
+      "model": "random_forest",
+      "macro_f1": 0.11132494071439158,
+      "micro_f1": 0.46938775510204084
+    }
+  ]
+}

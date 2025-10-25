@@ -1,0 +1,27 @@
+{
+  "source": "reddit",
+  "model": "bert-base-uncased-frozen",
+  "macro_f1": 0.2706430005947353,
+  "micro_f1": 0.33060556464811786,
+  "best_threshold": 0.3,
+  "test_size": 101,
+  "num_labels": 16,
+  "label_f1_scores": {
+    "ask a genuine question": 0.18018018018018017,
+    "ask a rhetorical question": 0.19642857142857142,
+    "provide a fact or claim": 0.7375,
+    "provide an observation": 0.4696969696969697,
+    "express their opinion": 0.8961748633879781,
+    "express others opinions": 0.0,
+    "money aid allocation": 0.288135593220339,
+    "government critique": 0.3025210084033613,
+    "societal critique": 0.21238938053097345,
+    "solutions/interventions": 0.48120300751879697,
+    "personal interaction": 0.19642857142857142,
+    "media portrayal": 0.0196078431372549,
+    "not in my backyard": 0.11214953271028037,
+    "harmful generalization": 0.18018018018018017,
+    "deserving/undeserving": 0.057692307692307696,
+    "racist": 0.0
+  }
+}

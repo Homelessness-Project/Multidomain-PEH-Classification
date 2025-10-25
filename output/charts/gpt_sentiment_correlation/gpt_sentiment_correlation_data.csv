@@ -1,0 +1,181 @@
+Source,GPT_Category,Sentiment,Correlation,Sample_Size
+reddit,Comment_ask a genuine question,positive,0.2578060005793384,10
+reddit,Comment_ask a genuine question,negative,-0.049068765346883814,10
+reddit,Comment_ask a genuine question,neutral,-0.3658466921746829,10
+reddit,Comment_ask a rhetorical question,positive,-0.31962340008842915,10
+reddit,Comment_ask a rhetorical question,negative,0.6127912174340987,10
+reddit,Comment_ask a rhetorical question,neutral,-0.5910452580882917,10
+reddit,Comment_provide a fact or claim,positive,-0.18921438769024868,10
+reddit,Comment_provide a fact or claim,negative,0.3055987188940379,10
+reddit,Comment_provide a fact or claim,neutral,-0.24169843310162703,10
+reddit,Comment_provide an observation,positive,0.4802374897923577,10
+reddit,Comment_provide an observation,negative,-0.33315569364791947,10
+reddit,Comment_provide an observation,neutral,-0.22396378494259814,10
+reddit,Comment_express their opinion,positive,0.07832115720256566,10
+reddit,Comment_express their opinion,negative,0.06947997031951186,10
+reddit,Comment_express their opinion,neutral,-0.2708519639046439,10
+reddit,Comment_express others opinions,positive,-0.12916246107224927,10
+reddit,Comment_express others opinions,negative,0.0941391875361246,10
+reddit,Comment_express others opinions,neutral,0.051653151067954324,10
+reddit,Critique_money aid allocation,positive,0.10245854089692732,10
+reddit,Critique_money aid allocation,negative,0.07657638148186094,10
+reddit,Critique_money aid allocation,neutral,-0.3272299106329742,10
+reddit,Critique_government critique,positive,-0.5130508038580333,10
+reddit,Critique_government critique,negative,0.4774232192382003,10
+reddit,Critique_government critique,neutral,0.009312164061933342,10
+reddit,Critique_societal critique,positive,-0.2509825645127253,10
+reddit,Critique_societal critique,negative,0.3669894182945427,10
+reddit,Critique_societal critique,neutral,-0.24798077886640255,10
+reddit,Response_solutions/interventions,positive,0.6210142792935802,10
+reddit,Response_solutions/interventions,negative,-0.2899049949528356,10
+reddit,Response_solutions/interventions,neutral,-0.5563019945631654,10
+reddit,Perception_media portrayal,positive,-0.4472671467195063,10
+reddit,Perception_media portrayal,negative,0.279161885242942,10
+reddit,Perception_media portrayal,neutral,0.26748682330118095,10
+reddit,Perception_not in my backyard,positive,0.2612512724291302,10
+reddit,Perception_not in my backyard,negative,0.11497616701330747,10
+reddit,Perception_not in my backyard,neutral,-0.6824430940735016,10
+reddit,Perception_harmful generalization,positive,-0.7522975591899482,10
+reddit,Perception_harmful generalization,negative,0.42445902732218066,10
+reddit,Perception_harmful generalization,neutral,0.5352408489769537,10
+reddit,Perception_deserving/undeserving,positive,-0.03717795756414958,10
+reddit,Perception_deserving/undeserving,negative,-0.2653579812161939,10
+reddit,Perception_deserving/undeserving,neutral,0.5683586408928853,10
+reddit,Racist_Flag,positive,0.04762773257711336,10
+reddit,Racist_Flag,negative,-0.25780635528524337,10
+reddit,Racist_Flag,neutral,0.4031724118156201,10
+news,Comment_ask a genuine question,positive,0.17385624974561129,10
+news,Comment_ask a genuine question,negative,0.36829076201692046,10
+news,Comment_ask a genuine question,neutral,-0.5114857064801419,10
+news,Comment_ask a rhetorical question,positive,0.46258367799320416,10
+news,Comment_ask a rhetorical question,negative,0.3629048404629295,10
+news,Comment_ask a rhetorical question,neutral,-0.8244076887090193,10
+news,Comment_provide a fact or claim,positive,-0.20377969927991213,10
+news,Comment_provide a fact or claim,negative,0.6650284398068549,10
+news,Comment_provide a fact or claim,neutral,-0.35410262424893196,10
+news,Comment_provide an observation,positive,-0.24685893655349106,10
+news,Comment_provide an observation,negative,0.23983269361044973,10
+news,Comment_provide an observation,neutral,0.06300681758936642,10
+news,Comment_express their opinion,positive,0.3847160398140785,10
+news,Comment_express their opinion,negative,-0.15574518438836796,10
+news,Comment_express their opinion,neutral,-0.2877688637048278,10
+news,Comment_express others opinions,positive,0.11718254624324209,10
+news,Comment_express others opinions,negative,0.6771211862784378,10
+news,Comment_express others opinions,neutral,-0.7176817389674579,10
+news,Critique_money aid allocation,positive,0.6110084906830685,10
+news,Critique_money aid allocation,negative,0.21463840634502915,10
+news,Critique_money aid allocation,neutral,-0.8587550902916126,10
+news,Critique_government critique,positive,-0.07161969866287361,10
+news,Critique_government critique,negative,0.811520267648347,10
+news,Critique_government critique,neutral,-0.6268603422489415,10
+news,Critique_societal critique,positive,0.13233912793949304,10
+news,Critique_societal critique,negative,0.7036103145282472,10
+news,Critique_societal critique,neutral,-0.7573874020752012,10
+news,Response_solutions/interventions,positive,0.4977015911979,10
+news,Response_solutions/interventions,negative,-0.8853599604063899,10
+news,Response_solutions/interventions,neutral,0.22236882931822238,10
+news,Perception_media portrayal,positive,0.17636618127434098,10
+news,Perception_media portrayal,negative,0.2215565256897961,10
+news,Perception_media portrayal,neutral,-0.38665648493993354,10
+news,Perception_not in my backyard,positive,-0.5271537199046178,10
+news,Perception_not in my backyard,negative,0.8929176651144988,10
+news,Perception_not in my backyard,neutral,-0.1965426431175918,10
+news,Perception_harmful generalization,positive,-0.6592183498921701,10
+news,Perception_harmful generalization,negative,0.8712916694713997,10
+news,Perception_harmful generalization,neutral,-0.03246473603573952,10
+news,Perception_deserving/undeserving,positive,0.5253764843696099,10
+news,Perception_deserving/undeserving,negative,0.2112016495942834,10
+news,Perception_deserving/undeserving,neutral,-0.761570015299176,10
+news,Racist_Flag,positive,-0.11592630824175384,10
+news,Racist_Flag,negative,0.41476486004446356,10
+news,Racist_Flag,neutral,-0.23313056867462484,10
+x,Comment_ask a genuine question,positive,-0.1888601497313259,10
+x,Comment_ask a genuine question,negative,0.10403115594659804,10
+x,Comment_ask a genuine question,neutral,0.1256054895219907,10
+x,Comment_ask a rhetorical question,positive,-0.31592197476615147,10
+x,Comment_ask a rhetorical question,negative,0.5017076684561994,10
+x,Comment_ask a rhetorical question,neutral,-0.10446425662938907,10
+x,Comment_provide a fact or claim,positive,0.4096426504649265,10
+x,Comment_provide a fact or claim,negative,-0.5382666576813252,10
+x,Comment_provide a fact or claim,neutral,0.027670294235165198,10
+x,Comment_provide an observation,positive,-0.23587166550288152,10
+x,Comment_provide an observation,negative,0.19647344116547114,10
+x,Comment_provide an observation,neutral,0.09298753326282412,10
+x,Comment_express their opinion,positive,-0.2885339463987096,10
+x,Comment_express their opinion,negative,0.7348282869848111,10
+x,Comment_express their opinion,neutral,-0.36095506969322644,10
+x,Comment_express others opinions,positive,-0.7071399672467756,10
+x,Comment_express others opinions,negative,0.36310605185861444,10
+x,Comment_express others opinions,neutral,0.49565456908153316,10
+x,Critique_money aid allocation,positive,0.25898063104342617,10
+x,Critique_money aid allocation,negative,0.12106941407740462,10
+x,Critique_money aid allocation,neutral,-0.4254140816597204,10
+x,Critique_government critique,positive,-0.5653546783729454,10
+x,Critique_government critique,negative,0.685273195661563,10
+x,Critique_government critique,neutral,0.017104822620615735,10
+x,Critique_societal critique,positive,-0.5299580710921663,10
+x,Critique_societal critique,negative,0.8438497009539162,10
+x,Critique_societal critique,neutral,-0.1773856918707805,10
+x,Response_solutions/interventions,positive,0.7914526091412453,10
+x,Response_solutions/interventions,negative,-0.5931293083499171,10
+x,Response_solutions/interventions,neutral,-0.37549310915210604,10
+x,Perception_media portrayal,positive,0.07962107236136,10
+x,Perception_media portrayal,negative,-0.1393336529024021,10
+x,Perception_media portrayal,neutral,0.03870160344549018,10
+x,Perception_not in my backyard,positive,-0.2924384531910477,10
+x,Perception_not in my backyard,negative,0.5728077539371432,10
+x,Perception_not in my backyard,neutral,-0.20075575774687837,10
+x,Perception_harmful generalization,positive,-0.5970817867659884,10
+x,Perception_harmful generalization,negative,0.8996392807213861,10
+x,Perception_harmful generalization,neutral,-0.1508061497683692,10
+x,Perception_deserving/undeserving,positive,-0.23115629135688834,10
+x,Perception_deserving/undeserving,negative,0.436394046982316,10
+x,Perception_deserving/undeserving,neutral,-0.14296301956584243,10
+x,Racist_Flag,positive,-0.017991192027181965,10
+x,Racist_Flag,negative,0.26686931371866773,10
+x,Racist_Flag,neutral,-0.23471234569288926,10
+meeting_minutes,Comment_ask a genuine question,positive,-0.6590109318095816,8
+meeting_minutes,Comment_ask a genuine question,negative,0.5008264635926251,8
+meeting_minutes,Comment_ask a genuine question,neutral,0.7876209011595643,8
+meeting_minutes,Comment_ask a rhetorical question,positive,-0.06486945513958009,8
+meeting_minutes,Comment_ask a rhetorical question,negative,-0.18233282372953483,8
+meeting_minutes,Comment_ask a rhetorical question,neutral,0.44298819335758205,8
+meeting_minutes,Comment_provide a fact or claim,positive,0.8446813835013208,8
+meeting_minutes,Comment_provide a fact or claim,negative,-0.8666961065059625,8
+meeting_minutes,Comment_provide a fact or claim,neutral,-0.6548986455682205,8
+meeting_minutes,Comment_provide an observation,positive,-0.8774788432558894,8
+meeting_minutes,Comment_provide an observation,negative,0.9719665111622305,8
+meeting_minutes,Comment_provide an observation,neutral,0.5673308578958457,8
+meeting_minutes,Comment_express their opinion,positive,-0.5026670183602985,8
+meeting_minutes,Comment_express their opinion,negative,0.6449934958610503,8
+meeting_minutes,Comment_express their opinion,neutral,0.18584086557200655,8
+meeting_minutes,Comment_express others opinions,positive,0.3706051882984996,8
+meeting_minutes,Comment_express others opinions,negative,-0.35509089373110597,8
+meeting_minutes,Comment_express others opinions,neutral,-0.3270551636451099,8
+meeting_minutes,Critique_money aid allocation,positive,0.6663034804709312,8
+meeting_minutes,Critique_money aid allocation,negative,-0.5404064809161773,8
+meeting_minutes,Critique_money aid allocation,neutral,-0.7426329304949414,8
+meeting_minutes,Critique_government critique,positive,-0.6671213963696981,8
+meeting_minutes,Critique_government critique,negative,0.76430989164755,8
+meeting_minutes,Critique_government critique,neutral,0.3913251281256057,8
+meeting_minutes,Critique_societal critique,positive,-0.6512686779147854,8
+meeting_minutes,Critique_societal critique,negative,0.7761422079692124,8
+meeting_minutes,Critique_societal critique,neutral,0.3347019500896091,8
+meeting_minutes,Response_solutions/interventions,positive,0.9025417605920368,8
+meeting_minutes,Response_solutions/interventions,negative,-0.8160557315929,8
+meeting_minutes,Response_solutions/interventions,neutral,-0.8733264864139733,8
+meeting_minutes,Perception_media portrayal,positive,-0.6621047648528402,8
+meeting_minutes,Perception_media portrayal,negative,0.7217623573068964,8
+meeting_minutes,Perception_media portrayal,neutral,0.4464441368063852,8
+meeting_minutes,Perception_not in my backyard,positive,-0.36266448877442814,8
+meeting_minutes,Perception_not in my backyard,negative,0.32940097748324143,8
+meeting_minutes,Perception_not in my backyard,neutral,0.3485760710843805,8
+meeting_minutes,Perception_harmful generalization,positive,-0.9152388113091766,8
+meeting_minutes,Perception_harmful generalization,negative,0.8119427036409064,8
+meeting_minutes,Perception_harmful generalization,neutral,0.9102151664505714,8
+meeting_minutes,Perception_deserving/undeserving,positive,-0.7772983711623721,8
+meeting_minutes,Perception_deserving/undeserving,negative,0.8974858911066128,8
+meeting_minutes,Perception_deserving/undeserving,neutral,0.44499117792956067,8
+meeting_minutes,Racist_Flag,positive,0.23315058903339933,8
+meeting_minutes,Racist_Flag,negative,-0.18631709057326135,8
+meeting_minutes,Racist_Flag,neutral,-0.264245793421734,8

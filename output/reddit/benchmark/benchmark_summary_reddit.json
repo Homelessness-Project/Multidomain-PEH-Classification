@@ -1,0 +1,40 @@
+{
+  "source": "reddit",
+  "models_tested": [
+    "bert",
+    "roberta",
+    "logistic_regression",
+    "svm",
+    "random_forest"
+  ],
+  "best_model": "roberta",
+  "best_macro_f1": 0.3705682245137295,
+  "best_micro_f1": 0.45087719298245615,
+  "comparison": [
+    {
+      "model": "roberta",
+      "macro_f1": 0.3705682245137295,
+      "micro_f1": 0.45087719298245615
+    },
+    {
+      "model": "bert",
+      "macro_f1": 0.25666450534942375,
+      "micro_f1": 0.37603993344425957
+    },
+    {
+      "model": "logistic_regression",
+      "macro_f1": 0.21971756147232446,
+      "micro_f1": 0.5218800648298217
+    },
+    {
+      "model": "svm",
+      "macro_f1": 0.12895700033405283,
+      "micro_f1": 0.5220588235294118
+    },
+    {
+      "model": "random_forest",
+      "macro_f1": 0.11359881031064112,
+      "micro_f1": 0.46774193548387094
+    }
+  ]
+}

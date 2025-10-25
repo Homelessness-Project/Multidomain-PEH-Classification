@@ -192,6 +192,7 @@ def create_latex_table(summary_df):
             source_display = 'X (Twitter)'
         
         model_display = model['Model'].replace('_', ' ').upper()
+        # Round to 2 significant figures only at the end
         macro_f1 = f"{model['Macro_F1'] * 100:.2f}"
         micro_f1 = f"{model['Micro_F1'] * 100:.2f}"
         
@@ -273,6 +274,7 @@ def create_detailed_latex_table(summary_df):
                 if not model_data.empty:
                     macro_f1 = model_data.iloc[0]['Macro_F1']
                     macro_values.append(macro_f1)
+                    # Round to 2 significant figures only at the end
                     macro_row.append(f"{macro_f1 * 100:.2f}")
                     
                     # Store for weighted average
@@ -289,6 +291,7 @@ def create_detailed_latex_table(summary_df):
         if not bert_data.empty:
             bert_macro = bert_data.iloc[0]['Macro_F1']
             macro_values.append(bert_macro)
+            # Round to 2 significant figures only at the end
             macro_row.append(f"{bert_macro * 100:.2f}")
             bert_macro_values.append((bert_macro, sample_sizes[source]))
         else:
@@ -318,6 +321,7 @@ def create_detailed_latex_table(summary_df):
                 if not model_data.empty:
                     micro_f1 = model_data.iloc[0]['Micro_F1']
                     micro_values.append(micro_f1)
+                    # Round to 2 significant figures only at the end
                     micro_row.append(f"{micro_f1 * 100:.2f}")
                     
                     # Store for weighted average
@@ -334,6 +338,7 @@ def create_detailed_latex_table(summary_df):
         if not bert_data.empty:
             bert_micro = bert_data.iloc[0]['Micro_F1']
             micro_values.append(bert_micro)
+            # Round to 2 significant figures only at the end
             micro_row.append(f"{bert_micro * 100:.2f}")
             bert_micro_values.append((bert_micro, sample_sizes[source]))
         else:
@@ -373,11 +378,13 @@ def create_detailed_latex_table(summary_df):
         for shot_type in ['zero', 'few']:
             weighted_avg = calculate_weighted_average(all_macro_values[model][shot_type])
             weighted_macro_values.append(weighted_avg)
+            # Round to 2 significant figures only at the end
             weighted_macro_row.append(f"{weighted_avg * 100:.2f}")
     
     # Add BERT weighted average
     bert_weighted_macro = calculate_weighted_average(bert_macro_values)
     weighted_macro_values.append(bert_weighted_macro)
+    # Round to 2 significant figures only at the end
     weighted_macro_row.append(f"{bert_weighted_macro * 100:.2f}")
     
     # Bold best weighted macro F1
@@ -398,11 +405,13 @@ def create_detailed_latex_table(summary_df):
         for shot_type in ['zero', 'few']:
             weighted_avg = calculate_weighted_average(all_micro_values[model][shot_type])
             weighted_micro_values.append(weighted_avg)
+            # Round to 2 significant figures only at the end
             weighted_micro_row.append(f"{weighted_avg * 100:.2f}")
     
     # Add BERT weighted average
     bert_weighted_micro = calculate_weighted_average(bert_micro_values)
     weighted_micro_values.append(bert_weighted_micro)
+    # Round to 2 significant figures only at the end
     weighted_micro_row.append(f"{bert_weighted_micro * 100:.2f}")
     
     # Bold best weighted micro F1
@@ -536,6 +545,7 @@ def create_individual_model_tables(all_results):
                         if isinstance(f1_score, dict):
                             f1_score = f1_score['f1']
                         f1_score = f1_score * 100  # Convert to percentage
+                        # Round to 2 significant figures only at the end
                         row_data.append(f"{f1_score:.2f}")
                     else:
                         row_data.append("--")
@@ -576,12 +586,14 @@ def create_individual_model_tables(all_results):
                         
                         # Format zero-shot value
                         if zero_shot_value is not None:
+                            # Round to 2 significant figures only at the end
                             zero_shot_str = f"{zero_shot_value:.2f}"
                         else:
                             zero_shot_str = "--"
                         
                         # Format few-shot value
                         if few_shot_value is not None:
+                            # Round to 2 significant figures only at the end
                             few_shot_str = f"{few_shot_value:.2f}"
                         else:
                             few_shot_str = "--"
@@ -624,6 +636,7 @@ def create_individual_model_tables(all_results):
                 key = f"{source}_bert"
                 if key in macro_micro_data:
                     source_display = source_display_names[source]
+                    # Round to 2 significant figures only at the end
                     macro_f1 = f"{macro_micro_data[key]['macro_f1'] * 100:.2f}"
                     micro_f1 = f"{macro_micro_data[key]['micro_f1'] * 100:.2f}"
                     macro_micro_table.append(f"{source_display} & {macro_f1} & {micro_f1} \\\\")
@@ -646,6 +659,7 @@ def create_individual_model_tables(all_results):
                 for shot_type in ['zero_shot', 'few_shot']:
                     key = f"{source}_{shot_type}"
                     if key in macro_micro_data:
+                        # Round to 2 significant figures only at the end
                         macro_f1 = f"{macro_micro_data[key]['macro_f1'] * 100:.2f}"
                         macro_row.append(macro_f1)
                     else:
@@ -658,6 +672,7 @@ def create_individual_model_tables(all_results):
                 for shot_type in ['zero_shot', 'few_shot']:
                     key = f"{source}_{shot_type}"
                     if key in macro_micro_data:
+                        # Round to 2 significant figures only at the end
                         micro_f1 = f"{macro_micro_data[key]['micro_f1'] * 100:.2f}"
                         micro_row.append(micro_f1)
                     else:
@@ -757,20 +772,30 @@ def main():
     # Create summary DataFrame
     summary_df = pd.DataFrame(summary_data)
     
-    # Round to 2 decimal places for CSV
+    # Keep full precision for calculations, only round for display
     summary_df_rounded = summary_df.copy()
-    summary_df_rounded['Macro_F1'] = summary_df_rounded['Macro_F1'].round(2)
-    summary_df_rounded['Micro_F1'] = summary_df_rounded['Micro_F1'].round(2)
+    # Don't round here - keep full precision for all calculations
     
     # Save results
     output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
     
-    summary_df_rounded.to_csv(f'{output_dir}/comprehensive_model_comparison.csv', index=False)
+    # Save full precision data
+    summary_df.to_csv(f'{output_dir}/comprehensive_model_comparison.csv', index=False)
+    
+    # Also save rounded version for easy reading
+    summary_df_rounded_display = summary_df.copy()
+    summary_df_rounded_display['Macro_F1'] = summary_df_rounded_display['Macro_F1'].round(2)
+    summary_df_rounded_display['Micro_F1'] = summary_df_rounded_display['Micro_F1'].round(2)
+    summary_df_rounded_display.to_csv(f'{output_dir}/comprehensive_model_comparison_rounded.csv', index=False)
     
     # Print summary table
     print("\nSummary Table:")
-    print(summary_df_rounded.to_string(index=False, float_format='%.2f'))
+    # Round to 2 significant figures only for display
+    summary_df_display = summary_df_rounded.copy()
+    summary_df_display['Macro_F1'] = summary_df_display['Macro_F1'].round(2)
+    summary_df_display['Micro_F1'] = summary_df_display['Micro_F1'].round(2)
+    print(summary_df_display.to_string(index=False, float_format='%.2f'))
     
     # Calculate overall averages
     print(f"\n{'='*80}")
@@ -778,24 +803,28 @@ def main():
     print(f"{'='*80}")
     
     # Average by model type - Macro F1
-    model_averages_macro = summary_df.groupby('Model')['Macro_F1'].agg(['mean', 'std', 'count']).round(2)
+    model_averages_macro = summary_df.groupby('Model')['Macro_F1'].agg(['mean', 'std', 'count'])
     print("\nAverage Macro F1 by Model:")
-    print(model_averages_macro)
+    # Round to 2 significant figures only for display
+    print(model_averages_macro.round(2))
     
     # Average by model type - Micro F1
-    model_averages_micro = summary_df.groupby('Model')['Micro_F1'].agg(['mean', 'std', 'count']).round(2)
+    model_averages_micro = summary_df.groupby('Model')['Micro_F1'].agg(['mean', 'std', 'count'])
     print("\nAverage Micro F1 by Model:")
-    print(model_averages_micro)
+    # Round to 2 significant figures only for display
+    print(model_averages_micro.round(2))
     
     # Average by source - Macro F1
-    source_averages_macro = summary_df.groupby('Source')['Macro_F1'].agg(['mean', 'std', 'count']).round(2)
+    source_averages_macro = summary_df.groupby('Source')['Macro_F1'].agg(['mean', 'std', 'count'])
     print("\nAverage Macro F1 by Source:")
-    print(source_averages_macro)
+    # Round to 2 significant figures only for display
+    print(source_averages_macro.round(2))
     
     # Average by source - Micro F1
-    source_averages_micro = summary_df.groupby('Source')['Micro_F1'].agg(['mean', 'std', 'count']).round(2)
+    source_averages_micro = summary_df.groupby('Source')['Micro_F1'].agg(['mean', 'std', 'count'])
     print("\nAverage Micro F1 by Source:")
-    print(source_averages_micro)
+    # Round to 2 significant figures only for display
+    print(source_averages_micro.round(2))
     
     # Overall averages
     overall_avg_macro = summary_df['Macro_F1'].mean()
@@ -809,13 +838,13 @@ def main():
     print(f"{'='*80}")
     
     # Create main table
-    main_table = create_latex_table(summary_df_rounded)
+    main_table = create_latex_table(summary_df)
     with open(f'{output_dir}/macro_f1_table.tex', 'w') as f:
         f.write(main_table)
     print("Main table saved as: {}/macro_f1_table.tex".format(output_dir))
     
     # Create detailed table
-    detailed_table = create_detailed_latex_table(summary_df_rounded)
+    detailed_table = create_detailed_latex_table(summary_df)
     with open(f'{output_dir}/detailed_macro_f1_table.tex', 'w') as f:
         f.write(detailed_table)
     print("Detailed table saved as: {}/detailed_macro_f1_table.tex".format(output_dir))

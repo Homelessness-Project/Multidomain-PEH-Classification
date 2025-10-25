@@ -1,0 +1,28 @@
+{
+  "source": "meeting_minutes",
+  "models_tested": [
+    "logistic_regression",
+    "svm",
+    "random_forest"
+  ],
+  "best_model": "logistic_regression",
+  "best_macro_f1": 0.22109745298614425,
+  "best_micro_f1": 0.7654986522911051,
+  "comparison": [
+    {
+      "model": "logistic_regression",
+      "macro_f1": 0.22109745298614425,
+      "micro_f1": 0.7654986522911051
+    },
+    {
+      "model": "svm",
+      "macro_f1": 0.15327514197441233,
+      "micro_f1": 0.7287671232876712
+    },
+    {
+      "model": "random_forest",
+      "macro_f1": 0.12903874269005847,
+      "micro_f1": 0.668769716088328
+    }
+  ]
+}

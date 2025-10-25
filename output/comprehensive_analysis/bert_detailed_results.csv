@@ -1,0 +1,17 @@
+Source,Category,F1 Score,Precision,Recall
+reddit,ask a genuine question,0.1802,0.0990,1.0000
+reddit,ask a rhetorical question,0.1964,0.1089,1.0000
+reddit,provide a fact or claim,0.7375,0.5842,1.0000
+reddit,provide an observation,0.4697,0.3069,1.0000
+reddit,express their opinion,0.8962,0.8119,1.0000
+reddit,express others opinions,0.1609,0.0897,0.7778
+reddit,money aid allocation,0.2881,0.1683,1.0000
+reddit,government critique,0.3025,0.1782,1.0000
+reddit,societal critique,0.2124,0.1188,1.0000
+reddit,solutions/interventions,0.4812,0.3168,1.0000
+reddit,personal interaction,0.1964,0.1089,1.0000
+reddit,media portrayal,0.0196,0.0099,1.0000
+reddit,not in my backyard,0.0513,0.0303,0.1667
+reddit,harmful generalization,0.1800,0.1000,0.9000
+reddit,deserving/undeserving,0.0577,0.0297,1.0000
+reddit,racist,0.0000,0.0000,0.0000

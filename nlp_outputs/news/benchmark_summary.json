@@ -1,0 +1,28 @@
+{
+  "source": "news",
+  "models_tested": [
+    "logistic_regression",
+    "svm",
+    "random_forest"
+  ],
+  "best_model": "logistic_regression",
+  "best_macro_f1": 0.17380286837986986,
+  "best_micro_f1": 0.7157190635451505,
+  "comparison": [
+    {
+      "model": "logistic_regression",
+      "macro_f1": 0.17380286837986986,
+      "micro_f1": 0.7157190635451505
+    },
+    {
+      "model": "svm",
+      "macro_f1": 0.14982638888888888,
+      "micro_f1": 0.7152777777777778
+    },
+    {
+      "model": "random_forest",
+      "macro_f1": 0.13297825056299634,
+      "micro_f1": 0.6959706959706959
+    }
+  ]
+}
