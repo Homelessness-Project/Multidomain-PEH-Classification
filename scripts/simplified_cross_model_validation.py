@@ -69,12 +69,12 @@ class SimplifiedCrossModelValidator:
             print(f"Sources: {self.f1_data['Source'].unique()}")
             print(f"All models: {self.f1_data['Model'].unique()}")
             
-            # Filter out BERT models
+            # Filter out BERT and RoBERTa models
             original_count = len(self.f1_data)
-            self.f1_data = self.f1_data[~self.f1_data['Model'].str.contains('bert', case=False)]
+            self.f1_data = self.f1_data[~self.f1_data['Model'].str.contains('bert|roberta', case=False)]
             filtered_count = len(self.f1_data)
             
-            print(f"Filtered out BERT models: {original_count - filtered_count} removed")
+            print(f"Filtered out BERT/RoBERTa: {original_count - filtered_count} removed")
             print(f"LLM models only: {self.f1_data['Model'].unique()}")
             return True
         except FileNotFoundError:

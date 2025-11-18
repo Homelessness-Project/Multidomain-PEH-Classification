@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore')
 
 # Configuration
 SOURCES = ['reddit', 'x', 'news', 'meeting_minutes']
-LLM_MODELS = ['llama', 'qwen', 'gpt4', 'gemini', 'grok', 'phi4']
+LLM_MODELS = ['llama', 'phi4', 'qwen', 'gemini', 'grok', 'gpt4']
 BERT_MODEL = 'bert'
 SHOT_TYPES = ['zero_shot', 'few_shot']
 ALPHA = 0.05  # Significance level
@@ -83,6 +83,18 @@ class CrossModelValidator:
             if bert_predictions is not None:
                 self.predictions[source]['bert_finetuned'] = bert_predictions
                 print(f"  Loaded BERT: {len(bert_predictions)} samples")
+
+            # Load RoBERTa predictions (if available)
+            roberta_predictions = self._load_traditional_predictions(source, 'roberta')
+            if roberta_predictions is not None:
+                self.predictions[source]['roberta'] = roberta_predictions
+                print(f"  Loaded RoBERTa: {len(roberta_predictions)} samples")
+
+            # Load ModernBERT predictions (if available)
+            modernbert_predictions = self._load_traditional_predictions(source, 'modernbert')
+            if modernbert_predictions is not None:
+                self.predictions[source]['modernbert'] = modernbert_predictions
+                print(f"  Loaded ModernBERT: {len(modernbert_predictions)} samples")
     
     def _load_model_predictions(self, source, model, shot_type):
         """Load predictions for a specific model and shot type"""
@@ -113,6 +125,30 @@ class CrossModelValidator:
             return df
         except FileNotFoundError:
             return None
+
+    def _load_traditional_predictions(self, source, model_name):
+        """Load RoBERTa/ModernBERT predictions if present.
+
+        Expected patterns:
+        - output/{source}/{model_name}/{model_name}_classification_results_{source}.csv
+        - output/{source}/{model_name}/{model_name}_detailed_results_{source}.csv
+        - output/{source}/{model_name}/*{source}.csv (fallback for known files)
+        """
+        possible_paths = [
+            f'output/{source}/{model_name}/{model_name}_classification_results_{source}.csv',
+            f'output/{source}/{model_name}/{model_name}_detailed_results_{source}.csv'
+        ]
+        # Known specific files found in workspace (e.g., roberta reddit)
+        if model_name == 'roberta' and source == 'reddit':
+            possible_paths.insert(0, 'output/reddit/roberta/roberta_classification_results_reddit.csv')
+
+        for path in possible_paths:
+            try:
+                df = pd.read_csv(path)
+                return df
+            except FileNotFoundError:
+                continue
+        return None
     
     def statistical_significance_testing(self):
         """Perform statistical significance testing between models"""
@@ -129,8 +165,8 @@ class CrossModelValidator:
             print(f"\nAnalyzing {source}...")
             significance_results[source] = {}
             
-            # Get all model keys for this source
-            model_keys = list(self.predictions[source].keys())
+            # Get all model keys for this source (exclude BERT/RoBERTa)
+            model_keys = [k for k in self.predictions[source].keys() if 'bert' not in k.lower() and 'roberta' not in k.lower()]
             
             # Calculate F1 scores for each model
             model_f1_scores = {}
@@ -177,7 +213,7 @@ class CrossModelValidator:
         return significance_results
     
     def correlation_analysis(self):
-        """Analyze correlations between model predictions"""
+        """Analyze correlations between model predictions (prediction-level)"""
         print("\n" + "="*60)
         print("CORRELATION ANALYSIS")
         print("="*60)
@@ -191,7 +227,7 @@ class CrossModelValidator:
             print(f"\nAnalyzing correlations for {source}...")
             correlation_results[source] = {}
             
-            model_keys = list(self.predictions[source].keys())
+            model_keys = [k for k in self.predictions[source].keys() if 'bert' not in k.lower() and 'roberta' not in k.lower()]
             
             # Calculate correlation matrix
             correlation_matrix = np.zeros((len(model_keys), len(model_keys)))
@@ -224,6 +260,451 @@ class CrossModelValidator:
         
         self.results['correlation_analysis'] = correlation_results
         return correlation_results
+
+    def prediction_level_similarity(self):
+        """Compute prediction-level similarity matrices (Pearson and Spearman) across models for each source.
+
+        Matches columns to soft label names, coerces to numeric, aligns rows by index, and aggregates
+        per-category correlations by averaging across matched columns.
+        """
+        print("\n" + "="*60)
+        print("PREDICTION-LEVEL SIMILARITY")
+        print("="*60)
+
+        similarity_results = {}
+
+        for source in SOURCES:
+            if source not in self.predictions:
+                continue
+
+            print(f"\nAnalyzing prediction-level similarity for {source}...")
+            model_keys = [k for k in self.predictions[source].keys() if 'bert' not in k.lower() and 'roberta' not in k.lower()]
+            n = len(model_keys)
+            pearson_matrix = np.zeros((n, n))
+            spearman_matrix = np.zeros((n, n))
+
+            # Pre-prepare matched numeric prediction columns per model
+            soft_labels_df = self.soft_labels[source]
+            soft_label_cols = soft_labels_df.columns.tolist()
+
+            model_numeric_cols = {}
+            min_len_global = None
+            for key in model_keys:
+                df = self.predictions[source][key].copy()
+                # Align lengths
+                min_len_global = len(df) if min_len_global is None else min(min_len_global, len(df))
+                # Identify columns matching soft labels
+                matched = []
+                for col in df.columns:
+                    for s in soft_label_cols:
+                        if s.lower() in col.lower() or col.lower() in s.lower():
+                            matched.append(col)
+                            break
+                # Coerce to numeric
+                if matched:
+                    numeric_df = df[matched].apply(pd.to_numeric, errors='coerce')
+                    model_numeric_cols[key] = numeric_df
+                else:
+                    model_numeric_cols[key] = pd.DataFrame()
+
+            # Align all to the same min length
+            if min_len_global is None:
+                continue
+            for key in model_keys:
+                if not model_numeric_cols[key].empty:
+                    model_numeric_cols[key] = model_numeric_cols[key].iloc[:min_len_global]
+
+            # Compute pairwise correlations
+            for i, m1 in enumerate(model_keys):
+                for j, m2 in enumerate(model_keys):
+                    if i > j:
+                        continue
+                    df1 = model_numeric_cols[m1]
+                    df2 = model_numeric_cols[m2]
+                    if df1.empty or df2.empty:
+                        pearson = 0.0
+                        spearman = 0.0
+                    else:
+                        # Use matched column count
+                        k = min(df1.shape[1], df2.shape[1])
+                        if k == 0:
+                            pearson = 0.0
+                            spearman = 0.0
+                        else:
+                            pears = []
+                            spears = []
+                            for c in range(k):
+                                s1 = df1.iloc[:, c]
+                                s2 = df2.iloc[:, c]
+                                # Drop rows with NaNs
+                                valid = s1.notna() & s2.notna()
+                                s1v = s1[valid]
+                                s2v = s2[valid]
+                                if len(s1v) > 1:
+                                    try:
+                                        r, _ = pearsonr(s1v, s2v)
+                                        if not np.isnan(r):
+                                            pears.append(r)
+                                    except Exception:
+                                        pass
+                                    try:
+                                        r_s, _ = spearmanr(s1v, s2v)
+                                        if not np.isnan(r_s):
+                                            spears.append(r_s)
+                                    except Exception:
+                                        pass
+                            pearson = float(np.mean(pears)) if pears else 0.0
+                            spearman = float(np.mean(spears)) if spears else 0.0
+
+                    pearson_matrix[i, j] = pearson_matrix[j, i] = pearson
+                    spearman_matrix[i, j] = spearman_matrix[j, i] = spearman
+
+            similarity_results[source] = {
+                'model_keys': model_keys,
+                'pearson_matrix': pearson_matrix,
+                'spearman_matrix': spearman_matrix
+            }
+
+            print(f"  Avg Pearson: {np.mean(pearson_matrix[np.triu_indices_from(pearson_matrix, k=1)]):.4f}")
+            print(f"  Avg Spearman: {np.mean(spearman_matrix[np.triu_indices_from(spearman_matrix, k=1)]):.4f}")
+
+        self.results['prediction_similarity'] = similarity_results
+        return similarity_results
+
+    def multi_label_agreement(self):
+        """Compute multi-label agreement between model pairs with partial credit.
+
+        Two metrics per source:
+        - match_ratio: average per-row fraction of matching labels across K categories
+        - jaccard: average per-row Jaccard similarity of positive label sets
+        """
+        print("\n" + "="*60)
+        print("MULTI-LABEL AGREEMENT (PARTIAL CREDIT)")
+        print("="*60)
+
+        agreement_results = {}
+
+        for source in SOURCES:
+            if source not in self.predictions:
+                continue
+
+            print(f"\nAnalyzing multi-label agreement for {source}...")
+            model_keys = [k for k in self.predictions[source].keys() if 'bert' not in k.lower() and 'roberta' not in k.lower()]
+            n = len(model_keys)
+            match_ratio_matrix = np.ones((n, n))
+            jaccard_matrix = np.ones((n, n))
+
+            # Prepare matched, thresholded binary columns for each model
+            soft_labels_df = self.soft_labels.get(source)
+            if soft_labels_df is None or soft_labels_df.empty:
+                continue
+            soft_label_cols = soft_labels_df.columns.tolist()
+
+            # Build numeric prediction frames per model aligned to all categories
+            model_pred_frames = {}
+            min_len_global = None
+            num_cols = len(soft_label_cols)
+            for key in model_keys:
+                df = self.predictions[source][key]
+                # Create an aligned numeric frame with one column per soft label
+                aligned_numeric = []
+                for s in soft_label_cols:
+                    chosen = None
+                    for col in df.columns:
+                        if s.lower() in col.lower() or col.lower() in s.lower():
+                            chosen = col
+                            break
+                    if chosen is not None:
+                        aligned_numeric.append(pd.to_numeric(df[chosen], errors='coerce'))
+                    else:
+                        # Missing column for this label; fill zeros
+                        aligned_numeric.append(pd.Series(np.zeros(len(df))))
+                numeric = pd.concat(aligned_numeric, axis=1)
+                numeric.columns = soft_label_cols
+                numeric = numeric.fillna(0.0)
+                model_pred_frames[key] = numeric
+                min_len_global = len(numeric) if min_len_global is None else min(min_len_global, len(numeric))
+
+            if min_len_global is None or num_cols == 0:
+                continue
+
+            # Threshold to binary
+            for key in model_keys:
+                if not model_pred_frames[key].empty:
+                    model_pred_frames[key] = (model_pred_frames[key].iloc[:min_len_global, :num_cols] > 0.5).astype(int)
+
+            # Pairwise metrics
+            for i, m1 in enumerate(model_keys):
+                for j, m2 in enumerate(model_keys):
+                    if i > j:
+                        continue
+                    df1 = model_pred_frames[m1]
+                    df2 = model_pred_frames[m2]
+                    if df1.empty or df2.empty:
+                        mr = 0.0
+                        jac = 0.0
+                    else:
+                        k = min(df1.shape[1], df2.shape[1])
+                        if k == 0:
+                            mr = 0.0
+                            jac = 0.0
+                        else:
+                            a = df1.iloc[:, :k].to_numpy()
+                            b = df2.iloc[:, :k].to_numpy()
+                            # Match ratio: fraction of matches per row averaged
+                            matches_per_row = (a == b).sum(axis=1) / float(k)
+                            mr = float(matches_per_row.mean())
+                            # Jaccard per row on positive labels
+                            intersection = (np.logical_and(a == 1, b == 1)).sum(axis=1)
+                            union = (np.logical_or(a == 1, b == 1)).sum(axis=1)
+                            # Handle rows with no positives: define Jaccard as 1.0 if both empty
+                            jac_rows = np.where(union > 0, intersection / union, 1.0)
+                            jac = float(jac_rows.mean())
+
+                    match_ratio_matrix[i, j] = match_ratio_matrix[j, i] = mr
+                    jaccard_matrix[i, j] = jaccard_matrix[j, i] = jac
+
+            agreement_results[source] = {
+                'model_keys': model_keys,
+                'match_ratio_matrix': match_ratio_matrix,
+                'jaccard_matrix': jaccard_matrix
+            }
+
+            print(f"  Avg match ratio: {np.mean(match_ratio_matrix[np.triu_indices_from(match_ratio_matrix, k=1)]):.4f}")
+            print(f"  Avg Jaccard: {np.mean(jaccard_matrix[np.triu_indices_from(jaccard_matrix, k=1)]):.4f}")
+
+        self.results['multilabel_agreement'] = agreement_results
+        
+        # Build combined (all sources) matrices by averaging per-source over common models
+        if agreement_results:
+            computed_sources = [s for s in SOURCES if s in agreement_results]
+            if computed_sources:
+                common_keys = set(agreement_results[computed_sources[0]]['model_keys'])
+                for s in computed_sources[1:]:
+                    common_keys &= set(agreement_results[s]['model_keys'])
+                common_keys = list(common_keys)
+                # Order by base LLM order then full key
+                base_order = {name: i for i, name in enumerate(LLM_MODELS)}
+                def sort_key(m):
+                    base = m.split('_')[0]
+                    return (base_order.get(base, 999), m)
+                common_keys.sort(key=sort_key)
+                if common_keys:
+                    k = len(common_keys)
+                    combined_match = np.zeros((k, k))
+                    combined_jacc = np.zeros((k, k))
+                    counts = np.zeros((k, k))
+                    for s in computed_sources:
+                        keys_s = agreement_results[s]['model_keys']
+                        idx_map = {m: i for i, m in enumerate(keys_s)}
+                        mr = agreement_results[s]['match_ratio_matrix']
+                        jc = agreement_results[s]['jaccard_matrix']
+                        for i, mi in enumerate(common_keys):
+                            for j, mj in enumerate(common_keys):
+                                if mi in idx_map and mj in idx_map:
+                                    ii = idx_map[mi]
+                                    jj = idx_map[mj]
+                                    combined_match[i, j] += mr[ii, jj]
+                                    combined_jacc[i, j] += jc[ii, jj]
+                                    counts[i, j] += 1
+                    with np.errstate(invalid='ignore'):
+                        combined_match = np.divide(combined_match, counts, out=np.zeros_like(combined_match), where=counts>0)
+                        combined_jacc = np.divide(combined_jacc, counts, out=np.zeros_like(combined_jacc), where=counts>0)
+                    agreement_results['overall'] = {
+                        'model_keys': common_keys,
+                        'match_ratio_matrix': combined_match,
+                        'jaccard_matrix': combined_jacc
+                    }
+        return agreement_results
+
+    def correct_overlap_analysis(self):
+        """Compute correctness-based metrics per source and overall:
+        1) Model-vs-Truth Jaccard of positive label sets (per model → vector)
+        2) Jaccard overlap between models of sets of correctly predicted labels (matrix)
+        3) Pairwise model-truth similarity: Three-way Jaccard (model1 ∩ model2 ∩ truth)
+        4) Joint correctness: How often both models are correct together
+        Excludes BERT/RoBERTa entries.
+        """
+        print("\n" + "="*60)
+        print("CORRECT OVERLAP ANALYSIS")
+        print("="*60)
+
+        results = {}
+        for source in SOURCES:
+            if source not in self.predictions:
+                continue
+            print(f"\nAnalyzing correct overlap for {source}...")
+            model_keys = [k for k in self.predictions[source].keys() if 'bert' not in k.lower() and 'roberta' not in k.lower()]
+            if not model_keys:
+                continue
+
+            soft_df = self.soft_labels.get(source)
+            if soft_df is None or soft_df.empty:
+                continue
+            categories = soft_df.columns.tolist()
+
+            # Prepare aligned binary truth
+            y_true_bin = (soft_df[categories] > 0.5).astype(int)
+
+            # Prepare aligned, thresholded predictions per model to match categories
+            model_bin_preds = {}
+            min_len = None
+            for key in model_keys:
+                df = self.predictions[source][key]
+                min_len = len(df) if min_len is None else min(min_len, len(df))
+            if min_len is None:
+                continue
+            y_true_bin = y_true_bin.iloc[:min_len]
+
+            for key in model_keys:
+                df = self.predictions[source][key].iloc[:min_len]
+                aligned = []
+                for c in categories:
+                    colmatch = None
+                    for col in df.columns:
+                        if c.lower() in col.lower() or col.lower() in c.lower():
+                            colmatch = col
+                            break
+                    if colmatch is not None:
+                        aligned.append(pd.to_numeric(df[colmatch], errors='coerce'))
+                    else:
+                        aligned.append(pd.Series(np.zeros(len(df))))
+                pred_num = pd.concat(aligned, axis=1).fillna(0.0)
+                pred_bin = (pred_num > 0.5).astype(int)
+                pred_bin.columns = categories
+                model_bin_preds[key] = pred_bin
+
+            # 1) Model-vs-Truth Jaccard vector
+            model_truth_scores = []
+            for key in model_keys:
+                a = model_bin_preds[key].to_numpy()
+                b = y_true_bin.to_numpy()
+                inter = np.logical_and(a == 1, b == 1).sum(axis=1)
+                union = np.logical_or(a == 1, b == 1).sum(axis=1)
+                j_rows = np.where(union > 0, inter / union, 1.0)
+                model_truth_scores.append(float(np.mean(j_rows)))
+            model_truth_scores = np.array(model_truth_scores)
+
+            # 2) Correctness-overlap between models (Jaccard of correct-label sets)
+            n = len(model_keys)
+            correctness_overlap = np.zeros((n, n))
+            # True binary for comparison
+            y = y_true_bin.to_numpy()
+            for i, m1 in enumerate(model_keys):
+                a = model_bin_preds[m1].to_numpy()
+                correct1 = (a == y).astype(int)
+                for j, m2 in enumerate(model_keys):
+                    if i > j:
+                        continue
+                    b = model_bin_preds[m2].to_numpy()
+                    correct2 = (b == y).astype(int)
+                    inter = np.logical_and(correct1 == 1, correct2 == 1).sum(axis=1)
+                    union = np.logical_or(correct1 == 1, correct2 == 1).sum(axis=1)
+                    j_rows = np.where(union > 0, inter / union, 1.0)
+                    s = float(np.mean(j_rows))
+                    correctness_overlap[i, j] = correctness_overlap[j, i] = s
+
+            # 3) Pairwise model-truth similarity: Three-way Jaccard (model1 ∩ model2 ∩ truth)
+            pairwise_truth_similarity = np.zeros((n, n))
+            for i, m1 in enumerate(model_keys):
+                a = model_bin_preds[m1].to_numpy()
+                for j, m2 in enumerate(model_keys):
+                    if i > j:
+                        continue
+                    b = model_bin_preds[m2].to_numpy()
+                    # Three-way intersection: all three agree on positive labels
+                    three_way_inter = np.logical_and(np.logical_and(a == 1, b == 1), y == 1).sum(axis=1)
+                    # Three-way union: at least one has positive label
+                    three_way_union = np.logical_or(np.logical_or(a == 1, b == 1), y == 1).sum(axis=1)
+                    j_rows = np.where(three_way_union > 0, three_way_inter / three_way_union, 1.0)
+                    s = float(np.mean(j_rows))
+                    pairwise_truth_similarity[i, j] = pairwise_truth_similarity[j, i] = s
+
+            # 4) Joint correctness: how often both models are correct together
+            joint_correctness = np.zeros((n, n))
+            for i, m1 in enumerate(model_keys):
+                a = model_bin_preds[m1].to_numpy()
+                correct1 = (a == y).astype(int)
+                for j, m2 in enumerate(model_keys):
+                    if i > j:
+                        continue
+                    b = model_bin_preds[m2].to_numpy()
+                    correct2 = (b == y).astype(int)
+                    # Both correct simultaneously (per row, per category)
+                    both_correct = np.logical_and(correct1 == 1, correct2 == 1)
+                    # Average across all categories and rows
+                    joint_correctness[i, j] = joint_correctness[j, i] = float(both_correct.mean())
+
+            results[source] = {
+                'model_keys': model_keys,
+                'model_truth_jaccard': model_truth_scores,
+                'correctness_overlap': correctness_overlap,
+                'pairwise_truth_similarity': pairwise_truth_similarity,
+                'joint_correctness': joint_correctness
+            }
+
+        # Build overall by averaging across sources on common models
+        if results:
+            computed_sources = [s for s in SOURCES if s in results]
+            if computed_sources:
+                common = set(results[computed_sources[0]]['model_keys'])
+                for s in computed_sources[1:]:
+                    common &= set(results[s]['model_keys'])
+                common = list(common)
+                base_order = {name: i for i, name in enumerate(LLM_MODELS)}
+                def sort_key(m):
+                    base = m.split('_')[0]
+                    return (base_order.get(base, 999), m)
+                common.sort(key=sort_key)
+                if common:
+                    k = len(common)
+                    overlap_sum = np.zeros((k, k))
+                    overlap_cnt = np.zeros((k, k))
+                    pairwise_truth_sum = np.zeros((k, k))
+                    pairwise_truth_cnt = np.zeros((k, k))
+                    joint_correct_sum = np.zeros((k, k))
+                    joint_correct_cnt = np.zeros((k, k))
+                    truth_vec = np.zeros(k)
+                    truth_cnt = np.zeros(k)
+                    for s in computed_sources:
+                        keys_s = results[s]['model_keys']
+                        idx = {m: i for i, m in enumerate(keys_s)}
+                        # model-truth vector
+                        vec_s = results[s]['model_truth_jaccard']
+                        for i, m in enumerate(common):
+                            if m in idx:
+                                truth_vec[i] += vec_s[idx[m]]
+                                truth_cnt[i] += 1
+                        # correctness-overlap
+                        mat_s = results[s]['correctness_overlap']
+                        # pairwise truth similarity
+                        pairwise_s = results[s]['pairwise_truth_similarity']
+                        # joint correctness
+                        joint_s = results[s]['joint_correctness']
+                        for i, mi in enumerate(common):
+                            for j, mj in enumerate(common):
+                                if mi in idx and mj in idx:
+                                    overlap_sum[i, j] += mat_s[idx[mi], idx[mj]]
+                                    overlap_cnt[i, j] += 1
+                                    pairwise_truth_sum[i, j] += pairwise_s[idx[mi], idx[mj]]
+                                    pairwise_truth_cnt[i, j] += 1
+                                    joint_correct_sum[i, j] += joint_s[idx[mi], idx[mj]]
+                                    joint_correct_cnt[i, j] += 1
+                    with np.errstate(invalid='ignore'):
+                        truth_vec = np.divide(truth_vec, truth_cnt, out=np.zeros_like(truth_vec), where=truth_cnt>0)
+                        overlap_avg = np.divide(overlap_sum, overlap_cnt, out=np.zeros_like(overlap_sum), where=overlap_cnt>0)
+                        pairwise_truth_avg = np.divide(pairwise_truth_sum, pairwise_truth_cnt, out=np.zeros_like(pairwise_truth_sum), where=pairwise_truth_cnt>0)
+                        joint_correct_avg = np.divide(joint_correct_sum, joint_correct_cnt, out=np.zeros_like(joint_correct_sum), where=joint_correct_cnt>0)
+                    results['overall'] = {
+                        'model_keys': common,
+                        'model_truth_jaccard': truth_vec,
+                        'correctness_overlap': overlap_avg,
+                        'pairwise_truth_similarity': pairwise_truth_avg,
+                        'joint_correctness': joint_correct_avg
+                    }
+
+        self.results['correct_overlap'] = results
+        return results
     
     def ensemble_analysis(self):
         """Analyze ensemble model performance"""
@@ -338,6 +819,17 @@ class CrossModelValidator:
                 print(f"No matching prediction columns found for {model_key}")
                 return None
             
+            # Helper to coerce predictions to numeric and then binary
+            def _coerce_to_binary(series):
+                if series.dtype == object:
+                    mapping = {
+                        'yes': 1, 'true': 1, 'y': 1, 'positive': 1, 'pos': 1, '1': 1,
+                        'no': 0, 'false': 0, 'n': 0, 'negative': 0, 'neg': 0, '0': 0
+                    }
+                    series = series.astype(str).str.strip().str.lower().map(mapping).fillna(series)
+                numeric = pd.to_numeric(series, errors='coerce')
+                return (numeric > 0.5).astype(int)
+
             # Calculate F1 for each category
             f1_scores = []
             for i, soft_col in enumerate(soft_label_cols):
@@ -345,7 +837,7 @@ class CrossModelValidator:
                     pred_col = prediction_cols[i]
                     try:
                         y_true = (soft_labels_df[soft_col] > 0.5).astype(int)
-                        y_pred = (predictions_df[pred_col] > 0.5).astype(int)
+                        y_pred = _coerce_to_binary(predictions_df[pred_col])
                         f1 = f1_score(y_true, y_pred, zero_division=0)
                         f1_scores.append(f1)
                     except Exception as e:
@@ -477,6 +969,12 @@ class CrossModelValidator:
         
         # 1. Correlation heatmaps
         self._plot_correlation_heatmaps()
+        # 1b. Prediction-level similarity heatmaps
+        self._plot_prediction_similarity_heatmaps()
+        # 1c. Multi-label agreement heatmaps
+        self._plot_multilabel_agreement_heatmaps()
+        # 1d. Correct-overlap heatmaps
+        self._plot_correct_overlap_plots()
         
         # 2. Model performance comparison
         self._plot_model_performance_comparison()
@@ -516,8 +1014,41 @@ class CrossModelValidator:
             plt.yticks(rotation=0)
             plt.tight_layout()
             
-            plt.savefig(f'{self.output_dir}/plots/correlation_heatmap_{source}.png', 
+            plt.savefig(f'{self.output_dir}/plots/correlation_heatmap_{source}.pdf', 
                        dpi=300, bbox_inches='tight')
+            plt.close()
+
+    def _plot_prediction_similarity_heatmaps(self):
+        """Plot prediction-level similarity heatmaps (Pearson and Spearman) for each source"""
+        if 'prediction_similarity' not in self.results:
+            return
+        for source, data in self.results['prediction_similarity'].items():
+            model_keys = data['model_keys']
+
+            # Pearson
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(data['pearson_matrix'], xticklabels=model_keys, yticklabels=model_keys,
+                        annot=True, cmap='coolwarm', center=0, fmt='.3f')
+            plt.title(f'Prediction-Level Pearson Correlation - {source.title()}')
+            plt.xlabel('Models')
+            plt.ylabel('Models')
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/plots/prediction_pearson_{source}.pdf', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # Spearman
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(data['spearman_matrix'], xticklabels=model_keys, yticklabels=model_keys,
+                        annot=True, cmap='coolwarm', center=0, fmt='.3f')
+            plt.title(f'Prediction-Level Spearman Correlation - {source.title()}')
+            plt.xlabel('Models')
+            plt.ylabel('Models')
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/plots/prediction_spearman_{source}.pdf', dpi=300, bbox_inches='tight')
             plt.close()
     
     def _plot_model_performance_comparison(self):
@@ -544,7 +1075,7 @@ class CrossModelValidator:
                 plt.grid(True, alpha=0.3)
             
             plt.tight_layout()
-            plt.savefig(f'{self.output_dir}/plots/model_performance_comparison.png', 
+            plt.savefig(f'{self.output_dir}/plots/model_performance_comparison.pdf', 
                        dpi=300, bbox_inches='tight')
             plt.close()
             
@@ -568,6 +1099,92 @@ class CrossModelValidator:
         # This would plot ensemble performance
         # Implementation depends on the specific results structure
         pass
+
+    def _plot_multilabel_agreement_heatmaps(self):
+        """Plot multi-label agreement (match ratio, Jaccard) heatmaps per source"""
+        if 'multilabel_agreement' not in self.results:
+            return
+        for source, data in self.results['multilabel_agreement'].items():
+            model_keys = data['model_keys']
+
+            # Match ratio
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(data['match_ratio_matrix'], xticklabels=model_keys, yticklabels=model_keys,
+                        annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.3f')
+            plt.title(f'Multi-label Match Ratio - {source.title()}')
+            plt.xlabel('Models')
+            plt.ylabel('Models')
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/plots/multilabel_matchratio_{source}.pdf', dpi=300, bbox_inches='tight')
+            plt.close()
+
+    def _plot_correct_overlap_plots(self):
+        """Plot correctness-based overlap:
+        - Heatmap of correctness-overlap between models (per source and overall)
+        - Heatmap (single column) of model-vs-truth Jaccard per model
+        """
+        if 'correct_overlap' not in self.results:
+            return
+        for source, data in self.results['correct_overlap'].items():
+            model_keys = data['model_keys']
+            # Skip if meta keys
+            if not isinstance(model_keys, list):
+                continue
+            # Correctness-overlap matrix
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(data['correctness_overlap'], xticklabels=model_keys, yticklabels=model_keys,
+                        annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.3f')
+            title_src = source.title() if source != 'overall' else 'Overall'
+            plt.title(f'Correctness Overlap (Jaccard of correct labels) - {title_src}')
+            plt.xlabel('Models')
+            plt.ylabel('Models')
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/plots/correct_overlap_{source}.pdf', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # Model-vs-truth Jaccard vector as heatmap with single column
+            vec = np.array(data['model_truth_jaccard']).reshape(-1, 1)
+            plt.figure(figsize=(6, 10))
+            sns.heatmap(vec, xticklabels=['Truth'], yticklabels=model_keys,
+                        annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.3f')
+            plt.title(f'Model vs Truth Jaccard - {title_src}')
+            plt.xlabel('')
+            plt.ylabel('Models')
+            plt.tight_layout()
+            plt.savefig(f'{self.output_dir}/plots/model_truth_jaccard_{source}.pdf', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # Pairwise model-truth similarity (three-way Jaccard)
+            if 'pairwise_truth_similarity' in data:
+                plt.figure(figsize=(12, 10))
+                sns.heatmap(data['pairwise_truth_similarity'], xticklabels=model_keys, yticklabels=model_keys,
+                            annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.3f')
+                plt.title(f'Pairwise Model-Truth Similarity (3-way Jaccard) - {title_src}')
+                plt.xlabel('Models')
+                plt.ylabel('Models')
+                plt.xticks(rotation=45)
+                plt.yticks(rotation=0)
+                plt.tight_layout()
+                plt.savefig(f'{self.output_dir}/plots/pairwise_truth_similarity_{source}.pdf', dpi=300, bbox_inches='tight')
+                plt.close()
+
+            # Joint correctness (both models correct together)
+            if 'joint_correctness' in data:
+                plt.figure(figsize=(12, 10))
+                sns.heatmap(data['joint_correctness'], xticklabels=model_keys, yticklabels=model_keys,
+                            annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.3f')
+                plt.title(f'Joint Correctness (Both Models Correct) - {title_src}')
+                plt.xlabel('Models')
+                plt.ylabel('Models')
+                plt.xticks(rotation=45)
+                plt.yticks(rotation=0)
+                plt.tight_layout()
+                plt.savefig(f'{self.output_dir}/plots/joint_correctness_{source}.pdf', dpi=300, bbox_inches='tight')
+                plt.close()
     
     def generate_report(self):
         """Generate comprehensive validation report"""
@@ -618,6 +1235,9 @@ class CrossModelValidator:
         # Run analyses
         self.statistical_significance_testing()
         self.correlation_analysis()
+        self.prediction_level_similarity()
+        self.multi_label_agreement()
+        self.correct_overlap_analysis()
         self.ensemble_analysis()
         self.model_agreement_analysis()
         

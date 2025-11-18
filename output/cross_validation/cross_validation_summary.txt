@@ -1,0 +1,21 @@
+CROSS-MODEL VALIDATION ANALYSIS REPORT
+==================================================
+
+MODELS ANALYZED:
+LLMs: llama, phi4, qwen, gemini, grok, gpt4
+BERT: bert
+Shot Types: zero_shot, few_shot
+
+DATA SOURCES:
+reddit, x, news, meeting_minutes
+
+ANALYSIS COMPLETED:
+- Significance Testing
+- Correlation Analysis
+- Prediction Similarity
+- Multilabel Agreement
+- Ensemble Analysis
+- Agreement Analysis
+
+Results saved to: output/cross_validation/
+Visualizations saved to: output/cross_validation/plots/
