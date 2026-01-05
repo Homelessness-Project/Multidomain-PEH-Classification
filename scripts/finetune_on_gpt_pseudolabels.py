@@ -54,8 +54,28 @@ from sklearn.metrics import f1_score, precision_recall_fscore_support, classific
 import json
 import os
 import sys
+import re
 from pathlib import Path
 from tqdm import tqdm
+import sys
+
+# Configure tqdm to work in non-interactive environments
+# Force tqdm to use stdout and show progress even when output is redirected
+# Check if stdout is a TTY (interactive terminal)
+is_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+
+tqdm_kwargs = {
+    'file': sys.stdout,
+    'dynamic_ncols': True,
+    'mininterval': 0.5 if is_tty else 1.0,  # Update at least every 0.5-1 seconds
+    'miniters': 1,  # Update after every iteration (if mininterval allows)
+    'disable': False,  # Explicitly enable (don't disable)
+}
+
+# If not a TTY, use a simpler format that works better with redirected output
+if not is_tty:
+    tqdm_kwargs['ncols'] = 100  # Fixed width for non-TTY
+    tqdm_kwargs['ascii'] = True  # Use ASCII characters for compatibility
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -287,11 +307,18 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     """
     
     # Determine torch dtype based on device
-    # Use float32 for MPS to avoid dtype mismatch issues in backward pass
+    # Use bfloat16 for MPS (better support than float16, same memory as float16)
+    # bfloat16 is natively supported on Apple Silicon and avoids gradient issues
     if device and device.type == 'cuda':
         torch_dtype = torch.float16
     elif device and device.type == 'mps':
-        torch_dtype = torch.float32  # Use float32 for MPS (float16 has gradient issues)
+        # Use bfloat16 for MPS - same memory as float16 (2 bytes) but better numerical stability
+        # This halves memory usage compared to float32
+        if hasattr(torch, 'bfloat16'):
+            torch_dtype = torch.bfloat16
+        else:
+            # Fallback to float16 if bfloat16 not available (older PyTorch)
+            torch_dtype = torch.float16
     else:
         torch_dtype = torch.float32
     
@@ -739,6 +766,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     
     for epoch in range(epochs):
         print(f"\nEpoch {epoch + 1}/{epochs}")
+        sys.stdout.flush()  # Flush before starting progress bar
         
         # Training
         model.train()
@@ -746,7 +774,12 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         train_preds = []
         train_labels = []
         
-        for batch in tqdm(train_loader, desc="Training"):
+        # Calculate total batches for better progress display
+        total_batches = len(train_loader)
+        print(f"  Training on {total_batches} batches...")
+        sys.stdout.flush()
+        
+        for batch in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{epochs}", total=total_batches, **tqdm_kwargs):
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
@@ -823,7 +856,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_labels = []
         
         with torch.no_grad():
-            for batch in tqdm(val_loader, desc="Validation"):
+            for batch in tqdm(val_loader, desc=f"Validation Epoch {epoch+1}/{epochs}", **tqdm_kwargs):
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['labels'].to(device)
@@ -877,7 +910,7 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
     test_labels = []
     
     with torch.no_grad():
-        for batch in tqdm(test_loader, desc="Testing"):
+        for batch in tqdm(test_loader, desc="Testing", **tqdm_kwargs):
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
@@ -1016,34 +1049,222 @@ def main():
         percentage = positive_count / len(gpt_labels) * 100
         print(f"  {category:30}: {positive_count:6,}/{len(gpt_labels):6,} ({percentage:5.1f}%)")
     
-    # Prepare gold standard labels (we'll use GPT labels for gold standard too, but split by index)
-    # First, match gold standard comments to GPT pseudolabels
-    gold_texts = gold_df[text_col].astype(str).tolist()
-    
     # Split gold standard into val and test
     # Train set: Only GPT pseudolabels (no gold standard)
-    # Val/Test set: Gold standard split
-    # Note: test_start and test_end (default 1600-1700) refer to combined dataset across all sources
-    # Each source has 250-500 samples, so we use the last portion of each source file
+    # Val/Test set: Gold standard split (excluding few-shot examples)
     
-    # Calculate which portion of this source file corresponds to the combined 1600-1700 range
-    # Each source has 250-500 samples, total ~1700 across all sources
-    # Combined indices 1600-1700 = last ~100 samples from combined dataset
-    # Use last ~25% of each source file (roughly 50-125 samples per source)
-    eval_range_size = args.test_end - args.test_start  # Default: 100 samples (1600-1700)
+    # Extract few-shot examples from hardcoded prompts in utils.py
+    # The few-shot examples are embedded in the prompt text, not in separate files
+    # We need to extract the actual 5 examples from the prompt strings
+    try:
+        from scripts.utils import (
+            FEW_SHOT_REDDIT_PROMPT_TEXT, FEW_SHOT_X_PROMPT_TEXT,
+            FEW_SHOT_NEWS_PROMPT_TEXT, FEW_SHOT_MEETING_MINUTES_PROMPT_TEXT
+        )
+        
+        few_shot_prompt_map = {
+            'reddit': FEW_SHOT_REDDIT_PROMPT_TEXT,
+            'x': FEW_SHOT_X_PROMPT_TEXT,
+            'news': FEW_SHOT_NEWS_PROMPT_TEXT,
+            'meeting_minutes': FEW_SHOT_MEETING_MINUTES_PROMPT_TEXT
+        }
+        
+        few_shot_prompt = few_shot_prompt_map.get(args.source, '')
+        few_shot_comments = set()
+        
+        # Extract examples from prompt text (format: "Sentance: ..." or "Post: ..." or "Article: ..." or "Meeting Minutes: ...")
+        import re
+        # Define the prefix for each source
+        prefix_map = {
+            'reddit': 'Sentance:',
+            'x': 'Post:',
+            'news': 'Article:',
+            'meeting_minutes': 'Meeting Minutes:'
+        }
+        prefix = prefix_map.get(args.source, '')
+        
+        if prefix:
+            # Split by the prefix to get each example section
+            parts = few_shot_prompt.split(prefix)
+            # Skip the first part (everything before first prefix)
+            for part in parts[1:]:
+                # Extract text up to "Comment Type:" (the classification starts there)
+                if '\nComment Type:' in part:
+                    text = part.split('\nComment Type:')[0]
+                else:
+                    # If no "Comment Type:" found, take everything up to next prefix or end
+                    # Check if there's another prefix in this part
+                    next_prefix_positions = []
+                    for other_prefix in prefix_map.values():
+                        if other_prefix in part:
+                            next_prefix_positions.append(part.find(other_prefix))
+                    if next_prefix_positions:
+                        text = part[:min(next_prefix_positions)]
+                    else:
+                        text = part
+                
+                # Clean up the text (remove extra whitespace, newlines)
+                text = ' '.join(text.split())
+                if text:  # Only add non-empty text
+                    few_shot_comments.add(text)
+            
+            if len(few_shot_comments) != 5:
+                print(f"  Warning: Expected 5 few-shot examples but extracted {len(few_shot_comments)}")
+                print(f"  This is okay - will exclude whatever was found")
+        
+        print(f"  Extracted {len(few_shot_comments)} few-shot examples from prompt text")
+        if len(few_shot_comments) == 0:
+            print(f"  ERROR: No few-shot examples extracted! Check prompt text format.")
+        elif len(few_shot_comments) < 5:
+            print(f"  WARNING: Only extracted {len(few_shot_comments)} examples, expected 5")
+    except Exception as e:
+        print(f"  Warning: Could not extract few-shot examples from utils: {e}")
+        print(f"  Will use gold_subset files as fallback (may exclude too many)")
+        # Fallback to old method
+        few_shot_files = [
+            f'output/{args.source}/gpt4/classified_comments_{args.source}_gold_subset_gpt4_{args.source}_flags.csv',
+            f'output/{args.source}/gpt4/classified_comments_{args.source}_gold_subset_gpt4_none_flags.csv'
+        ]
+        few_shot_comments = set()
+        for few_shot_file in few_shot_files:
+            if Path(few_shot_file).exists():
+                few_shot_df = pd.read_csv(few_shot_file)
+                # Use 'Comment' column from few-shot files (they all use 'Comment')
+                few_shot_comments.update(few_shot_df['Comment'].astype(str).tolist())
+        print(f"  Found {len(few_shot_comments)} unique few-shot comments to exclude (fallback method)")
     
-    # Use the last portion of this source file for evaluation
-    # For sources with 250-500 samples, use last ~25% (approximately 50-125 samples)
-    # This ensures we get the last portion from each source that corresponds to combined 1600-1700
-    eval_size = max(50, int(len(gold_df) * 0.25))  # Last 25% of each source file
-    eval_size = min(eval_size, len(gold_df))  # Don't exceed file size
-    gold_eval_indices = list(range(len(gold_df) - eval_size, len(gold_df)))
+    # Filter out few-shot examples from gold standard using the text_col from load_gold_standard
+    if few_shot_comments:
+        initial_gold_len = len(gold_df)
+        
+        # Normalize few-shot comments for matching (strip, lowercase, normalize whitespace)
+        def normalize_text(text):
+            # Remove newlines and normalize whitespace
+            return ' '.join(str(text).split()).strip().lower()
+        
+        few_shot_comments_normalized = {normalize_text(c) for c in few_shot_comments}
+        print(f"  Sample few-shot text (first 100 chars): {list(few_shot_comments_normalized)[0][:100] if few_shot_comments_normalized else 'N/A'}")
+        
+        # Normalize gold standard texts for matching (same normalization)
+        gold_texts_normalized = gold_df[text_col].astype(str).apply(normalize_text)
+        print(f"  Sample gold standard text (first 100 chars): {gold_texts_normalized.iloc[0][:100] if len(gold_texts_normalized) > 0 else 'N/A'}")
+        
+        # Try exact matching first
+        exact_mask = ~gold_texts_normalized.isin(few_shot_comments_normalized)
+        exact_matches = (~exact_mask).sum()
+        print(f"  Exact matches found: {exact_matches}/{len(few_shot_comments_normalized)}")
+        
+        # For any few-shot examples that didn't match exactly, try substring matching
+        # This handles cases where text might have slight differences (whitespace, deidentification, etc.)
+        mask = exact_mask.copy()
+        unmatched_few_shot = []
+        for few_shot_text in few_shot_comments_normalized:
+            # Check if this few-shot text matched exactly
+            if few_shot_text not in gold_texts_normalized.values:
+                unmatched_few_shot.append(few_shot_text)
+        
+        if unmatched_few_shot:
+            print(f"  Trying substring matching for {len(unmatched_few_shot)} unmatched examples...")
+            for few_shot_text in unmatched_few_shot:
+                # Try multiple matching strategies:
+                # 1. Check if gold standard contains a significant portion of few-shot text (first 100 chars)
+                # 2. Check if few-shot text contains a significant portion of gold standard
+                # 3. Check for key phrases (first 50 chars)
+                
+                # Strategy 1: Check if gold standard contains first 100 chars of few-shot
+                if len(few_shot_text) > 100:
+                    search_text = few_shot_text[:100]
+                else:
+                    search_text = few_shot_text
+                
+                # Escape special regex characters but allow flexible matching
+                search_text_escaped = re.escape(search_text)
+                contains_mask = gold_texts_normalized.str.contains(search_text_escaped, case=False, na=False, regex=True)
+                
+                # Also try with first 50 chars if 100 didn't work
+                if not contains_mask.any() and len(few_shot_text) > 50:
+                    search_text_50 = re.escape(few_shot_text[:50])
+                    contains_mask = gold_texts_normalized.str.contains(search_text_50, case=False, na=False, regex=True)
+                
+                # Update mask to exclude matched samples
+                mask = mask & ~contains_mask
+                
+                if contains_mask.any():
+                    match_idx = contains_mask.idxmax() if hasattr(contains_mask, 'idxmax') else None
+                    print(f"    Matched: {few_shot_text[:60]}... at index {match_idx}")
+        
+        matches_found = (~mask).sum()
+        print(f"  Total matches found: {matches_found}/{len(few_shot_comments_normalized)}")
+        
+        # Get indices to keep (convert boolean mask to integer indices)
+        keep_indices = mask[mask].index.tolist() if hasattr(mask, 'index') else [i for i, keep in enumerate(mask) if keep]
+        
+        # Apply filter to gold_df
+        gold_df = gold_df.iloc[keep_indices].reset_index(drop=True)
+        
+        # Also filter gold_labels_df to match (if it exists)
+        if gold_labels_df is not None:
+            # Ensure gold_labels_df has the same length as original gold_df
+            if len(gold_labels_df) != initial_gold_len:
+                # Truncate to match length (shouldn't be longer, but handle it)
+                if len(gold_labels_df) > initial_gold_len:
+                    gold_labels_df = gold_labels_df.iloc[:initial_gold_len]
+                # If shorter, we can only filter what exists
+                keep_indices = [i for i in keep_indices if i < len(gold_labels_df)]
+            
+            # Apply same filter using iloc (works regardless of index alignment)
+            gold_labels_df = gold_labels_df.iloc[keep_indices].reset_index(drop=True)
+        
+        excluded_count = initial_gold_len - len(gold_df)
+        print(f"  Excluded {excluded_count} few-shot examples from gold standard")
+        if excluded_count == 0:
+            print(f"  WARNING: No examples were excluded! This might mean:")
+            print(f"    - Few-shot examples don't match gold standard text (check normalization)")
+            print(f"    - Few-shot examples weren't extracted correctly")
+            print(f"    - Text matching failed (check if texts are identical)")
+    
+    # Use ALL remaining gold standard samples for evaluation (val + test)
+    # This should be (total_samples - 5 few-shot) samples
+    # Note: Different sources have different sizes:
+    #   - reddit: 500 total, so ~495 after excluding 5 few-shot
+    #   - x: 456 total, so ~451 after excluding 5 few-shot  
+    #   - news: 382 total, so ~377 after excluding 5 few-shot
+    #   - meeting_minutes: 364 total, so ~359 after excluding 5 few-shot
+    gold_eval_indices = list(range(len(gold_df)))  # Use all remaining samples
+    
+    # Get gold texts after filtering (using filtered gold_df)
+    gold_texts = gold_df[text_col].astype(str).tolist()
+    
+    # Calculate expected count based on source (different sources have different sizes)
+    source_expected_counts = {
+        'reddit': 500,           # Actual: 500 samples
+        'x': 456,                # Actual: 456 samples
+        'news': 382,             # Actual: 382 samples
+        'meeting_minutes': 364   # Actual: 364 samples
+    }
+    expected_total = source_expected_counts.get(args.source, 500)
+    expected_after_exclude = expected_total - 5  # 5 few-shot examples
     
     print(f"\nSplitting data:")
     print(f"  Train set (GPT pseudolabels only): {len(gpt_texts):,} unique comments")
-    print(f"  Gold standard total: {len(gold_df)} samples")
-    print(f"  Gold standard eval set (last {eval_size} samples, indices {gold_eval_indices[0]}-{gold_eval_indices[-1]}): {len(gold_eval_indices)} samples")
-    print(f"  Note: Using last portion of this source file (corresponds to combined indices ~{args.test_start}-{args.test_end} across all sources)")
+    print(f"  Gold standard total (after excluding few-shot): {len(gold_df)} samples")
+    print(f"  Gold standard eval set (all remaining, excluding few-shot): {len(gold_eval_indices)} samples")
+    print(f"  Expected: ~{expected_after_exclude} samples ({expected_total} total - 5 few-shot = {expected_after_exclude})")
+    print(f"  Note: All sources have <= 500 samples (reddit: 500, x: 456, news: 382, meeting_minutes: 364)")
+    
+    # Safety check: ensure we have samples for evaluation
+    if len(gold_df) == 0:
+        raise ValueError(
+            f"ERROR: All gold standard samples were filtered out! "
+            f"This likely means all samples match few-shot examples. "
+            f"Check few-shot files: {few_shot_files}"
+        )
+    
+    if len(gold_eval_indices) == 0:
+        raise ValueError(
+            f"ERROR: No samples available for evaluation! "
+            f"Gold standard has {len(gold_df)} samples after filtering."
+        )
     
     # Recommend epochs based on dataset size (now using actual unique comment count)
     if len(gpt_texts) > 20000:
@@ -1120,12 +1341,22 @@ def main():
     
     gold_eval_labels = np.array(gold_eval_labels_list)
     
+    # Safety check before splitting
+    if len(gold_eval_texts) == 0 or len(gold_eval_labels) == 0:
+        raise ValueError(
+            f"ERROR: gold_eval_texts or gold_eval_labels is empty! "
+            f"gold_eval_texts: {len(gold_eval_texts)}, gold_eval_labels: {len(gold_eval_labels)}. "
+            f"This suggests an issue with building the eval sets."
+        )
+    
     if gold_labels_df is not None:
         print(f"  ✓ Using ACTUAL gold standard labels (human annotations) for test/val sets")
         print(f"    This ensures evaluation on real human-annotated data, not GPT pseudolabels")
     else:
         print(f"  ⚠ WARNING: Using GPT pseudolabels for test/val (gold standard labels not found)")
         print(f"    This is NOT ideal for research - please ensure gold standard labels are available")
+    
+    print(f"  Prepared {len(gold_eval_texts)} eval samples with {len(gold_eval_labels)} labels")
     
     # Split gold standard eval set into val and test (50/50 split)
     val_texts, test_texts, val_labels, test_labels = train_test_split(
@@ -1137,9 +1368,10 @@ def main():
     train_labels = gpt_labels.copy()
     
     print(f"\nFinal dataset sizes:")
-    print(f"  Train (GPT pseudolabels only): {len(train_texts)} samples")
+    print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
     print(f"  Val (gold standard split): {len(val_texts)} samples")
     print(f"  Test (gold standard split): {len(test_texts)} samples")
+    print(f"  Total eval: {len(val_texts) + len(test_texts)} samples (should be ~{expected_after_exclude})")
     
     # Create model and tokenizer
     model, tokenizer = create_model_and_tokenizer(
@@ -1164,6 +1396,7 @@ def main():
     
     # Train model
     print(f"\nTraining {args.model} on {args.source}...")
+    sys.stdout.flush()  # Ensure output is flushed before training starts
     model = train_model(
         model, train_loader, val_loader, device,
         epochs=args.epochs, learning_rate=args.learning_rate,
