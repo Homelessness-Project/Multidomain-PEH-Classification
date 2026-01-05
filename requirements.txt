@@ -18,4 +18,7 @@ openai
 genai
 groq
 textblob
+vaderSentiment
 imbalanced-learn
+peft
+# langfair  # Optional: Install manually if needed (may have dependency conflicts)

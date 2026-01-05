@@ -1,0 +1,1228 @@
+#!/usr/bin/env python3
+"""
+Finetune Local Models on GPT Pseudolabels
+
+This script:
+1. Loads GPT pseudolabels from all data (excluding few-shot examples)
+2. Uses gold standard (1600-1700) split into val/test sets
+3. Train set: Only GPT pseudolabels (no gold standard)
+4. Finetunes 6 model options on GPT pseudolabels with GPU support:
+   - Transformers: bert-base-uncased, roberta-base, modernbert-base
+   - Local LLMs: llama, qwen, gemma3
+
+Usage:
+    # Transformers (full fine-tuning)
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model bert-base-uncased
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model roberta-base
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model modernbert-base
+    
+    # Local LLMs with LoRA (recommended - 3-10x faster, less memory)
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model llama --use_lora
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model qwen --use_lora
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model gemma3 --use_lora
+    
+    # Local LLMs full fine-tuning (slower, more memory)
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model llama --batch_size 4
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model qwen --batch_size 4
+    
+    # Custom LoRA settings
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model qwen --use_lora --lora_rank 16 --lora_alpha 32
+"""
+
+import argparse
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from transformers import (
+    BertTokenizer, BertForSequenceClassification,
+    RobertaTokenizer, RobertaForSequenceClassification,
+    AutoTokenizer, AutoModelForSequenceClassification,
+    AutoModelForCausalLM, AutoModel, AutoConfig,
+    get_linear_schedule_with_warmup
+)
+from torch.optim import AdamW
+try:
+    from peft import LoraConfig, get_peft_model, TaskType
+    PEFT_AVAILABLE = True
+except ImportError:
+    PEFT_AVAILABLE = False
+    print("Warning: PEFT not available. Install with: pip install peft")
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, precision_recall_fscore_support, classification_report
+import json
+import os
+import sys
+from pathlib import Path
+from tqdm import tqdm
+import warnings
+warnings.filterwarnings('ignore')
+
+# Import utils
+try:
+    from scripts.utils import get_model_config
+except ImportError:
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from scripts.utils import get_model_config
+
+# Define all 16 categories
+ALL_CATEGORIES = [
+    'ask a genuine question', 'ask a rhetorical question', 'provide a fact or claim',
+    'provide an observation', 'express their opinion', 'express others opinions',
+    'money aid allocation', 'government critique', 'societal critique',
+    'solutions/interventions', 'personal interaction', 'media portrayal',
+    'not in my backyard', 'harmful generalization', 'deserving/undeserving', 'racist'
+]
+
+# Map from GPT column names to our category names
+GPT_TO_CATEGORY_MAP = {
+    'Comment_ask a genuine question': 'ask a genuine question',
+    'Comment_ask a rhetorical question': 'ask a rhetorical question',
+    'Comment_provide a fact or claim': 'provide a fact or claim',
+    'Comment_provide an observation': 'provide an observation',
+    'Comment_express their opinion': 'express their opinion',
+    'Comment_express others opinions': 'express others opinions',
+    'Critique_money aid allocation': 'money aid allocation',
+    'Critique_government critique': 'government critique',
+    'Critique_societal critique': 'societal critique',
+    'Response_solutions/interventions': 'solutions/interventions',
+    'Perception_personal interaction': 'personal interaction',
+    'Perception_media portrayal': 'media portrayal',
+    'Perception_not in my backyard': 'not in my backyard',
+    'Perception_harmful generalization': 'harmful generalization',
+    'Perception_deserving/undeserving': 'deserving/undeserving',
+    'Racist_Flag': 'racist'
+}
+
+class FocalLoss(nn.Module):
+    """Focal Loss for addressing class imbalance"""
+    def __init__(self, alpha=1, gamma=2):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+    
+    def forward(self, inputs, targets):
+        # Ensure inputs and targets are in float32 for numerical stability
+        # This is critical for mixed precision training (model in float16, loss in float32)
+        inputs = inputs.to(dtype=torch.float32)
+        targets = targets.to(dtype=torch.float32)
+        
+        # Apply sigmoid to inputs
+        probs = torch.sigmoid(inputs)
+        
+        # Calculate binary cross entropy
+        bce_loss = nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        
+        # Calculate p_t
+        p_t = probs * targets + (1 - probs) * (1 - targets)
+        
+        # Calculate focal loss
+        focal_loss = self.alpha * (1 - p_t) ** self.gamma * bce_loss
+        
+        return focal_loss.mean()
+
+class GPTPseudolabelDataset(Dataset):
+    """Dataset for GPT pseudolabels"""
+    
+    def __init__(self, texts, labels, tokenizer, max_length=128):
+        self.texts = texts
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+    
+    def __len__(self):
+        return len(self.texts)
+    
+    def __getitem__(self, idx):
+        text = str(self.texts[idx])
+        label = self.labels[idx]
+        
+        encoding = self.tokenizer(
+            text,
+            truncation=True,
+            padding='max_length',
+            max_length=self.max_length,
+            return_tensors='pt'
+        )
+        
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(label, dtype=torch.float32)
+        }
+
+def load_gpt_pseudolabels(source, exclude_few_shot=True):
+    """Load GPT pseudolabels, excluding few-shot examples"""
+    
+    # Load all GPT pseudolabels
+    gpt_file = f'output/{source}/gpt4/classified_comments_{source}_all_gpt4_{source}_flags.csv'
+    
+    if not Path(gpt_file).exists():
+        raise FileNotFoundError(f"GPT pseudolabels file not found: {gpt_file}")
+    
+    print(f"Loading GPT pseudolabels from {gpt_file}...")
+    gpt_df = pd.read_csv(gpt_file)
+    print(f"  Loaded {len(gpt_df)} rows from CSV")
+    
+    # Handle duplicates: keep first occurrence of each unique comment
+    # (Some comments may appear multiple times with different category combinations)
+    initial_count = len(gpt_df)
+    gpt_df = gpt_df.drop_duplicates(subset=['Comment'], keep='first')
+    if initial_count != len(gpt_df):
+        print(f"  Removed {initial_count - len(gpt_df)} duplicate comments (kept first occurrence)")
+    
+    print(f"  Unique comments for training: {len(gpt_df):,}")
+    
+    # Exclude few-shot examples (from gold_subset files)
+    if exclude_few_shot:
+        few_shot_files = [
+            f'output/{source}/gpt4/classified_comments_{source}_gold_subset_gpt4_{source}_flags.csv',
+            f'output/{source}/gpt4/classified_comments_{source}_gold_subset_gpt4_none_flags.csv'
+        ]
+        
+        few_shot_comments = set()
+        for few_shot_file in few_shot_files:
+            if Path(few_shot_file).exists():
+                few_shot_df = pd.read_csv(few_shot_file)
+                few_shot_comments.update(few_shot_df['Comment'].astype(str).tolist())
+        
+        if few_shot_comments:
+            initial_len = len(gpt_df)
+            gpt_df = gpt_df[~gpt_df['Comment'].astype(str).isin(few_shot_comments)]
+            print(f"  Excluded {initial_len - len(gpt_df)} few-shot examples")
+            print(f"  Remaining: {len(gpt_df)} comments")
+    
+    return gpt_df
+
+def load_gold_standard(source):
+    """Load gold standard data and labels"""
+    
+    source_to_file = {
+        'reddit': 'gold_standard/sampled_reddit_comments.csv',
+        'x': 'gold_standard/sampled_twitter_posts.csv',
+        'news': 'gold_standard/sampled_lexisnexis_news.csv',
+        'meeting_minutes': 'gold_standard/sampled_meeting_minutes.csv'
+    }
+    
+    gold_file = source_to_file[source]
+    if not Path(gold_file).exists():
+        raise FileNotFoundError(f"Gold standard file not found: {gold_file}")
+    
+    print(f"Loading gold standard from {gold_file}...")
+    gold_df = pd.read_csv(gold_file)
+    
+    # Get text column - check various possible column names
+    text_col = 'Comment'
+    if 'Deidentified_Comment' in gold_df.columns:
+        text_col = 'Deidentified_Comment'
+    elif 'Deidentified_text' in gold_df.columns:
+        text_col = 'Deidentified_text'
+    elif 'Deidentified text' in gold_df.columns:
+        text_col = 'Deidentified text'
+    elif 'Deidentified_paragraph' in gold_df.columns:
+        text_col = 'Deidentified_paragraph'
+    elif 'Comment' in gold_df.columns:
+        text_col = 'Comment'
+    else:
+        # Try to find any column that might contain text
+        possible_cols = [col for col in gold_df.columns if 'text' in col.lower() or 'comment' in col.lower() or 'paragraph' in col.lower()]
+        if possible_cols:
+            text_col = possible_cols[0]
+            print(f"  Warning: Using '{text_col}' as text column (auto-detected)")
+        else:
+            raise ValueError(f"Could not find text column in gold standard. Available columns: {gold_df.columns.tolist()}")
+    
+    if text_col not in gold_df.columns:
+        raise ValueError(f"Text column '{text_col}' not found in gold standard. Available columns: {gold_df.columns.tolist()}")
+    
+    # Load gold standard labels (human annotations)
+    gold_labels_df = None
+    soft_labels_file = f'output/annotation/soft_labels/{source}_soft_labels.csv'
+    raw_scores_file = f'annotation/{source}_raw_scores.csv'
+    
+    if Path(soft_labels_file).exists():
+        print(f"  Loading gold standard labels from {soft_labels_file}...")
+        gold_labels_df = pd.read_csv(soft_labels_file)
+    elif Path(raw_scores_file).exists():
+        print(f"  Loading gold standard labels from {raw_scores_file}...")
+        gold_labels_df = pd.read_csv(raw_scores_file)
+        # Convert raw scores (0-3) to binary (threshold at >= 2 for 2+ annotator agreement)
+        # Map columns to match ALL_CATEGORIES
+        category_to_col = {
+            'ask a genuine question': 'ask a genuine question',
+            'ask a rhetorical question': 'ask a rhetorical question',
+            'provide a fact or claim': 'provide a fact or claim',
+            'provide an observation': 'provide an observation',
+            'express their opinion': 'express their opinion',
+            'express others opinions': 'express others opinions',
+            'money aid allocation': 'money aid allocation',
+            'government critique': 'government critique',
+            'societal critique': 'societal critique',
+            'solutions/interventions': 'solutions/interventions',
+            'personal interaction': 'personal interaction',
+            'media portrayal': 'media portrayal',
+            'not in my backyard': 'not in my backyard',
+            'harmful generalization': 'harmful generalization',
+            'deserving/undeserving': 'deserving/undeserving',
+            'racist': 'Racist'
+        }
+    else:
+        print(f"  WARNING: No gold standard labels found. Will use GPT pseudolabels for test/val.")
+    
+    print(f"  Loaded {len(gold_df)} gold standard samples")
+    return gold_df, text_col, gold_labels_df
+
+
+def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=False, lora_rank=8, lora_alpha=16):
+    """Create model and tokenizer based on model name, supporting both transformers and local LLMs
+    
+    Args:
+        model_name: Name of the model to load
+        num_labels: Number of classification labels
+        device: Torch device
+        use_lora: Whether to use LoRA for efficient fine-tuning
+        lora_rank: LoRA rank (only used if use_lora=True)
+        lora_alpha: LoRA alpha (only used if use_lora=True)
+    """
+    
+    # Determine torch dtype based on device
+    # Use float32 for MPS to avoid dtype mismatch issues in backward pass
+    if device and device.type == 'cuda':
+        torch_dtype = torch.float16
+    elif device and device.type == 'mps':
+        torch_dtype = torch.float32  # Use float32 for MPS (float16 has gradient issues)
+    else:
+        torch_dtype = torch.float32
+    
+    # Check if it's a local LLM (llama, qwen, gemma3)
+    local_llms = ['llama', 'qwen', 'gemma3']
+    is_local_llm = any(llm in model_name.lower() for llm in local_llms)
+    
+    if is_local_llm:
+        # Use get_model_config from utils
+        model_config = get_model_config(model_name)
+        model_id = model_config["model_id"]
+        
+        print(f"Loading local LLM: {model_name} ({model_id})")
+        
+        # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            trust_remote_code=True
+        )
+        
+        # Check if tokenizer has pad_token - critical for batching
+        # Llama models typically don't have a pad_token by default
+        if tokenizer.pad_token is None:
+            if tokenizer.eos_token is not None:
+                tokenizer.pad_token = tokenizer.eos_token
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+                print(f"  Using eos_token as pad_token: {tokenizer.pad_token} (id: {tokenizer.pad_token_id})")
+            else:
+                # Add pad token and resize embeddings
+                tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+                tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids('[PAD]')
+                print(f"  Added new pad_token: {tokenizer.pad_token} (id: {tokenizer.pad_token_id})")
+        
+        # Ensure pad_token_id is set and valid
+        if tokenizer.pad_token_id is None:
+            if tokenizer.eos_token_id is not None:
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+                tokenizer.pad_token = tokenizer.eos_token
+            else:
+                # Fallback: use tokenizer.unk_token_id or 0
+                tokenizer.pad_token_id = getattr(tokenizer, 'unk_token_id', 0) if hasattr(tokenizer, 'unk_token_id') and tokenizer.unk_token_id is not None else 0
+                print(f"  WARNING: Using fallback pad_token_id: {tokenizer.pad_token_id}")
+        
+        # Final verification
+        if tokenizer.pad_token_id is None:
+            raise ValueError("Failed to set pad_token_id in tokenizer. Cannot proceed with batching.")
+        
+        print(f"  ✓ Tokenizer pad_token: '{tokenizer.pad_token}' (id: {tokenizer.pad_token_id})")
+        
+        # Try to load as sequence classification model first
+        try:
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_id,
+                num_labels=num_labels,
+                problem_type='multi_label_classification',
+                trust_remote_code=True,
+                dtype=torch_dtype
+            )
+            # Resize token embeddings if we added a new pad token
+            if len(tokenizer) > model.config.vocab_size:
+                model.resize_token_embeddings(len(tokenizer))
+                print(f"  Resized model embeddings to match tokenizer: {len(tokenizer)}")
+            
+            # Set pad_token_id in model config (critical for batching)
+            if hasattr(model.config, 'pad_token_id'):
+                model.config.pad_token_id = tokenizer.pad_token_id
+            print(f"  Model config pad_token_id: {getattr(model.config, 'pad_token_id', 'Not set')}")
+            
+            # For AutoModelForSequenceClassification, the classifier is called 'score', not 'classifier'
+            # Ensure it's trainable before LoRA is applied
+            if hasattr(model, 'score'):
+                for param in model.score.parameters():
+                    param.requires_grad = True
+                print(f"  ✓ Score layer (classifier) is trainable ({sum(p.numel() for p in model.score.parameters()):,} params)")
+            elif hasattr(model, 'classifier'):
+                for param in model.classifier.parameters():
+                    param.requires_grad = True
+                print(f"  ✓ Classifier is trainable ({sum(p.numel() for p in model.classifier.parameters()):,} params)")
+        except Exception as e:
+            print(f"Could not load as sequence classification: {e}")
+            print("Loading as causal LM and adding classification head...")
+            
+            # Load as causal LM and add classification head
+            base_model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                trust_remote_code=True,
+                dtype=torch_dtype
+            )
+            
+            # Resize token embeddings if we added a new pad token
+            if len(tokenizer) > base_model.config.vocab_size:
+                base_model.resize_token_embeddings(len(tokenizer))
+                print(f"  Resized model embeddings to match tokenizer: {len(tokenizer)}")
+            
+            # Set pad_token_id in model config (critical for batching)
+            # This MUST be set for the model to handle batching correctly
+            base_model.config.pad_token_id = tokenizer.pad_token_id
+            # Also set it as an attribute if the config doesn't have it
+            if not hasattr(base_model.config, 'pad_token_id') or base_model.config.pad_token_id is None:
+                setattr(base_model.config, 'pad_token_id', tokenizer.pad_token_id)
+            
+            print(f"  Model config pad_token_id: {base_model.config.pad_token_id}")
+            print(f"  Tokenizer pad_token_id: {tokenizer.pad_token_id}")
+            
+            # Verify they match
+            if base_model.config.pad_token_id != tokenizer.pad_token_id:
+                print(f"  WARNING: pad_token_id mismatch! Model: {base_model.config.pad_token_id}, Tokenizer: {tokenizer.pad_token_id}")
+                base_model.config.pad_token_id = tokenizer.pad_token_id
+            
+            # Create wrapper with classification head
+            class ModelWithClassificationHead(nn.Module):
+                def __init__(self, base_model, num_labels, pad_token_id=None):
+                    super().__init__()
+                    self.base_model = base_model
+                    # Store pad_token_id for fallback in forward pass
+                    self._tokenizer_pad_token_id = pad_token_id
+                    # Get hidden size from config
+                    if hasattr(base_model.config, 'hidden_size'):
+                        hidden_size = base_model.config.hidden_size
+                    elif hasattr(base_model.config, 'd_model'):
+                        hidden_size = base_model.config.d_model
+                    else:
+                        # Try to infer from model
+                        hidden_size = base_model.config.n_embd if hasattr(base_model.config, 'n_embd') else 768
+                    self.classifier = nn.Linear(hidden_size, num_labels)
+                    # Ensure classifier head is trainable
+                    for param in self.classifier.parameters():
+                        param.requires_grad = True
+                    
+                def forward(self, input_ids=None, attention_mask=None, labels=None):
+                    # Ensure pad_token_id is set in config before forward pass
+                    if hasattr(self.base_model, 'config'):
+                        if not hasattr(self.base_model.config, 'pad_token_id') or self.base_model.config.pad_token_id is None:
+                            # Get pad_token_id from tokenizer if available
+                            # This is a fallback in case it wasn't set during initialization
+                            if hasattr(self, '_tokenizer_pad_token_id'):
+                                self.base_model.config.pad_token_id = self._tokenizer_pad_token_id
+                    
+                    # Pass use_cache=False when gradient checkpointing is enabled
+                    outputs = self.base_model(
+                        input_ids=input_ids, 
+                        attention_mask=attention_mask,
+                        use_cache=False  # Required when gradient checkpointing is enabled
+                    )
+                    
+                    # Get last hidden state
+                    if hasattr(outputs, 'last_hidden_state'):
+                        hidden_states = outputs.last_hidden_state
+                    elif hasattr(outputs, 'hidden_states'):
+                        hidden_states = outputs.hidden_states[-1]
+                    else:
+                        # For causal LMs, use the last token
+                        hidden_states = outputs.logits
+                    
+                    # Use mean pooling over sequence length
+                    if len(hidden_states.shape) == 3:
+                        # Mask out padding tokens
+                        if attention_mask is not None:
+                            mask = attention_mask.unsqueeze(-1).expand(hidden_states.size()).float()
+                            hidden_states = hidden_states * mask
+                            pooled = hidden_states.sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
+                        else:
+                            pooled = hidden_states.mean(dim=1)
+                    else:
+                        pooled = hidden_states
+                    
+                    logits = self.classifier(pooled)
+                    
+                    return type('Output', (), {
+                        'logits': logits,
+                        'loss': None
+                    })()
+            
+            model = ModelWithClassificationHead(base_model, num_labels, pad_token_id=tokenizer.pad_token_id)
+            
+            # Ensure classifier head is trainable (LoRA will freeze base model, but classifier should be trainable)
+            for param in model.classifier.parameters():
+                param.requires_grad = True
+            print(f"  ✓ Classifier head is trainable ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
+        
+        # Apply LoRA if requested
+        if use_lora and PEFT_AVAILABLE:
+            print(f"Applying LoRA with rank={lora_rank}, alpha={lora_alpha}")
+            # Determine target modules based on model architecture
+            if 'qwen' in model_name.lower():
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+            elif 'llama' in model_name.lower():
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+            elif 'gemma' in model_name.lower():
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+            else:
+                # Default for other models
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+            
+            # Determine which modules to save (keep trainable) based on model type
+            # For AutoModelForSequenceClassification: 'score'
+            # For ModelWithClassificationHead: 'classifier'
+            modules_to_save = []
+            if hasattr(model, 'score'):
+                modules_to_save = ["score"]  # LlamaForSequenceClassification uses 'score'
+            elif hasattr(model, 'classifier'):
+                modules_to_save = ["classifier"]  # Custom wrapper uses 'classifier'
+            
+            lora_config = LoraConfig(
+                task_type=TaskType.FEATURE_EXTRACTION,  # For classification
+                r=lora_rank,
+                lora_alpha=lora_alpha,
+                target_modules=target_modules,
+                lora_dropout=0.1,
+                bias="none",
+                modules_to_save=modules_to_save if modules_to_save else None,  # CRITICAL: Keep classifier head trainable
+            )
+            model = get_peft_model(model, lora_config)
+            model.print_trainable_parameters()
+            
+            # CRITICAL: Ensure classifier/score head remains trainable after LoRA is applied
+            # LoRA freezes base model but classifier should be trainable
+            # Check all possible locations for the classifier/score layer
+            classifier_found = False
+            
+            # Debug: Print model structure to understand where score/classifier is
+            print(f"  Debugging model structure after LoRA:")
+            print(f"    model type: {type(model).__name__}")
+            if hasattr(model, 'base_model'):
+                print(f"    model.base_model type: {type(model.base_model).__name__}")
+                print(f"    model.base_model attributes: {[attr for attr in dir(model.base_model) if not attr.startswith('_')][:20]}")
+            
+            # Check for 'score' layer (AutoModelForSequenceClassification)
+            # After PEFT wrapping, it should be at model.base_model.score
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'score'):
+                for param in model.base_model.score.parameters():
+                    param.requires_grad = True
+                classifier_found = True
+                score_params = sum(p.numel() for p in model.base_model.score.parameters())
+                print(f"  ✓ Ensured score layer is trainable (nested, {score_params:,} params)")
+            elif hasattr(model, 'score'):
+                for param in model.score.parameters():
+                    param.requires_grad = True
+                classifier_found = True
+                score_params = sum(p.numel() for p in model.score.parameters())
+                print(f"  ✓ Ensured score layer is trainable ({score_params:,} params)")
+            
+            # Check for 'classifier' layer (ModelWithClassificationHead)
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'classifier'):
+                for param in model.base_model.classifier.parameters():
+                    param.requires_grad = True
+                classifier_found = True
+                classifier_params = sum(p.numel() for p in model.base_model.classifier.parameters())
+                print(f"  ✓ Ensured classifier head is trainable ({classifier_params:,} params)")
+            elif hasattr(model, 'base_model') and hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'classifier'):
+                for param in model.base_model.base_model.classifier.parameters():
+                    param.requires_grad = True
+                classifier_found = True
+                print(f"  ✓ Ensured classifier head is trainable (deeply nested)")
+            
+            if not classifier_found:
+                print(f"  ⚠️  WARNING: Could not find classifier/score layer to make trainable!")
+                print(f"  Available attributes: {[attr for attr in dir(model) if not attr.startswith('_')][:30]}")
+            
+            # Verify trainable parameters after ensuring classifier is trainable
+            trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            print(f"  ✓ Total trainable parameters after ensuring classifier: {trainable_after:,}")
+            
+            # Final check: verify we have trainable parameters
+            if trainable_after == 0:
+                raise RuntimeError("No trainable parameters found after LoRA setup! Check model structure.")
+            
+            # CRITICAL: Set pad_token_id on ALL config levels after LoRA is applied
+            # The PEFT wrapper creates nested models, so we need to set it at every level
+            pad_token_id = tokenizer.pad_token_id
+            
+            # Set on top-level PEFT model config
+            if hasattr(model, 'config'):
+                model.config.pad_token_id = pad_token_id
+                setattr(model.config, 'pad_token_id', pad_token_id)
+            
+            # Set on base_model config (the wrapped ModelWithClassificationHead)
+            if hasattr(model, 'base_model'):
+                if hasattr(model.base_model, 'config'):
+                    model.base_model.config.pad_token_id = pad_token_id
+                    setattr(model.base_model.config, 'pad_token_id', pad_token_id)
+                # Also set on the actual base_model inside ModelWithClassificationHead
+                if hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'config'):
+                    model.base_model.base_model.config.pad_token_id = pad_token_id
+                    setattr(model.base_model.base_model.config, 'pad_token_id', pad_token_id)
+            
+            # Set on PEFT config if it exists
+            if hasattr(model, 'peft_config'):
+                for key in model.peft_config.keys():
+                    if hasattr(model.peft_config[key], 'pad_token_id'):
+                        model.peft_config[key].pad_token_id = pad_token_id
+            
+            # Final verification - check all possible config paths
+            configs_to_check = []
+            if hasattr(model, 'config'):
+                configs_to_check.append(('model.config', model.config))
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'config'):
+                configs_to_check.append(('model.base_model.config', model.base_model.config))
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'config'):
+                configs_to_check.append(('model.base_model.base_model.config', model.base_model.base_model.config))
+            
+            print(f"  ✓ pad_token_id verification:")
+            for name, cfg in configs_to_check:
+                pad_id = getattr(cfg, 'pad_token_id', None)
+                print(f"    {name}: {pad_id} {'✓' if pad_id == pad_token_id else '✗ (MISMATCH!)'}")
+                if pad_id != pad_token_id:
+                    setattr(cfg, 'pad_token_id', pad_token_id)
+                    print(f"      → Fixed to {pad_token_id}")
+            
+            # Enable gradient checkpointing after LoRA (for memory efficiency, especially on MPS)
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'gradient_checkpointing_enable'):
+                model.base_model.gradient_checkpointing_enable()
+                print("Gradient checkpointing enabled for memory efficiency")
+        elif use_lora and not PEFT_AVAILABLE:
+            print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
+        
+        # Enable gradient checkpointing for memory efficiency (if not using LoRA)
+        if not use_lora:
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'gradient_checkpointing_enable'):
+                model.base_model.gradient_checkpointing_enable()
+                print("Gradient checkpointing enabled for memory efficiency")
+            elif hasattr(model, 'gradient_checkpointing_enable'):
+                model.gradient_checkpointing_enable()
+                print("Gradient checkpointing enabled for memory efficiency")
+    
+    elif 'roberta' in model_name.lower():
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification.from_pretrained(
+            'roberta-base',
+            num_labels=num_labels,
+            problem_type='multi_label_classification'
+        )
+        
+        # Apply LoRA to RoBERTa if requested
+        if use_lora and PEFT_AVAILABLE:
+            print(f"Applying LoRA to RoBERTa with rank={lora_rank}, alpha={lora_alpha}")
+            target_modules = ["query", "key", "value", "dense"]  # RoBERTa attention modules
+            lora_config = LoraConfig(
+                task_type=TaskType.FEATURE_EXTRACTION,
+                r=lora_rank,
+                lora_alpha=lora_alpha,
+                target_modules=target_modules,
+                lora_dropout=0.1,
+                bias="none",
+            )
+            model = get_peft_model(model, lora_config)
+            model.print_trainable_parameters()
+        elif use_lora and not PEFT_AVAILABLE:
+            print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
+    elif 'modernbert' in model_name.lower():
+        tokenizer = AutoTokenizer.from_pretrained('tdmd/modernbert-base')
+        model = AutoModelForSequenceClassification.from_pretrained(
+            'tdmd/modernbert-base',
+            num_labels=num_labels,
+            problem_type='multi_label_classification'
+        )
+        
+        # Apply LoRA to ModernBERT if requested
+        if use_lora and PEFT_AVAILABLE:
+            print(f"Applying LoRA to ModernBERT with rank={lora_rank}, alpha={lora_alpha}")
+            target_modules = ["query", "key", "value", "dense"]  # BERT-style attention modules
+            lora_config = LoraConfig(
+                task_type=TaskType.FEATURE_EXTRACTION,
+                r=lora_rank,
+                lora_alpha=lora_alpha,
+                target_modules=target_modules,
+                lora_dropout=0.1,
+                bias="none",
+            )
+            model = get_peft_model(model, lora_config)
+            model.print_trainable_parameters()
+        elif use_lora and not PEFT_AVAILABLE:
+            print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
+    else:  # bert-base-uncased or default
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        model = BertForSequenceClassification.from_pretrained(
+            'bert-base-uncased',
+            num_labels=num_labels,
+            problem_type='multi_label_classification'
+        )
+        
+        # Apply LoRA to BERT/RoBERTa if requested (less common but supported)
+        if use_lora and PEFT_AVAILABLE:
+            print(f"Applying LoRA to BERT with rank={lora_rank}, alpha={lora_alpha}")
+            target_modules = ["query", "key", "value", "dense"]  # BERT attention modules
+            lora_config = LoraConfig(
+                task_type=TaskType.FEATURE_EXTRACTION,
+                r=lora_rank,
+                lora_alpha=lora_alpha,
+                target_modules=target_modules,
+                lora_dropout=0.1,
+                bias="none",
+            )
+            model = get_peft_model(model, lora_config)
+            model.print_trainable_parameters()
+        elif use_lora and not PEFT_AVAILABLE:
+            print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
+    
+    # Print parameter counts
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"\nModel Parameters:")
+    print(f"  Total parameters: {total_params:,}")
+    print(f"  Trainable parameters: {trainable_params:,}")
+    print(f"  Trainable percentage: {100 * trainable_params / total_params:.2f}%")
+    if use_lora:
+        print(f"  Using LoRA (rank={lora_rank}, alpha={lora_alpha})")
+    else:
+        print(f"  Using full fine-tuning")
+    
+    return model, tokenizer
+
+def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate=2e-5, 
+                source='', model_name='', label_names=None):
+    """Train the model"""
+    
+    model.to(device)
+    
+    # Get trainable parameters (important for LoRA - only LoRA params should be trainable)
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    if len(trainable_params) == 0:
+        raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
+    
+    print(f"  Training {len(trainable_params)} parameter groups with {sum(p.numel() for p in trainable_params):,} trainable parameters")
+    
+    optimizer = AdamW(trainable_params, lr=learning_rate, weight_decay=0.01)
+    
+    # Use focal loss for class imbalance
+    criterion = FocalLoss(alpha=1, gamma=2)
+    
+    # Learning rate scheduler
+    total_steps = len(train_loader) * epochs
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=0,
+        num_training_steps=total_steps
+    )
+    
+    best_val_f1 = 0.0
+    best_model_state = None
+    # Early stopping patience: stop if no improvement for 3 epochs
+    # This allows training to continue for large datasets while stopping early if converged
+    patience = 3
+    patience_counter = 0
+    
+    for epoch in range(epochs):
+        print(f"\nEpoch {epoch + 1}/{epochs}")
+        
+        # Training
+        model.train()
+        train_loss = 0
+        train_preds = []
+        train_labels = []
+        
+        for batch in tqdm(train_loader, desc="Training"):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+            
+            optimizer.zero_grad()
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            logits = outputs.logits
+            
+            # Labels should be float32 (they come from dataset as float32)
+            # Logits will be converted to float32 inside FocalLoss for numerical stability
+            # This preserves gradient flow while ensuring stable loss computation
+            labels = labels.to(dtype=torch.float32)
+            
+            # Verify logits require grad
+            if not logits.requires_grad:
+                print(f"  WARNING: logits do not require grad! Checking model parameters...")
+                trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
+                print(f"  Trainable parameters: {trainable_count}")
+                # Force classifier/score to be trainable
+                # Check for 'score' layer (AutoModelForSequenceClassification)
+                if hasattr(model, 'base_model') and hasattr(model.base_model, 'score'):
+                    for param in model.base_model.score.parameters():
+                        param.requires_grad = True
+                    print(f"  Forced score layer parameters to require grad")
+                elif hasattr(model, 'score'):
+                    for param in model.score.parameters():
+                        param.requires_grad = True
+                    print(f"  Forced score layer parameters to require grad")
+                # Check for 'classifier' layer (ModelWithClassificationHead)
+                elif hasattr(model, 'base_model') and hasattr(model.base_model, 'classifier'):
+                    for param in model.base_model.classifier.parameters():
+                        param.requires_grad = True
+                    print(f"  Forced classifier parameters to require grad")
+                else:
+                    print(f"  ERROR: Could not find score or classifier layer!")
+                    print(f"  Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')][:20]}")
+                    if hasattr(model, 'base_model'):
+                        print(f"  Base model attributes: {[attr for attr in dir(model.base_model) if not attr.startswith('_')][:20]}")
+            
+            loss = criterion(logits, labels)
+            
+            # Verify loss requires grad
+            if not loss.requires_grad:
+                raise RuntimeError("Loss does not require grad! Model parameters are not trainable.")
+            
+            loss.backward()
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            
+            optimizer.step()
+            scheduler.step()
+            
+            train_loss += loss.item()
+            
+            # Collect predictions for metrics
+            probs = torch.sigmoid(logits).cpu().detach().numpy()
+            train_preds.append(probs)
+            train_labels.append(labels.cpu().detach().numpy())
+        
+        train_loss /= len(train_loader)
+        train_preds = np.vstack(train_preds)
+        train_labels = np.vstack(train_labels)
+        
+        # Calculate train metrics
+        train_preds_binary = (train_preds > 0.5).astype(int)
+        train_macro_f1 = f1_score(train_labels, train_preds_binary, average='macro', zero_division=0)
+        train_micro_f1 = f1_score(train_labels, train_preds_binary, average='micro', zero_division=0)
+        
+        # Validation
+        model.eval()
+        val_loss = 0
+        val_preds = []
+        val_labels = []
+        
+        with torch.no_grad():
+            for batch in tqdm(val_loader, desc="Validation"):
+                input_ids = batch['input_ids'].to(device)
+                attention_mask = batch['attention_mask'].to(device)
+                labels = batch['labels'].to(device)
+                
+                with torch.no_grad():
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                    logits = outputs.logits
+                    labels = labels.to(dtype=torch.float32)
+                
+                loss = criterion(logits, labels)
+                val_loss += loss.item()
+                
+                probs = torch.sigmoid(logits).cpu().detach().numpy()
+                val_preds.append(probs)
+                val_labels.append(labels.cpu().detach().numpy())
+        
+        val_loss /= len(val_loader)
+        val_preds = np.vstack(val_preds)
+        val_labels = np.vstack(val_labels)
+        
+        # Calculate val metrics
+        val_preds_binary = (val_preds > 0.5).astype(int)
+        val_macro_f1 = f1_score(val_labels, val_preds_binary, average='macro', zero_division=0)
+        val_micro_f1 = f1_score(val_labels, val_preds_binary, average='micro', zero_division=0)
+        
+        print(f"Train Loss: {train_loss:.4f}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
+        print(f"Val Loss: {val_loss:.4f}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
+        
+        # Early stopping
+        if val_macro_f1 > best_val_f1:
+            best_val_f1 = val_macro_f1
+            best_model_state = model.state_dict().copy()
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"Early stopping at epoch {epoch + 1}")
+                break
+    
+    # Load best model
+    if best_model_state is not None:
+        model.load_state_dict(best_model_state)
+    
+    return model
+
+def evaluate_model(model, test_loader, device, label_names, source, model_name):
+    """Evaluate the model on test set"""
+    
+    model.eval()
+    test_preds = []
+    test_labels = []
+    
+    with torch.no_grad():
+        for batch in tqdm(test_loader, desc="Testing"):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+            
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            # Convert to float32 for sigmoid computation (more stable)
+            logits = outputs.logits.to(dtype=torch.float32)
+            logits = outputs.logits
+            
+            probs = torch.sigmoid(logits).cpu().detach().numpy()
+            test_preds.append(probs)
+            test_labels.append(labels.cpu().detach().numpy())
+    
+    test_preds = np.vstack(test_preds)
+    test_labels = np.vstack(test_labels)
+    
+    # Calculate metrics with threshold 0.5
+    test_preds_binary = (test_preds > 0.5).astype(int)
+    
+    macro_f1 = f1_score(test_labels, test_preds_binary, average='macro', zero_division=0)
+    micro_f1 = f1_score(test_labels, test_preds_binary, average='micro', zero_division=0)
+    
+    # Per-category metrics
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        test_labels, test_preds_binary, average=None, zero_division=0
+    )
+    
+    results = {
+        'macro_f1': macro_f1,
+        'micro_f1': micro_f1,
+        'per_category_f1': dict(zip(label_names, f1)),
+        'per_category_precision': dict(zip(label_names, precision)),
+        'per_category_recall': dict(zip(label_names, recall))
+    }
+    
+    return results, test_preds, test_labels
+
+def main():
+    parser = argparse.ArgumentParser(description='Finetune local models on GPT pseudolabels')
+    parser.add_argument('--source', type=str, required=True, choices=['reddit', 'x', 'news', 'meeting_minutes'],
+                       help='Data source')
+    parser.add_argument('--model', type=str, default='bert-base-uncased',
+                       choices=['bert-base-uncased', 'roberta-base', 'modernbert-base', 'llama', 'qwen', 'gemma3'],
+                       help='Model to finetune (6 options: bert-base-uncased, roberta-base, modernbert-base, llama, qwen, gemma3)')
+    parser.add_argument('--epochs', type=int, default=5, 
+                       help='Number of epochs (default: 5, with early stopping patience=3. For large datasets (100K+), consider 5-10 epochs)')
+    parser.add_argument('--batch_size', type=int, default=16, help='Batch size (reduce for local LLMs)')
+    parser.add_argument('--learning_rate', type=float, default=2e-5, help='Learning rate')
+    parser.add_argument('--max_length', type=int, default=128, help='Max sequence length (default: 128, reduce for memory-constrained devices)')
+    parser.add_argument('--test_start', type=int, default=1600, help='Start index for test set')
+    parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
+    parser.add_argument('--use_lora', action='store_true', 
+                       help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
+    parser.add_argument('--lora_rank', type=int, default=8, 
+                       help='LoRA rank (default: 8, higher = more parameters but better capacity)')
+    parser.add_argument('--lora_alpha', type=int, default=16, 
+                       help='LoRA alpha (default: 16, typically 2x rank)')
+    
+    args = parser.parse_args()
+    
+    # Set device - prioritize CUDA for GPU, then MPS, then CPU
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+        print(f"Using CUDA GPU: {torch.cuda.get_device_name(0)}")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = torch.device('mps')
+        print("Using MPS (Apple Silicon GPU)")
+    else:
+        device = torch.device('cpu')
+        print("Using CPU")
+    
+    # Adjust batch size for local LLMs (they're larger)
+    local_llms = ['llama', 'qwen', 'gemma3']
+    is_local_llm = any(llm in args.model.lower() for llm in local_llms)
+    
+    if is_local_llm:
+        if args.batch_size == 16:  # Default, adjust it
+            # With LoRA, can use larger batch sizes, but MPS has memory limits
+            if device.type == 'mps':
+                # MPS has ~20GB limit, use smaller batches
+                args.batch_size = 2 if args.use_lora else 1
+                print(f"Adjusting batch size to {args.batch_size} for local LLM on MPS (memory-constrained)")
+            else:
+                args.batch_size = 8 if args.use_lora else 4
+                print(f"Adjusting batch size to {args.batch_size} for local LLM")
+        
+        # Recommend LoRA for large models if not specified
+        if not args.use_lora:
+            print(f"\n⚠️  Recommendation: Consider using --use_lora for {args.model}")
+            print(f"   This will make training 3-10x faster and use less memory.")
+            print(f"   Example: python {sys.argv[0]} --source {args.source} --model {args.model} --use_lora")
+    
+    # Adjust learning rate for LoRA (typically higher)
+    if args.use_lora and args.learning_rate == 2e-5:  # Default
+        args.learning_rate = 1e-4  # LoRA typically uses higher LR
+        print(f"Adjusting learning rate to {args.learning_rate} for LoRA (LoRA typically uses higher LR)")
+    
+    # Load GPT pseudolabels (excluding few-shot examples)
+    gpt_df = load_gpt_pseudolabels(args.source, exclude_few_shot=True)
+    
+    # Load gold standard (with labels if available)
+    gold_df, text_col, gold_labels_df = load_gold_standard(args.source)
+    
+    # Prepare GPT labels - ensure we have all categories in the right order
+    gpt_label_cols = [col for col in gpt_df.columns if col in GPT_TO_CATEGORY_MAP]
+    
+    # Create mapping from GPT columns to ALL_CATEGORIES order
+    category_to_gpt_col = {v: k for k, v in GPT_TO_CATEGORY_MAP.items()}
+    
+    # Prepare labels in ALL_CATEGORIES order
+    # Note: Each comment can have MULTIPLE categories (multi-label classification)
+    # The flag columns (Comment_*, Critique_*, etc.) are binary (0/1) indicating presence of each category
+    gpt_texts = gpt_df['Comment'].astype(str).tolist()
+    gpt_labels_list = []
+    
+    print(f"\nProcessing multi-label categories for {len(gpt_texts):,} unique comments...")
+    
+    for idx, row in gpt_df.iterrows():
+        label_vector = []
+        for cat in ALL_CATEGORIES:
+            gpt_col = category_to_gpt_col.get(cat)
+            if gpt_col and gpt_col in row:
+                val = row[gpt_col]
+                # Flag columns are already binary (0/1), so check if > 0.5
+                label_vector.append(1.0 if pd.notna(val) and float(val) > 0.5 else 0.0)
+            else:
+                label_vector.append(0.0)
+        gpt_labels_list.append(label_vector)
+    
+    gpt_labels = np.array(gpt_labels_list)
+    
+    # Print label distribution
+    print(f"\nLabel distribution (multi-label, so categories can overlap):")
+    for i, category in enumerate(ALL_CATEGORIES):
+        positive_count = np.sum(gpt_labels[:, i])
+        percentage = positive_count / len(gpt_labels) * 100
+        print(f"  {category:30}: {positive_count:6,}/{len(gpt_labels):6,} ({percentage:5.1f}%)")
+    
+    # Prepare gold standard labels (we'll use GPT labels for gold standard too, but split by index)
+    # First, match gold standard comments to GPT pseudolabels
+    gold_texts = gold_df[text_col].astype(str).tolist()
+    
+    # Split gold standard into val and test
+    # Train set: Only GPT pseudolabels (no gold standard)
+    # Val/Test set: Gold standard split
+    # Note: test_start and test_end (default 1600-1700) refer to combined dataset across all sources
+    # Each source has 250-500 samples, so we use the last portion of each source file
+    
+    # Calculate which portion of this source file corresponds to the combined 1600-1700 range
+    # Each source has 250-500 samples, total ~1700 across all sources
+    # Combined indices 1600-1700 = last ~100 samples from combined dataset
+    # Use last ~25% of each source file (roughly 50-125 samples per source)
+    eval_range_size = args.test_end - args.test_start  # Default: 100 samples (1600-1700)
+    
+    # Use the last portion of this source file for evaluation
+    # For sources with 250-500 samples, use last ~25% (approximately 50-125 samples)
+    # This ensures we get the last portion from each source that corresponds to combined 1600-1700
+    eval_size = max(50, int(len(gold_df) * 0.25))  # Last 25% of each source file
+    eval_size = min(eval_size, len(gold_df))  # Don't exceed file size
+    gold_eval_indices = list(range(len(gold_df) - eval_size, len(gold_df)))
+    
+    print(f"\nSplitting data:")
+    print(f"  Train set (GPT pseudolabels only): {len(gpt_texts):,} unique comments")
+    print(f"  Gold standard total: {len(gold_df)} samples")
+    print(f"  Gold standard eval set (last {eval_size} samples, indices {gold_eval_indices[0]}-{gold_eval_indices[-1]}): {len(gold_eval_indices)} samples")
+    print(f"  Note: Using last portion of this source file (corresponds to combined indices ~{args.test_start}-{args.test_end} across all sources)")
+    
+    # Recommend epochs based on dataset size (now using actual unique comment count)
+    if len(gpt_texts) > 20000:
+        if args.epochs < 5:
+            print(f"\n⚠️  Large dataset detected ({len(gpt_texts):,} unique comments). Consider using --epochs 5-10 for better learning.")
+            print(f"   Current: {args.epochs} epochs. Early stopping (patience=3) will stop early if converged.")
+    elif len(gpt_texts) > 5000:
+        if args.epochs < 3:
+            print(f"\n⚠️  Medium dataset ({len(gpt_texts):,} unique comments). Consider using --epochs 3-5.")
+            print(f"   Current: {args.epochs} epochs. Early stopping (patience=3) will stop early if converged.")
+    
+    # Match gold standard to GPT pseudolabels by comment text
+    gpt_comment_to_labels = {}
+    for text, label in zip(gpt_texts, gpt_labels):
+        # Normalize text for matching
+        text_normalized = text.strip().lower()
+        gpt_comment_to_labels[text_normalized] = label
+    
+    # Prepare gold standard eval texts and labels
+    # IMPORTANT: Use actual gold standard labels (human annotations), NOT GPT pseudolabels
+    gold_eval_texts = []
+    gold_eval_labels_list = []
+    
+    for i in gold_eval_indices:
+        comment = gold_texts[i]
+        gold_eval_texts.append(comment)
+        
+        # Use actual gold standard labels if available
+        # Gold labels should be aligned by index with gold_df
+        if gold_labels_df is not None and i < len(gold_labels_df):
+            # Extract labels from gold standard (aligned by index)
+            matched_row = gold_labels_df.iloc[i]
+            label_vector = []
+            
+            for cat in ALL_CATEGORIES:
+                # Try different column names
+                val = None
+                if cat in gold_labels_df.columns:
+                    val = matched_row[cat]
+                elif cat == 'racist' and 'Racist' in gold_labels_df.columns:
+                    val = matched_row['Racist']
+                elif cat == 'racist' and 'racist' in gold_labels_df.columns:
+                    val = matched_row['racist']
+                
+                if pd.notna(val) and val != '':
+                    # If it's a score (0-3 from raw_scores), threshold at >= 2 (2+ annotators agree)
+                    try:
+                        score = float(val)
+                        if score >= 2:
+                            label_vector.append(1.0)
+                        else:
+                            label_vector.append(0.0)
+                    except (ValueError, TypeError):
+                        # If it's already binary or soft label (0-1), threshold at >= 0.5
+                        try:
+                            soft_val = float(val)
+                            label_vector.append(1.0 if soft_val >= 0.5 else 0.0)
+                        except:
+                            label_vector.append(0.0)
+                else:
+                    label_vector.append(0.0)
+            
+            gold_eval_labels_list.append(label_vector)
+        else:
+            # Fallback: use GPT pseudolabels if gold labels not available
+            comment_normalized = comment.strip().lower()
+            if comment_normalized in gpt_comment_to_labels:
+                gold_eval_labels_list.append(gpt_comment_to_labels[comment_normalized])
+                if gold_labels_df is None:
+                    print(f"  WARNING: Gold labels not found, using GPT pseudolabels for comment {i}")
+            else:
+                print(f"  WARNING: Gold standard comment {i} not found, using zeros")
+                gold_eval_labels_list.append(np.zeros(len(ALL_CATEGORIES)))
+    
+    gold_eval_labels = np.array(gold_eval_labels_list)
+    
+    if gold_labels_df is not None:
+        print(f"  ✓ Using ACTUAL gold standard labels (human annotations) for test/val sets")
+        print(f"    This ensures evaluation on real human-annotated data, not GPT pseudolabels")
+    else:
+        print(f"  ⚠ WARNING: Using GPT pseudolabels for test/val (gold standard labels not found)")
+        print(f"    This is NOT ideal for research - please ensure gold standard labels are available")
+    
+    # Split gold standard eval set into val and test (50/50 split)
+    val_texts, test_texts, val_labels, test_labels = train_test_split(
+        gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
+    )
+    
+    # Train set: Only GPT pseudolabels (no gold standard)
+    train_texts = gpt_texts.copy()
+    train_labels = gpt_labels.copy()
+    
+    print(f"\nFinal dataset sizes:")
+    print(f"  Train (GPT pseudolabels only): {len(train_texts)} samples")
+    print(f"  Val (gold standard split): {len(val_texts)} samples")
+    print(f"  Test (gold standard split): {len(test_texts)} samples")
+    
+    # Create model and tokenizer
+    model, tokenizer = create_model_and_tokenizer(
+        args.model, 
+        len(ALL_CATEGORIES), 
+        device=device,
+        use_lora=args.use_lora,
+        lora_rank=args.lora_rank,
+        lora_alpha=args.lora_alpha
+    )
+    
+    # Create datasets
+    train_dataset = GPTPseudolabelDataset(train_texts, train_labels, tokenizer, max_length=args.max_length)
+    val_dataset = GPTPseudolabelDataset(val_texts, val_labels, tokenizer, max_length=args.max_length)
+    test_dataset = GPTPseudolabelDataset(test_texts, test_labels, tokenizer, max_length=args.max_length)
+    
+    # Create data loaders - use num_workers=0 for MPS to avoid multiprocessing issues
+    num_workers = 0 if device.type == 'mps' else 2
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers)
+    
+    # Train model
+    print(f"\nTraining {args.model} on {args.source}...")
+    model = train_model(
+        model, train_loader, val_loader, device,
+        epochs=args.epochs, learning_rate=args.learning_rate,
+        source=args.source, model_name=args.model, label_names=ALL_CATEGORIES
+    )
+    
+    # Evaluate on test set
+    print(f"\nEvaluating on test set...")
+    results, test_preds, test_labels = evaluate_model(
+        model, test_loader, device, ALL_CATEGORIES, args.source, args.model
+    )
+    
+    print(f"\nTest Results:")
+    print(f"  Macro F1: {results['macro_f1']:.4f}")
+    print(f"  Micro F1: {results['micro_f1']:.4f}")
+    print(f"\nPer-category F1:")
+    for cat, f1 in results['per_category_f1'].items():
+        print(f"  {cat}: {f1:.4f}")
+    
+    # Save model
+    model_dir = Path('models')
+    model_dir.mkdir(exist_ok=True)
+    # Clean model name for file saving
+    model_name_clean = args.model.replace('/', '_').replace('-', '_')
+    suffix = '_lora' if args.use_lora else ''
+    model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_best_{args.source}.pt'
+    
+    # Save LoRA adapters separately if using LoRA
+    if args.use_lora and PEFT_AVAILABLE and hasattr(model, 'save_pretrained'):
+        # Save full model state (includes LoRA adapters)
+        model.save_pretrained(str(model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'))
+        print(f"\nLoRA model saved to: {model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'}")
+    else:
+        torch.save(model.state_dict(), model_path)
+        print(f"\nModel saved to: {model_path}")
+    
+    # Save results
+    output_dir = Path('nlp_outputs') / args.source
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    suffix = '_lora' if args.use_lora else ''
+    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_results.json'
+    
+    # Add training config to results
+    results['training_config'] = {
+        'model': args.model,
+        'source': args.source,
+        'use_lora': args.use_lora,
+        'lora_rank': args.lora_rank if args.use_lora else None,
+        'lora_alpha': args.lora_alpha if args.use_lora else None,
+        'epochs': args.epochs,
+        'batch_size': args.batch_size,
+        'learning_rate': args.learning_rate
+    }
+    
+    with open(results_file, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"Results saved to: {results_file}")
+
+if __name__ == "__main__":
+    main()
+

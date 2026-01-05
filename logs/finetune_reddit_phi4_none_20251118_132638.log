@@ -1,0 +1,698 @@
+Logging to: logs/finetune_reddit_phi4_none_20251118_132638.log
+Started at: 2025-11-18 13:26:38.851709
+Command: scripts/finetune_local_model.py --source reddit --model phi4 --use_prompt --few_shot none --batch_size 4 --epochs 3
+--------------------------------------------------------------------------------
+Using device: mps
+Loading data for reddit...
+Loaded 506 soft label samples
+Loaded 500 text samples
+
+Label distribution (before SMOTE):
+  ask a genuine question: 57.0/500 (11.4%)
+  ask a rhetorical question: 91.0/500 (18.2%)
+  provide a fact or claim: 282.0/500 (56.4%)
+  provide an observation: 119.0/500 (23.8%)
+  express their opinion: 393.0/500 (78.6%)
+  express others opinions: 52.0/500 (10.4%)
+  money aid allocation: 65.0/500 (13.0%)
+  government critique: 69.0/500 (13.8%)
+  societal critique: 82.0/500 (16.4%)
+  solutions/interventions: 176.0/500 (35.2%)
+  personal interaction: 54.0/500 (10.8%)
+  media portrayal: 2.0/500 (0.4%)
+  not in my backyard: 26.0/500 (5.2%)
+  harmful generalization: 65.0/500 (13.0%)
+  deserving/undeserving: 8.0/500 (1.6%)
+  racist: 1.0/500 (0.2%)
+
+Data split:
+  Train: 349
+  Val: 50
+  Test: 101
+Loading model: phi4
+Using float16 for MPS to save memory
+# /Users/jonathankarr/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/netrc.cpython-39.pyc matches /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/netrc.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/netrc.cpython-39.pyc'
+import 'netrc' # <_frozen_importlib_external.SourceFileLoader object at 0x30d4fda90>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/__init__.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/regex.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/regex.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/regex.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/_regex_core.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/_regex_core.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/_regex_core.cpython-39.pyc'
+# extension module 'regex._regex' loaded from '/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/_regex.cpython-39-darwin.so'
+# extension module 'regex._regex' executed from '/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/regex/_regex.cpython-39-darwin.so'
+import 'regex._regex' # <_frozen_importlib_external.ExtensionFileLoader object at 0x30d733f40>
+import 'regex._regex_core' # <_frozen_importlib_external.SourceFileLoader object at 0x30d58caf0>
+import 'regex.regex' # <_frozen_importlib_external.SourceFileLoader object at 0x30d58c310>
+import 'regex' # <_frozen_importlib_external.SourceFileLoader object at 0x30d4eeb50>
+import 'transformers.models.gpt2.tokenization_gpt2' # <_frozen_importlib_external.SourceFileLoader object at 0x30d4fd730>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2_fast.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2_fast.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/tokenization_gpt2_fast.cpython-39.pyc'
+import 'transformers.models.gpt2.tokenization_gpt2_fast' # <_frozen_importlib_external.SourceFileLoader object at 0x30d58ca00>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/configuration_phi3.cpython-39.pyc matches /Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/configuration_phi3.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/configuration_phi3.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/albert/configuration_albert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/albert/configuration_albert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/albert/configuration_albert.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/__init__.cpython-39.pyc'
+# destroy transformers.onnx
+import 'transformers.onnx' # <_frozen_importlib_external.SourceFileLoader object at 0x30d795130>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/config.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/config.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/config.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/onnx/utils.cpython-39.pyc'
+import 'transformers.onnx.utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a2280>
+import 'transformers.onnx.config' # <_frozen_importlib_external.SourceFileLoader object at 0x30d795370>
+import 'transformers.models.albert.configuration_albert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d77deb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bart/configuration_bart.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bart/configuration_bart.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bart/configuration_bart.cpython-39.pyc'
+import 'transformers.models.bart.configuration_bart' # <_frozen_importlib_external.SourceFileLoader object at 0x30d795160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert/configuration_bert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert/configuration_bert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert/configuration_bert.cpython-39.pyc'
+import 'transformers.models.bert.configuration_bert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a2df0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/big_bird/configuration_big_bird.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/big_bird/configuration_big_bird.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/big_bird/configuration_big_bird.cpython-39.pyc'
+import 'transformers.models.big_bird.configuration_big_bird' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a7040>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bigbird_pegasus/configuration_bigbird_pegasus.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bigbird_pegasus/configuration_bigbird_pegasus.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bigbird_pegasus/configuration_bigbird_pegasus.cpython-39.pyc'
+import 'transformers.models.bigbird_pegasus.configuration_bigbird_pegasus' # <_frozen_importlib_external.SourceFileLoader object at 0x30d77da00>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/biogpt/configuration_biogpt.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/biogpt/configuration_biogpt.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/biogpt/configuration_biogpt.cpython-39.pyc'
+import 'transformers.models.biogpt.configuration_biogpt' # <_frozen_importlib_external.SourceFileLoader object at 0x30d4fd550>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bloom/configuration_bloom.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bloom/configuration_bloom.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bloom/configuration_bloom.cpython-39.pyc'
+import 'transformers.models.bloom.configuration_bloom' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a7280>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/camembert/configuration_camembert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/camembert/configuration_camembert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/camembert/configuration_camembert.cpython-39.pyc'
+import 'transformers.models.camembert.configuration_camembert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a7880>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/canine/configuration_canine.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/canine/configuration_canine.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/canine/configuration_canine.cpython-39.pyc'
+import 'transformers.models.canine.configuration_canine' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7a7df0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/llama/configuration_llama.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/llama/configuration_llama.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/llama/configuration_llama.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_rope_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_rope_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_rope_utils.cpython-39.pyc'
+import 'transformers.modeling_rope_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7be490>
+import 'transformers.models.llama.configuration_llama' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7be2b0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/convbert/configuration_convbert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/convbert/configuration_convbert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/convbert/configuration_convbert.cpython-39.pyc'
+import 'transformers.models.convbert.configuration_convbert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7be970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ctrl/configuration_ctrl.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ctrl/configuration_ctrl.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ctrl/configuration_ctrl.cpython-39.pyc'
+import 'transformers.models.ctrl.configuration_ctrl' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7bec40>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/data2vec/configuration_data2vec_text.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/data2vec/configuration_data2vec_text.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/data2vec/configuration_data2vec_text.cpython-39.pyc'
+import 'transformers.models.data2vec.configuration_data2vec_text' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7bedf0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta/configuration_deberta.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta/configuration_deberta.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta/configuration_deberta.cpython-39.pyc'
+import 'transformers.models.deberta.configuration_deberta' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d1160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta_v2/configuration_deberta_v2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta_v2/configuration_deberta_v2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deberta_v2/configuration_deberta_v2.cpython-39.pyc'
+import 'transformers.models.deberta_v2.configuration_deberta_v2' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d15e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/diffllama/configuration_diffllama.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/diffllama/configuration_diffllama.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/diffllama/configuration_diffllama.cpython-39.pyc'
+import 'transformers.models.diffllama.configuration_diffllama' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d1970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/distilbert/configuration_distilbert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/distilbert/configuration_distilbert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/distilbert/configuration_distilbert.cpython-39.pyc'
+import 'transformers.models.distilbert.configuration_distilbert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d1ac0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/electra/configuration_electra.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/electra/configuration_electra.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/electra/configuration_electra.cpython-39.pyc'
+import 'transformers.models.electra.configuration_electra' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d1df0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ernie/configuration_ernie.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ernie/configuration_ernie.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ernie/configuration_ernie.cpython-39.pyc'
+import 'transformers.models.ernie.configuration_ernie' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7d1f40>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.ernie_m
+import 'transformers.models.deprecated.ernie_m' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7dd2b0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/configuration_ernie_m.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/configuration_ernie_m.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/ernie_m/configuration_ernie_m.cpython-39.pyc'
+import 'transformers.models.deprecated.ernie_m.configuration_ernie_m' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7dd400>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/esm/configuration_esm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/esm/configuration_esm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/esm/configuration_esm.cpython-39.pyc'
+import 'transformers.models.esm.configuration_esm' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7dd520>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon/configuration_falcon.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon/configuration_falcon.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon/configuration_falcon.cpython-39.pyc'
+import 'transformers.models.falcon.configuration_falcon' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ddd90>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/flaubert/configuration_flaubert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/flaubert/configuration_flaubert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/flaubert/configuration_flaubert.cpython-39.pyc'
+import 'transformers.models.flaubert.configuration_flaubert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ddf10>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fnet/configuration_fnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fnet/configuration_fnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fnet/configuration_fnet.cpython-39.pyc'
+import 'transformers.models.fnet.configuration_fnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7eca90>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/funnel/configuration_funnel.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/funnel/configuration_funnel.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/funnel/configuration_funnel.cpython-39.pyc'
+import 'transformers.models.funnel.configuration_funnel' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7eccd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma/configuration_gemma.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma/configuration_gemma.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma/configuration_gemma.cpython-39.pyc'
+import 'transformers.models.gemma.configuration_gemma' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ecb50>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma2/configuration_gemma2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma2/configuration_gemma2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gemma2/configuration_gemma2.cpython-39.pyc'
+import 'transformers.models.gemma2.configuration_gemma2' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ec850>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/glm/configuration_glm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/glm/configuration_glm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/glm/configuration_glm.cpython-39.pyc'
+import 'transformers.models.glm.configuration_glm' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ec160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/configuration_gpt2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/configuration_gpt2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt2/configuration_gpt2.cpython-39.pyc'
+import 'transformers.models.gpt2.configuration_gpt2' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7ec2b0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_bigcode/configuration_gpt_bigcode.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_bigcode/configuration_gpt_bigcode.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_bigcode/configuration_gpt_bigcode.cpython-39.pyc'
+import 'transformers.models.gpt_bigcode.configuration_gpt_bigcode' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f2880>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neo/configuration_gpt_neo.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neo/configuration_gpt_neo.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neo/configuration_gpt_neo.cpython-39.pyc'
+import 'transformers.models.gpt_neo.configuration_gpt_neo' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f2ca0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox/configuration_gpt_neox.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox/configuration_gpt_neox.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox/configuration_gpt_neox.cpython-39.pyc'
+import 'transformers.models.gpt_neox.configuration_gpt_neox' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f2580>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gptj/configuration_gptj.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gptj/configuration_gptj.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gptj/configuration_gptj.cpython-39.pyc'
+import 'transformers.models.gptj.configuration_gptj' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f27f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/helium/configuration_helium.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/helium/configuration_helium.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/helium/configuration_helium.cpython-39.pyc'
+import 'transformers.models.helium.configuration_helium' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f6af0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ibert/configuration_ibert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ibert/configuration_ibert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/ibert/configuration_ibert.cpython-39.pyc'
+import 'transformers.models.ibert.configuration_ibert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f63d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jamba/configuration_jamba.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jamba/configuration_jamba.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jamba/configuration_jamba.cpython-39.pyc'
+import 'transformers.models.jamba.configuration_jamba' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f6c40>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jetmoe/configuration_jetmoe.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jetmoe/configuration_jetmoe.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/jetmoe/configuration_jetmoe.cpython-39.pyc'
+import 'transformers.models.jetmoe.configuration_jetmoe' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f6e50>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlm/configuration_layoutlm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlm/configuration_layoutlm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlm/configuration_layoutlm.cpython-39.pyc'
+import 'transformers.models.layoutlm.configuration_layoutlm' # <_frozen_importlib_external.SourceFileLoader object at 0x30d7f6370>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv2/configuration_layoutlmv2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv2/configuration_layoutlmv2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv2/configuration_layoutlmv2.cpython-39.pyc'
+import 'transformers.models.layoutlmv2.configuration_layoutlmv2' # <_frozen_importlib_external.SourceFileLoader object at 0x30d81b3a0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv3/configuration_layoutlmv3.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv3/configuration_layoutlmv3.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/layoutlmv3/configuration_layoutlmv3.cpython-39.pyc'
+import 'transformers.models.layoutlmv3.configuration_layoutlmv3' # <_frozen_importlib_external.SourceFileLoader object at 0x30d81b640>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/led/configuration_led.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/led/configuration_led.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/led/configuration_led.cpython-39.pyc'
+import 'transformers.models.led.configuration_led' # <_frozen_importlib_external.SourceFileLoader object at 0x30d81bb80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/lilt/configuration_lilt.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/lilt/configuration_lilt.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/lilt/configuration_lilt.cpython-39.pyc'
+import 'transformers.models.lilt.configuration_lilt' # <_frozen_importlib_external.SourceFileLoader object at 0x30d81bd60>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/longformer/configuration_longformer.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/longformer/configuration_longformer.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/longformer/configuration_longformer.cpython-39.pyc'
+import 'transformers.models.longformer.configuration_longformer' # <_frozen_importlib_external.SourceFileLoader object at 0x30d81bf10>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/luke/configuration_luke.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/luke/configuration_luke.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/luke/configuration_luke.cpython-39.pyc'
+import 'transformers.models.luke.configuration_luke' # <_frozen_importlib_external.SourceFileLoader object at 0x30d829460>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/markuplm/configuration_markuplm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/markuplm/configuration_markuplm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/markuplm/configuration_markuplm.cpython-39.pyc'
+import 'transformers.models.markuplm.configuration_markuplm' # <_frozen_importlib_external.SourceFileLoader object at 0x30d829610>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mbart/configuration_mbart.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mbart/configuration_mbart.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mbart/configuration_mbart.cpython-39.pyc'
+import 'transformers.models.mbart.configuration_mbart' # <_frozen_importlib_external.SourceFileLoader object at 0x30d829850>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.mega
+import 'transformers.models.deprecated.mega' # <_frozen_importlib_external.SourceFileLoader object at 0x30d829c70>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/configuration_mega.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/configuration_mega.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/mega/configuration_mega.cpython-39.pyc'
+import 'transformers.models.deprecated.mega.configuration_mega' # <_frozen_importlib_external.SourceFileLoader object at 0x30d829dc0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/megatron_bert/configuration_megatron_bert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/megatron_bert/configuration_megatron_bert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/megatron_bert/configuration_megatron_bert.cpython-39.pyc'
+import 'transformers.models.megatron_bert.configuration_megatron_bert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d830130>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mistral/configuration_mistral.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mistral/configuration_mistral.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mistral/configuration_mistral.cpython-39.pyc'
+import 'transformers.models.mistral.configuration_mistral' # <_frozen_importlib_external.SourceFileLoader object at 0x30d8302e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mixtral/configuration_mixtral.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mixtral/configuration_mixtral.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mixtral/configuration_mixtral.cpython-39.pyc'
+import 'transformers.models.mixtral.configuration_mixtral' # <_frozen_importlib_external.SourceFileLoader object at 0x30d8304f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mobilebert/configuration_mobilebert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mobilebert/configuration_mobilebert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mobilebert/configuration_mobilebert.cpython-39.pyc'
+import 'transformers.models.mobilebert.configuration_mobilebert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d830730>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/modernbert/configuration_modernbert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/modernbert/configuration_modernbert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/modernbert/configuration_modernbert.cpython-39.pyc'
+import 'transformers.models.modernbert.configuration_modernbert' # <_frozen_importlib_external.SourceFileLoader object at 0x30d830a60>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpnet/configuration_mpnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpnet/configuration_mpnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpnet/configuration_mpnet.cpython-39.pyc'
+import 'transformers.models.mpnet.configuration_mpnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30d830bb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpt/configuration_mpt.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpt/configuration_mpt.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mpt/configuration_mpt.cpython-39.pyc'
+import 'transformers.models.mpt.configuration_mpt' # <_frozen_importlib_external.SourceFileLoader object at 0x30d830dc0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mra/configuration_mra.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mra/configuration_mra.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mra/configuration_mra.cpython-39.pyc'
+import 'transformers.models.mra.configuration_mra' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mt5/configuration_mt5.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mt5/configuration_mt5.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mt5/configuration_mt5.cpython-39.pyc'
+import 'transformers.models.mt5.configuration_mt5' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa403a0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mvp/configuration_mvp.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mvp/configuration_mvp.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mvp/configuration_mvp.cpython-39.pyc'
+import 'transformers.models.mvp.configuration_mvp' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa407c0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nemotron/configuration_nemotron.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nemotron/configuration_nemotron.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nemotron/configuration_nemotron.cpython-39.pyc'
+import 'transformers.models.nemotron.configuration_nemotron' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.nezha
+import 'transformers.models.deprecated.nezha' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40af0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/configuration_nezha.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/configuration_nezha.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/nezha/configuration_nezha.cpython-39.pyc'
+import 'transformers.models.deprecated.nezha.configuration_nezha' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40ca0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nystromformer/configuration_nystromformer.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nystromformer/configuration_nystromformer.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/nystromformer/configuration_nystromformer.cpython-39.pyc'
+import 'transformers.models.nystromformer.configuration_nystromformer' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40df0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.open_llama
+import 'transformers.models.deprecated.open_llama' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa40f40>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/configuration_open_llama.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/configuration_open_llama.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/open_llama/configuration_open_llama.cpython-39.pyc'
+import 'transformers.models.deprecated.open_llama.configuration_open_llama' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa501c0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/openai/configuration_openai.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/openai/configuration_openai.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/openai/configuration_openai.cpython-39.pyc'
+import 'transformers.models.openai.configuration_openai' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa50370>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/opt/configuration_opt.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/opt/configuration_opt.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/opt/configuration_opt.cpython-39.pyc'
+import 'transformers.models.opt.configuration_opt' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa505b0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/perceiver/configuration_perceiver.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/perceiver/configuration_perceiver.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/perceiver/configuration_perceiver.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/feature_extraction_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/feature_extraction_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/feature_extraction_utils.cpython-39.pyc'
+import 'transformers.feature_extraction_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa50be0>
+import 'transformers.models.perceiver.configuration_perceiver' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa507f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/persimmon/configuration_persimmon.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/persimmon/configuration_persimmon.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/persimmon/configuration_persimmon.cpython-39.pyc'
+import 'transformers.models.persimmon.configuration_persimmon' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa59970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi/configuration_phi.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi/configuration_phi.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi/configuration_phi.cpython-39.pyc'
+import 'transformers.models.phi.configuration_phi' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa59b20>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi3/configuration_phi3.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi3/configuration_phi3.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phi3/configuration_phi3.cpython-39.pyc'
+import 'transformers.models.phi3.configuration_phi3' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa59cd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phimoe/configuration_phimoe.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phimoe/configuration_phimoe.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/phimoe/configuration_phimoe.cpython-39.pyc'
+import 'transformers.models.phimoe.configuration_phimoe' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa59ee0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/plbart/configuration_plbart.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/plbart/configuration_plbart.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/plbart/configuration_plbart.cpython-39.pyc'
+import 'transformers.models.plbart.configuration_plbart' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6c160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.qdqbert
+import 'transformers.models.deprecated.qdqbert' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6c430>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/configuration_qdqbert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/configuration_qdqbert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/qdqbert/configuration_qdqbert.cpython-39.pyc'
+import 'transformers.models.deprecated.qdqbert.configuration_qdqbert' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6c580>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2/configuration_qwen2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2/configuration_qwen2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2/configuration_qwen2.cpython-39.pyc'
+import 'transformers.models.qwen2.configuration_qwen2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6c730>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2_moe/configuration_qwen2_moe.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2_moe/configuration_qwen2_moe.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/qwen2_moe/configuration_qwen2_moe.cpython-39.pyc'
+import 'transformers.models.qwen2_moe.configuration_qwen2_moe' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6c970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/reformer/configuration_reformer.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/reformer/configuration_reformer.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/reformer/configuration_reformer.cpython-39.pyc'
+import 'transformers.models.reformer.configuration_reformer' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6cbb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rembert/configuration_rembert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rembert/configuration_rembert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rembert/configuration_rembert.cpython-39.pyc'
+import 'transformers.models.rembert.configuration_rembert' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa6cdf0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta/configuration_roberta.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta/configuration_roberta.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta/configuration_roberta.cpython-39.pyc'
+import 'transformers.models.roberta.configuration_roberta' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa781f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta_prelayernorm/configuration_roberta_prelayernorm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta_prelayernorm/configuration_roberta_prelayernorm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roberta_prelayernorm/configuration_roberta_prelayernorm.cpython-39.pyc'
+import 'transformers.models.roberta_prelayernorm.configuration_roberta_prelayernorm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa78460>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roc_bert/configuration_roc_bert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roc_bert/configuration_roc_bert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roc_bert/configuration_roc_bert.cpython-39.pyc'
+import 'transformers.models.roc_bert.configuration_roc_bert' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa786d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roformer/configuration_roformer.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roformer/configuration_roformer.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/roformer/configuration_roformer.cpython-39.pyc'
+import 'transformers.models.roformer.configuration_roformer' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa78880>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/squeezebert/configuration_squeezebert.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/squeezebert/configuration_squeezebert.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/squeezebert/configuration_squeezebert.cpython-39.pyc'
+import 'transformers.models.squeezebert.configuration_squeezebert' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa78b80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/stablelm/configuration_stablelm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/stablelm/configuration_stablelm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/stablelm/configuration_stablelm.cpython-39.pyc'
+import 'transformers.models.stablelm.configuration_stablelm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa78df0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/starcoder2/configuration_starcoder2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/starcoder2/configuration_starcoder2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/starcoder2/configuration_starcoder2.cpython-39.pyc'
+import 'transformers.models.starcoder2.configuration_starcoder2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa78fa0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/t5/configuration_t5.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/t5/configuration_t5.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/t5/configuration_t5.cpython-39.pyc'
+import 'transformers.models.t5.configuration_t5' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa881f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/tapas/configuration_tapas.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/tapas/configuration_tapas.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/tapas/configuration_tapas.cpython-39.pyc'
+import 'transformers.models.tapas.configuration_tapas' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa885b0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.transfo_xl
+import 'transformers.models.deprecated.transfo_xl' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa88610>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/configuration_transfo_xl.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/configuration_transfo_xl.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/transfo_xl/configuration_transfo_xl.cpython-39.pyc'
+import 'transformers.models.deprecated.transfo_xl.configuration_transfo_xl' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa887f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/umt5/configuration_umt5.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/umt5/configuration_umt5.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/umt5/configuration_umt5.cpython-39.pyc'
+import 'transformers.models.umt5.configuration_umt5' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa88a60>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm/configuration_xlm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm/configuration_xlm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm/configuration_xlm.cpython-39.pyc'
+import 'transformers.models.xlm.configuration_xlm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa88e80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta/configuration_xlm_roberta.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta/configuration_xlm_roberta.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta/configuration_xlm_roberta.cpython-39.pyc'
+import 'transformers.models.xlm_roberta.configuration_xlm_roberta' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9b160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta_xl/configuration_xlm_roberta_xl.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta_xl/configuration_xlm_roberta_xl.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlm_roberta_xl/configuration_xlm_roberta_xl.cpython-39.pyc'
+import 'transformers.models.xlm_roberta_xl.configuration_xlm_roberta_xl' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9b3d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlnet/configuration_xlnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlnet/configuration_xlnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xlnet/configuration_xlnet.cpython-39.pyc'
+import 'transformers.models.xlnet.configuration_xlnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9b640>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xmod/configuration_xmod.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xmod/configuration_xmod.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xmod/configuration_xmod.cpython-39.pyc'
+import 'transformers.models.xmod.configuration_xmod' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9b850>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/yoso/configuration_yoso.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/yoso/configuration_yoso.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/yoso/configuration_yoso.cpython-39.pyc'
+import 'transformers.models.yoso.configuration_yoso' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9bbb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba/configuration_zamba.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba/configuration_zamba.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba/configuration_zamba.cpython-39.pyc'
+import 'transformers.models.zamba.configuration_zamba' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9bd60>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba2/configuration_zamba2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba2/configuration_zamba2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/zamba2/configuration_zamba2.cpython-39.pyc'
+import 'transformers.models.zamba2.configuration_zamba2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fa9bfd0>
+Warning: Could not load as sequence classification model: Unrecognized configuration class <class 'transformers_modules.microsoft.Phi-4-mini-instruct.5a149550068a1eb93398160d8953f5f56c3603e9.configuration_phi3.Phi3Config'> for this kind of AutoModel: AutoModelForSequenceClassification.
+Model type should be one of AlbertConfig, BartConfig, BertConfig, BigBirdConfig, BigBirdPegasusConfig, BioGptConfig, BloomConfig, CamembertConfig, CanineConfig, LlamaConfig, ConvBertConfig, CTRLConfig, Data2VecTextConfig, DebertaConfig, DebertaV2Config, DiffLlamaConfig, DistilBertConfig, ElectraConfig, ErnieConfig, ErnieMConfig, EsmConfig, FalconConfig, FlaubertConfig, FNetConfig, FunnelConfig, GemmaConfig, Gemma2Config, GlmConfig, GPT2Config, GPT2Config, GPTBigCodeConfig, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, HeliumConfig, IBertConfig, JambaConfig, JetMoeConfig, LayoutLMConfig, LayoutLMv2Config, LayoutLMv3Config, LEDConfig, LiltConfig, LlamaConfig, LongformerConfig, LukeConfig, MarkupLMConfig, MBartConfig, MegaConfig, MegatronBertConfig, MistralConfig, MixtralConfig, MobileBertConfig, ModernBertConfig, MPNetConfig, MptConfig, MraConfig, MT5Config, MvpConfig, NemotronConfig, NezhaConfig, NystromformerConfig, OpenLlamaConfig, OpenAIGPTConfig, OPTConfig, PerceiverConfig, PersimmonConfig, PhiConfig, Phi3Config, PhimoeConfig, PLBartConfig, QDQBertConfig, Qwen2Config, Qwen2MoeConfig, ReformerConfig, RemBertConfig, RobertaConfig, RobertaPreLayerNormConfig, RoCBertConfig, RoFormerConfig, SqueezeBertConfig, StableLmConfig, Starcoder2Config, T5Config, TapasConfig, TransfoXLConfig, UMT5Config, XLMConfig, XLMRobertaConfig, XLMRobertaXLConfig, XLNetConfig, XmodConfig, YosoConfig, ZambaConfig, Zamba2Config.
+Attempting to load base model and add classification head...
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/aria/configuration_aria.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/aria/configuration_aria.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/aria/configuration_aria.cpython-39.pyc'
+import 'transformers.models.aria.configuration_aria' # <_frozen_importlib_external.SourceFileLoader object at 0x30faad910>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bamba/configuration_bamba.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bamba/configuration_bamba.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bamba/configuration_bamba.cpython-39.pyc'
+import 'transformers.models.bamba.configuration_bamba' # <_frozen_importlib_external.SourceFileLoader object at 0x30faadb20>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert_generation/configuration_bert_generation.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert_generation/configuration_bert_generation.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/bert_generation/configuration_bert_generation.cpython-39.pyc'
+import 'transformers.models.bert_generation.configuration_bert_generation' # <_frozen_importlib_external.SourceFileLoader object at 0x30faade20>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot/configuration_blenderbot.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot/configuration_blenderbot.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot/configuration_blenderbot.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/file_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/file_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/file_utils.cpython-39.pyc'
+import 'transformers.file_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30faad130>
+import 'transformers.models.blenderbot.configuration_blenderbot' # <_frozen_importlib_external.SourceFileLoader object at 0x30faadfd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot_small/configuration_blenderbot_small.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot_small/configuration_blenderbot_small.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/blenderbot_small/configuration_blenderbot_small.cpython-39.pyc'
+import 'transformers.models.blenderbot_small.configuration_blenderbot_small' # <_frozen_importlib_external.SourceFileLoader object at 0x30faad220>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/codegen/configuration_codegen.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/codegen/configuration_codegen.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/codegen/configuration_codegen.cpython-39.pyc'
+import 'transformers.models.codegen.configuration_codegen' # <_frozen_importlib_external.SourceFileLoader object at 0x30fabb400>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere/configuration_cohere.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere/configuration_cohere.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere/configuration_cohere.cpython-39.pyc'
+import 'transformers.models.cohere.configuration_cohere' # <_frozen_importlib_external.SourceFileLoader object at 0x30fabb9a0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere2/configuration_cohere2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere2/configuration_cohere2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cohere2/configuration_cohere2.cpython-39.pyc'
+import 'transformers.models.cohere2.configuration_cohere2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fabbb80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cpmant/configuration_cpmant.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cpmant/configuration_cpmant.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/cpmant/configuration_cpmant.cpython-39.pyc'
+import 'transformers.models.cpmant.configuration_cpmant' # <_frozen_importlib_external.SourceFileLoader object at 0x30fabbd30>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/dbrx/configuration_dbrx.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/dbrx/configuration_dbrx.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/dbrx/configuration_dbrx.cpython-39.pyc'
+import 'transformers.models.dbrx.configuration_dbrx' # <_frozen_importlib_external.SourceFileLoader object at 0x30fabbfa0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/emu3/configuration_emu3.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/emu3/configuration_emu3.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/emu3/configuration_emu3.cpython-39.pyc'
+import 'transformers.models.emu3.configuration_emu3' # <_frozen_importlib_external.SourceFileLoader object at 0x30facc370>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon_mamba/configuration_falcon_mamba.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon_mamba/configuration_falcon_mamba.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/falcon_mamba/configuration_falcon_mamba.cpython-39.pyc'
+import 'transformers.models.falcon_mamba.configuration_falcon_mamba' # <_frozen_importlib_external.SourceFileLoader object at 0x30facc6d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fuyu/configuration_fuyu.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fuyu/configuration_fuyu.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/fuyu/configuration_fuyu.cpython-39.pyc'
+import 'transformers.models.fuyu.configuration_fuyu' # <_frozen_importlib_external.SourceFileLoader object at 0x30facc910>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/git/configuration_git.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/git/configuration_git.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/git/configuration_git.cpython-39.pyc'
+import 'transformers.models.git.configuration_git' # <_frozen_importlib_external.SourceFileLoader object at 0x30faccb50>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/got_ocr2/configuration_got_ocr2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/got_ocr2/configuration_got_ocr2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/got_ocr2/configuration_got_ocr2.cpython-39.pyc'
+import 'transformers.models.got_ocr2.configuration_got_ocr2' # <_frozen_importlib_external.SourceFileLoader object at 0x30facce50>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox_japanese/configuration_gpt_neox_japanese.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox_japanese/configuration_gpt_neox_japanese.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/gpt_neox_japanese/configuration_gpt_neox_japanese.cpython-39.pyc'
+import 'transformers.models.gpt_neox_japanese.configuration_gpt_neox_japanese' # <_frozen_importlib_external.SourceFileLoader object at 0x30fada100>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granite/configuration_granite.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granite/configuration_granite.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granite/configuration_granite.cpython-39.pyc'
+import 'transformers.models.granite.configuration_granite' # <_frozen_importlib_external.SourceFileLoader object at 0x30fada340>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoe/configuration_granitemoe.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoe/configuration_granitemoe.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoe/configuration_granitemoe.cpython-39.pyc'
+import 'transformers.models.granitemoe.configuration_granitemoe' # <_frozen_importlib_external.SourceFileLoader object at 0x30fada580>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoeshared/configuration_granitemoeshared.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoeshared/configuration_granitemoeshared.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/granitemoeshared/configuration_granitemoeshared.cpython-39.pyc'
+import 'transformers.models.granitemoeshared.configuration_granitemoeshared' # <_frozen_importlib_external.SourceFileLoader object at 0x30fada7c0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba/configuration_mamba.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba/configuration_mamba.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba/configuration_mamba.cpython-39.pyc'
+import 'transformers.models.mamba.configuration_mamba' # <_frozen_importlib_external.SourceFileLoader object at 0x30fadaa00>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba2/configuration_mamba2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba2/configuration_mamba2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mamba2/configuration_mamba2.cpython-39.pyc'
+import 'transformers.models.mamba2.configuration_mamba2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fadac40>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/marian/configuration_marian.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/marian/configuration_marian.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/marian/configuration_marian.cpython-39.pyc'
+import 'transformers.models.marian.configuration_marian' # <_frozen_importlib_external.SourceFileLoader object at 0x30fadae80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mllama/configuration_mllama.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mllama/configuration_mllama.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/mllama/configuration_mllama.cpython-39.pyc'
+import 'transformers.models.mllama.configuration_mllama' # <_frozen_importlib_external.SourceFileLoader object at 0x30fae6460>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/moshi/configuration_moshi.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/moshi/configuration_moshi.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/moshi/configuration_moshi.cpython-39.pyc'
+import 'transformers.models.moshi.configuration_moshi' # <_frozen_importlib_external.SourceFileLoader object at 0x30fae68e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen/configuration_musicgen.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen/configuration_musicgen.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen/configuration_musicgen.cpython-39.pyc'
+import 'transformers.models.musicgen.configuration_musicgen' # <_frozen_importlib_external.SourceFileLoader object at 0x30fae6d30>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen_melody/configuration_musicgen_melody.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen_melody/configuration_musicgen_melody.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/musicgen_melody/configuration_musicgen_melody.cpython-39.pyc'
+import 'transformers.models.musicgen_melody.configuration_musicgen_melody' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5160>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo/configuration_olmo.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo/configuration_olmo.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo/configuration_olmo.cpython-39.pyc'
+import 'transformers.models.olmo.configuration_olmo' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5580>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo2/configuration_olmo2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo2/configuration_olmo2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmo2/configuration_olmo2.cpython-39.pyc'
+import 'transformers.models.olmo2.configuration_olmo2' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5790>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmoe/configuration_olmoe.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmoe/configuration_olmoe.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/olmoe/configuration_olmoe.cpython-39.pyc'
+import 'transformers.models.olmoe.configuration_olmoe' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5940>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/pegasus/configuration_pegasus.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/pegasus/configuration_pegasus.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/pegasus/configuration_pegasus.cpython-39.pyc'
+import 'transformers.models.pegasus.configuration_pegasus' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5af0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/prophetnet/configuration_prophetnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/prophetnet/configuration_prophetnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/prophetnet/configuration_prophetnet.cpython-39.pyc'
+import 'transformers.models.prophetnet.configuration_prophetnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30faf5ee0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/recurrent_gemma/configuration_recurrent_gemma.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/recurrent_gemma/configuration_recurrent_gemma.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/recurrent_gemma/configuration_recurrent_gemma.cpython-39.pyc'
+import 'transformers.models.recurrent_gemma.configuration_recurrent_gemma' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc09310>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rwkv/configuration_rwkv.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rwkv/configuration_rwkv.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/rwkv/configuration_rwkv.cpython-39.pyc'
+import 'transformers.models.rwkv.configuration_rwkv' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc09580>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.speech_to_text_2
+import 'transformers.models.deprecated.speech_to_text_2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc096d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/configuration_speech_to_text_2.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/configuration_speech_to_text_2.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/speech_to_text_2/configuration_speech_to_text_2.cpython-39.pyc'
+import 'transformers.models.deprecated.speech_to_text_2.configuration_speech_to_text_2' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc09910>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/trocr/configuration_trocr.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/trocr/configuration_trocr.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/trocr/configuration_trocr.cpython-39.pyc'
+import 'transformers.models.trocr.configuration_trocr' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc09ac0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/whisper/configuration_whisper.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/whisper/configuration_whisper.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/whisper/configuration_whisper.cpython-39.pyc'
+import 'transformers.models.whisper.configuration_whisper' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc09cd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xglm/configuration_xglm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xglm/configuration_xglm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/xglm/configuration_xglm.cpython-39.pyc'
+import 'transformers.models.xglm.configuration_xglm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc17190>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/__init__.cpython-39.pyc'
+# destroy transformers.models.deprecated.xlm_prophetnet
+import 'transformers.models.deprecated.xlm_prophetnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc17280>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/configuration_xlm_prophetnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/configuration_xlm_prophetnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/models/deprecated/xlm_prophetnet/configuration_xlm_prophetnet.cpython-39.pyc'
+import 'transformers.models.deprecated.xlm_prophetnet.configuration_xlm_prophetnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc17400>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/modeling_phi3.cpython-39.pyc matches /Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/modeling_phi3.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/.cache/huggingface/modules/transformers_modules/microsoft/Phi-4-mini-instruct/5a149550068a1eb93398160d8953f5f56c3603e9/modeling_phi3.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/activations.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/activations.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/activations.cpython-39.pyc'
+import 'transformers.activations' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc2f2e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_attn_mask_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_attn_mask_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_attn_mask_utils.cpython-39.pyc'
+import 'transformers.modeling_attn_mask_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc2f850>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_flash_attention_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_flash_attention_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_flash_attention_utils.cpython-39.pyc'
+import 'transformers.modeling_flash_attention_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc39dc0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/modeling_utils.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/peft.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/peft.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/peft.cpython-39.pyc'
+import 'transformers.integrations.peft' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc73790>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flash_attention.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flash_attention.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flash_attention.cpython-39.pyc'
+import 'transformers.integrations.flash_attention' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc73be0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flex_attention.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flex_attention.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/flex_attention.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/flex_attention.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/flex_attention.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/flex_attention.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/attention/_utils.cpython-39.pyc'
+import 'torch.nn.attention._utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc83d00>
+import 'torch.nn.attention.flex_attention' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc73f40>
+import 'transformers.integrations.flex_attention' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc73cd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/sdpa_attention.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/sdpa_attention.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/sdpa_attention.cpython-39.pyc'
+import 'transformers.integrations.sdpa_attention' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc73610>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/__init__.cpython-39.pyc'
+import 'transformers.loss' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc964f0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_utils.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_deformable_detr.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_deformable_detr.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_deformable_detr.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_transforms.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_transforms.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_transforms.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/image_utils.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageOps.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageOps.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageOps.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImagePalette.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImagePalette.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImagePalette.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpGradientFile.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpGradientFile.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpGradientFile.cpython-39.pyc'
+import 'PIL.GimpGradientFile' # <_frozen_importlib_external.SourceFileLoader object at 0x30fccd640>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpPaletteFile.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpPaletteFile.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/GimpPaletteFile.cpython-39.pyc'
+import 'PIL.GimpPaletteFile' # <_frozen_importlib_external.SourceFileLoader object at 0x30fccd970>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageColor.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageColor.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/ImageColor.cpython-39.pyc'
+import 'PIL.ImageColor' # <_frozen_importlib_external.SourceFileLoader object at 0x30fccddc0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/PaletteFile.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/PaletteFile.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/PIL/PaletteFile.cpython-39.pyc'
+import 'PIL.PaletteFile' # <_frozen_importlib_external.SourceFileLoader object at 0x30fccdfa0>
+import 'PIL.ImagePalette' # <_frozen_importlib_external.SourceFileLoader object at 0x30fcbfbe0>
+import 'PIL.ImageOps' # <_frozen_importlib_external.SourceFileLoader object at 0x30fcbf250>
+import 'transformers.image_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fcae250>
+import 'transformers.image_transforms' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc96a00>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_for_object_detection.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_for_object_detection.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_for_object_detection.cpython-39.pyc'
+import 'transformers.loss.loss_for_object_detection' # <_frozen_importlib_external.SourceFileLoader object at 0x30fce0a30>
+import 'transformers.loss.loss_deformable_detr' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc96700>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_rt_detr.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_rt_detr.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/loss/loss_rt_detr.cpython-39.pyc'
+import 'transformers.loss.loss_rt_detr' # <_frozen_importlib_external.SourceFileLoader object at 0x30fce06d0>
+import 'transformers.loss.loss_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc96490>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/__init__.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/auto.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/auto.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/auto.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/utils/quantization_config.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/utils/quantization_config.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/utils/quantization_config.cpython-39.pyc'
+import 'transformers.utils.quantization_config' # <_frozen_importlib_external.SourceFileLoader object at 0x30fceacd0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_aqlm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_aqlm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_aqlm.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/base.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/base.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/base.cpython-39.pyc'
+import 'transformers.quantizers.base' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd29d90>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/aqlm.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/aqlm.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/aqlm.cpython-39.pyc'
+import 'transformers.integrations.aqlm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd328b0>
+import 'transformers.quantizers.quantizer_aqlm' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd089a0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_awq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_awq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_awq.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_awq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd328e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bitnet.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bitnet.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bitnet.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_bitnet' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd32b80>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_4bit.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_4bit.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_4bit.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizers_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizers_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizers_utils.cpython-39.pyc'
+import 'transformers.quantizers.quantizers_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd3c760>
+import 'transformers.quantizers.quantizer_bnb_4bit' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd32fa0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_8bit.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_8bit.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_bnb_8bit.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_bnb_8bit' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd3c880>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_compressed_tensors.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_compressed_tensors.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_compressed_tensors.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_compressed_tensors' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd3cdf0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_eetq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_eetq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_eetq.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_eetq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd4b280>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_fbgemm_fp8.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_fbgemm_fp8.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_fbgemm_fp8.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_fbgemm_fp8' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd4b700>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_finegrained_fp8.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_finegrained_fp8.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_finegrained_fp8.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_finegrained_fp8' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd4bbb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_gptq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_gptq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_gptq.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_gptq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd590d0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_higgs.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_higgs.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_higgs.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_higgs' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd59490>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_hqq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_hqq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_hqq.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/hqq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/hqq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/hqq.cpython-39.pyc'
+import 'transformers.integrations.hqq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd65280>
+import 'transformers.quantizers.quantizer_hqq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd59af0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_quanto.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_quanto.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_quanto.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_quanto' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd65490>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_spqr.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_spqr.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_spqr.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/spqr.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/spqr.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/integrations/spqr.cpython-39.pyc'
+import 'transformers.integrations.spqr' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd65ee0>
+import 'transformers.quantizers.quantizer_spqr' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd65a90>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_torchao.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_torchao.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_torchao.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_torchao' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd65f10>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_vptq.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_vptq.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/quantizers/quantizer_vptq.cpython-39.pyc'
+import 'transformers.quantizers.quantizer_vptq' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd73490>
+import 'transformers.quantizers.auto' # <_frozen_importlib_external.SourceFileLoader object at 0x30fcea6d0>
+import 'transformers.quantizers' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc96550>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/safetensors_conversion.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/safetensors_conversion.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/safetensors_conversion.cpython-39.pyc'
+import 'transformers.safetensors_conversion' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc964c0>
+import 'transformers.modeling_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fc39eb0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/processing_utils.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/processing_utils.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/processing_utils.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/transformers/__init__.cpython-39.pyc'
+# destroy transformers
+import 'transformers.processing_utils' # <_frozen_importlib_external.SourceFileLoader object at 0x30fd86a90>
+# destroy transformers
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.15s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.28s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.26s/it]
+Traceback (most recent call last):
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 422, in create_model_and_tokenizer
+    if len(tokenizer) != model.config.vocab_size:
+  File "/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1940, in __getattr__
+    raise AttributeError(
+AttributeError: 'ModelWithClassificationHead' object has no attribute 'config'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 871, in <module>
+    main()
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 792, in main
+    model, tokenizer = create_model_and_tokenizer(
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 436, in create_model_and_tokenizer
+    raise RuntimeError(f"Failed to load model {model_name} ({model_id}): {e}")
+RuntimeError: Failed to load model phi4 (microsoft/Phi-4-mini-instruct): 'ModelWithClassificationHead' object has no attribute 'config'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/__init__.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/__init__.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/__init__.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/__init__.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/wcwidth.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/wcwidth.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/wcwidth.cpython-39.pyc'
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_vs16.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_vs16.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_vs16.cpython-39.pyc'
+import 'wcwidth.table_vs16' # <_frozen_importlib_external.SourceFileLoader object at 0x100c82be0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_wide.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_wide.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_wide.cpython-39.pyc'
+import 'wcwidth.table_wide' # <_frozen_importlib_external.SourceFileLoader object at 0x100c82ca0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_zero.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_zero.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/table_zero.cpython-39.pyc'
+import 'wcwidth.table_zero' # <_frozen_importlib_external.SourceFileLoader object at 0x30fda92e0>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/unicode_versions.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/unicode_versions.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/wcwidth/unicode_versions.cpython-39.pyc'
+import 'wcwidth.unicode_versions' # <_frozen_importlib_external.SourceFileLoader object at 0x30fda95e0>
+import 'wcwidth.wcwidth' # <_frozen_importlib_external.SourceFileLoader object at 0x100c827f0>
+import 'wcwidth' # <_frozen_importlib_external.SourceFileLoader object at 0x100c82520>
+# /Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/version.cpython-39.pyc matches /Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/version.py
+# code object from '/Users/jonathankarr/Library/Caches/com.apple.python/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/tabulate/version.cpython-39.pyc'
+import 'tabulate.version' # <_frozen_importlib_external.SourceFileLoader object at 0x100c82370>
+import 'tabulate' # <_frozen_importlib_external.SourceFileLoader object at 0x100c625e0>

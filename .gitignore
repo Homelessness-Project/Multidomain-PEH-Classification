@@ -2,3 +2,7 @@ venv/
 .env
 .DS_Storemodels/*.pt
 *.pt
+
+# Large CSV files that exceed GitHub's 100MB limit
+output/charts/sentiment_analysis/all_sentiment_scores.csv
+output/charts/sentiment_analysis/sentiment_with_categories.csv

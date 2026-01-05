@@ -1,0 +1,55 @@
+Bias_Variable,Census_Variable,Correlation,P_Value,N,City_Size
+racist_%,RFI,,,10,All
+racist_%,Population,,,10,All
+racist_%,GINI,,,10,All
+harmful generalization_%,RFI,,,10,All
+harmful generalization_%,Population,,,10,All
+harmful generalization_%,GINI,,,10,All
+deserving/undeserving_%,RFI,,,10,All
+deserving/undeserving_%,Population,,,10,All
+deserving/undeserving_%,GINI,,,10,All
+langfair_bias_score_%,RFI,0.11833922360257285,0.7447278077003093,10,All
+langfair_bias_score_%,Population,0.2349960024894444,0.513405671767689,10,All
+langfair_bias_score_%,GINI,0.22429195884774727,0.533307745479246,10,All
+langfair_toxicity_%,RFI,-0.006869153462083277,0.9849744358003674,10,All
+langfair_toxicity_%,Population,0.2950252256564542,0.40793228067571474,10,All
+langfair_toxicity_%,GINI,0.23381326595458418,0.5155894396237668,10,All
+langfair_stereotype_%,RFI,-0.017141692795879453,0.9625135632294086,10,All
+langfair_stereotype_%,Population,-0.11969212677401328,0.7418923208305521,10,All
+langfair_stereotype_%,GINI,-0.328435400470752,0.3541598131432501,10,All
+racist_%,RFI,,,5,Small
+racist_%,Population,,,5,Small
+racist_%,GINI,,,5,Small
+harmful generalization_%,RFI,,,5,Small
+harmful generalization_%,Population,,,5,Small
+harmful generalization_%,GINI,,,5,Small
+deserving/undeserving_%,RFI,,,5,Small
+deserving/undeserving_%,Population,,,5,Small
+deserving/undeserving_%,GINI,,,5,Small
+langfair_bias_score_%,RFI,-0.35894436590544243,0.5529906910502509,5,Small
+langfair_bias_score_%,Population,0.35661572192331054,0.5557593514844076,5,Small
+langfair_bias_score_%,GINI,-0.49714303940841065,0.3941554612489525,5,Small
+langfair_toxicity_%,RFI,-0.3893095151016299,0.5171381836627448,5,Small
+langfair_toxicity_%,Population,0.273985032082758,0.6555664849705897,5,Small
+langfair_toxicity_%,GINI,-0.3705354875283533,0.5392492247959288,5,Small
+langfair_stereotype_%,RFI,0.19039212023444016,0.759057847110224,5,Small
+langfair_stereotype_%,Population,0.47982006659324594,0.41340079971587823,5,Small
+langfair_stereotype_%,GINI,-0.7378962625915669,0.1545914749214571,5,Small
+racist_%,RFI,,,5,Large
+racist_%,Population,,,5,Large
+racist_%,GINI,,,5,Large
+harmful generalization_%,RFI,,,5,Large
+harmful generalization_%,Population,,,5,Large
+harmful generalization_%,GINI,,,5,Large
+deserving/undeserving_%,RFI,,,5,Large
+deserving/undeserving_%,Population,,,5,Large
+deserving/undeserving_%,GINI,,,5,Large
+langfair_bias_score_%,RFI,0.30965650756153174,0.6121278268271616,5,Large
+langfair_bias_score_%,Population,-0.6028669503793862,0.28184066245168315,5,Large
+langfair_bias_score_%,GINI,0.6020171726412629,0.28270425088912365,5,Large
+langfair_toxicity_%,RFI,-0.030792662988418817,0.9607997605229672,5,Large
+langfair_toxicity_%,Population,-0.3052153340606064,0.6175086362532977,5,Large
+langfair_toxicity_%,GINI,0.5763502737645886,0.3091080499936728,5,Large
+langfair_stereotype_%,RFI,-0.2312863619031396,0.7081640194046168,5,Large
+langfair_stereotype_%,Population,-0.2039186277547517,0.7421735407051724,5,Large
+langfair_stereotype_%,GINI,0.10575159495161732,0.8656042788315699,5,Large

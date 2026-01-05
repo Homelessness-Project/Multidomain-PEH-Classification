@@ -1,0 +1,54 @@
+Logging to: logs/finetune_reddit_phi4_none_20251118_132544.log
+Started at: 2025-11-18 13:25:44.023762
+Command: scripts/finetune_local_model.py --source reddit --model phi4 --use_prompt --few_shot none --batch_size 4 --epochs 3
+--------------------------------------------------------------------------------
+Using device: mps
+Loading data for reddit...
+Loaded 506 soft label samples
+Loaded 500 text samples
+
+Label distribution (before SMOTE):
+  ask a genuine question: 57.0/500 (11.4%)
+  ask a rhetorical question: 91.0/500 (18.2%)
+  provide a fact or claim: 282.0/500 (56.4%)
+  provide an observation: 119.0/500 (23.8%)
+  express their opinion: 393.0/500 (78.6%)
+  express others opinions: 52.0/500 (10.4%)
+  money aid allocation: 65.0/500 (13.0%)
+  government critique: 69.0/500 (13.8%)
+  societal critique: 82.0/500 (16.4%)
+  solutions/interventions: 176.0/500 (35.2%)
+  personal interaction: 54.0/500 (10.8%)
+  media portrayal: 2.0/500 (0.4%)
+  not in my backyard: 26.0/500 (5.2%)
+  harmful generalization: 65.0/500 (13.0%)
+  deserving/undeserving: 8.0/500 (1.6%)
+  racist: 1.0/500 (0.2%)
+
+Data split:
+  Train: 349
+  Val: 50
+  Test: 101
+Loading model: phi4
+Using float16 for MPS to save memory
+Warning: Could not load as sequence classification model: Unrecognized configuration class <class 'transformers_modules.microsoft.Phi-4-mini-instruct.5a149550068a1eb93398160d8953f5f56c3603e9.configuration_phi3.Phi3Config'> for this kind of AutoModel: AutoModelForSequenceClassification.
+Model type should be one of AlbertConfig, BartConfig, BertConfig, BigBirdConfig, BigBirdPegasusConfig, BioGptConfig, BloomConfig, CamembertConfig, CanineConfig, LlamaConfig, ConvBertConfig, CTRLConfig, Data2VecTextConfig, DebertaConfig, DebertaV2Config, DiffLlamaConfig, DistilBertConfig, ElectraConfig, ErnieConfig, ErnieMConfig, EsmConfig, FalconConfig, FlaubertConfig, FNetConfig, FunnelConfig, GemmaConfig, Gemma2Config, GlmConfig, GPT2Config, GPT2Config, GPTBigCodeConfig, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, HeliumConfig, IBertConfig, JambaConfig, JetMoeConfig, LayoutLMConfig, LayoutLMv2Config, LayoutLMv3Config, LEDConfig, LiltConfig, LlamaConfig, LongformerConfig, LukeConfig, MarkupLMConfig, MBartConfig, MegaConfig, MegatronBertConfig, MistralConfig, MixtralConfig, MobileBertConfig, ModernBertConfig, MPNetConfig, MptConfig, MraConfig, MT5Config, MvpConfig, NemotronConfig, NezhaConfig, NystromformerConfig, OpenLlamaConfig, OpenAIGPTConfig, OPTConfig, PerceiverConfig, PersimmonConfig, PhiConfig, Phi3Config, PhimoeConfig, PLBartConfig, QDQBertConfig, Qwen2Config, Qwen2MoeConfig, ReformerConfig, RemBertConfig, RobertaConfig, RobertaPreLayerNormConfig, RoCBertConfig, RoFormerConfig, SqueezeBertConfig, StableLmConfig, Starcoder2Config, T5Config, TapasConfig, TransfoXLConfig, UMT5Config, XLMConfig, XLMRobertaConfig, XLMRobertaXLConfig, XLNetConfig, XmodConfig, YosoConfig, ZambaConfig, Zamba2Config.
+Attempting to load base model and add classification head...
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.04s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.54s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.47s/it]
+Traceback (most recent call last):
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 422, in create_model_and_tokenizer
+    if len(tokenizer) != model.config.vocab_size:
+  File "/Users/jonathankarr/Documents/AAAI26/venv/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1940, in __getattr__
+    raise AttributeError(
+AttributeError: 'ModelWithClassificationHead' object has no attribute 'config'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 870, in <module>
+    main()
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 791, in main
+    model, tokenizer = create_model_and_tokenizer(
+  File "/Users/jonathankarr/Documents/AAAI26/scripts/finetune_local_model.py", line 436, in create_model_and_tokenizer
+    raise RuntimeError(f"Failed to load model {model_name} ({model_id}): {e}")
+RuntimeError: Failed to load model phi4 (microsoft/Phi-4-mini-instruct): 'ModelWithClassificationHead' object has no attribute 'config'
