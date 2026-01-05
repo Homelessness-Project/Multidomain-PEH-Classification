@@ -307,18 +307,22 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     """
     
     # Determine torch dtype based on device
-    # Use bfloat16 for MPS (better support than float16, same memory as float16)
-    # bfloat16 is natively supported on Apple Silicon and avoids gradient issues
+    # For MPS with LoRA: use float32 (LoRA trains only ~0.15% of params, so memory is manageable)
+    # For MPS without LoRA: use float16 to save memory (but may have backward pass issues)
+    # For CUDA: use float16 (better support)
     if device and device.type == 'cuda':
         torch_dtype = torch.float16
     elif device and device.type == 'mps':
-        # Use bfloat16 for MPS - same memory as float16 (2 bytes) but better numerical stability
-        # This halves memory usage compared to float32
-        if hasattr(torch, 'bfloat16'):
-            torch_dtype = torch.bfloat16
+        if use_lora:
+            # With LoRA, only ~0.15% of parameters are trainable, so float32 is fine
+            # This avoids MPS backward pass issues with float16
+            torch_dtype = torch.float32
+            print("  Using float32 for MPS with LoRA (only trainable params need gradients)")
         else:
-            # Fallback to float16 if bfloat16 not available (older PyTorch)
+            # Without LoRA, use float16 to save memory (full fine-tuning)
+            # Note: MPS may have backward pass issues with float16
             torch_dtype = torch.float16
+            print("  Using float16 for MPS (full fine-tuning - may have backward pass issues)")
     else:
         torch_dtype = torch.float32
     
@@ -375,7 +379,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 num_labels=num_labels,
                 problem_type='multi_label_classification',
                 trust_remote_code=True,
-                dtype=torch_dtype
+                torch_dtype=torch_dtype
             )
             # Resize token embeddings if we added a new pad token
             if len(tokenizer) > model.config.vocab_size:
@@ -405,7 +409,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             base_model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 trust_remote_code=True,
-                dtype=torch_dtype
+                torch_dtype=torch_dtype
             )
             
             # Resize token embeddings if we added a new pad token
@@ -785,15 +789,19 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             labels = batch['labels'].to(device)
             
             optimizer.zero_grad()
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            # Pass use_cache=False when gradient checkpointing is enabled (suppresses warning)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
             logits = outputs.logits
             
-            # Labels should be float32 (they come from dataset as float32)
-            # Logits will be converted to float32 inside FocalLoss for numerical stability
-            # This preserves gradient flow while ensuring stable loss computation
-            labels = labels.to(dtype=torch.float32)
+            # Convert logits and labels to float32 for loss computation
+            # This is critical for MPS with bfloat16 models - backward pass needs float32
+            # Ensure conversion preserves gradient computation
+            if logits.dtype != torch.float32:
+                logits = logits.float()  # Convert to float32, preserves requires_grad
+            if labels.dtype != torch.float32:
+                labels = labels.float()  # Convert to float32
             
-            # Verify logits require grad
+            # Verify logits require grad (should be True even after dtype conversion)
             if not logits.requires_grad:
                 print(f"  WARNING: logits do not require grad! Checking model parameters...")
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
@@ -824,6 +832,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             # Verify loss requires grad
             if not loss.requires_grad:
                 raise RuntimeError("Loss does not require grad! Model parameters are not trainable.")
+            
+            # Ensure loss is float32 for backward pass on MPS
+            # FocalLoss should already return float32, but double-check
+            if loss.dtype != torch.float32:
+                loss = loss.float()
             
             loss.backward()
             
@@ -862,8 +875,8 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 labels = batch['labels'].to(device)
                 
                 with torch.no_grad():
-                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-                    logits = outputs.logits
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                    logits = outputs.logits.to(dtype=torch.float32)
                     labels = labels.to(dtype=torch.float32)
                 
                 loss = criterion(logits, labels)
@@ -915,7 +928,7 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
             
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
             # Convert to float32 for sigmoid computation (more stable)
             logits = outputs.logits.to(dtype=torch.float32)
             logits = outputs.logits
