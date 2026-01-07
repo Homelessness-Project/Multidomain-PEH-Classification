@@ -536,10 +536,9 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 # Default for other models
                 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # Don't include classifier in modules_to_save - it causes NaN issues
-            # Instead, we'll freeze the classifier and only train LoRA
-            # The pretrained classifier should work reasonably well with LoRA-adapted features
-            modules_to_save = None  # Don't save classifier - freeze it to avoid NaN
+            # Make classifier trainable to ensure gradient flow
+            # Use lower LR and gradient clipping to prevent NaN (handled in training loop)
+            modules_to_save = ["score"]  # Make classifier trainable for gradient flow
             
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,  # For classification
@@ -548,24 +547,23 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=lora_dropout,
                 bias="none",
-                modules_to_save=modules_to_save,  # None - freeze classifier to avoid NaN
+                modules_to_save=modules_to_save,  # ['score'] - trainable for gradient flow
             )
             
-            print(f"  Note: Classifier will be frozen (only LoRA adapters will train)")
-            print(f"  This prevents NaN issues. The pretrained classifier works with LoRA-adapted features.")
+            print(f"  Note: Classifier will be trainable (modules_to_save=['score'])")
+            print(f"  This ensures gradient flow. Use lower LR (1e-5) and gradient clipping (0.5) to prevent NaN.")
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
             
-            # CRITICAL: Ensure classifier is frozen (modules_to_save=None should do this, but verify)
-            # Freeze any classifier/score parameters that might still be trainable
-            classifier_frozen_count = 0
+            # Verify classifier is trainable (needed for gradient flow)
+            classifier_trainable_count = 0
             for name, param in model.named_parameters():
                 if ('score' in name or 'classifier' in name) and param.requires_grad:
-                    param.requires_grad = False  # Force freeze
-                    classifier_frozen_count += param.numel()
+                    classifier_trainable_count += param.numel()
             
-            if classifier_frozen_count > 0:
-                print(f"  ✓ Froze {classifier_frozen_count:,} classifier params (preventing NaN)")
+            if classifier_trainable_count > 0:
+                print(f"  ✓ Classifier is trainable ({classifier_trainable_count:,} params)")
+                print(f"  ⚠️  Use lower LR (1e-5) and gradient clipping (0.5) to prevent NaN")
             
             # Verify we have trainable parameters (should be LoRA adapters only)
             trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -715,28 +713,21 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if len(trainable_params) == 0:
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
-    # Freeze classifier/score layer to avoid NaN issues
-    # Only train LoRA adapters - the pretrained classifier works with LoRA-adapted features
-    # IMPORTANT: Even though classifier is frozen, gradients can still flow through it
+    # Separate classifier and LoRA parameters for different learning rates
+    # Classifier is trainable (modules_to_save=['score']) but needs lower LR
     classifier_params = []
     lora_params = []
-    
-    # First, identify all trainable parameters (before freezing)
-    all_trainable = [p for p in model.parameters() if p.requires_grad]
     
     for name, param in model.named_parameters():
         if param.requires_grad:
             if 'score' in name or 'classifier' in name:
-                # Freeze classifier to prevent NaN
-                # NOTE: Freezing doesn't break gradient flow - gradients can still pass through
-                param.requires_grad = False
                 classifier_params.append(param)
             else:
                 lora_params.append(param)
     
     if classifier_params:
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (FROZEN to prevent NaN)")
-        print(f"  Note: Gradients will still flow through frozen classifier to LoRA adapters")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (trainable)")
+        print(f"  Note: Using lower LR (1e-5) and gradient clipping (0.5) for classifier")
     
     # Verify we have LoRA params
     if not lora_params:
@@ -745,11 +736,22 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         print(f"  Trainable param names: {[n for n, p in model.named_parameters() if p.requires_grad][:10]}")
         raise RuntimeError("No LoRA parameters found! Check LoRA configuration.")
     
-    # Only train LoRA adapters
+    # Use different learning rates for classifier vs LoRA
+    # Classifier needs lower LR to prevent NaN, LoRA can use normal LR
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
-    print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
     
-    print(f"  Training {len(param_groups)} parameter groups with {sum(p.numel() for p in lora_params):,} trainable parameters")
+    # Add classifier with lower LR if it exists and is trainable
+    if classifier_params:
+        # Use lower LR for classifier to prevent NaN (default: 1e-5 for LoRA, so classifier gets 1e-6)
+        classifier_lr = learning_rate * 0.1  # 10x lower LR for classifier
+        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e}")
+    else:
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    
+    total_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"  Training {len(param_groups)} parameter groups with {total_trainable:,} trainable parameters")
     
     optimizer = AdamW(param_groups)
     
@@ -800,7 +802,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         print(f"  Training on {total_batches} batches...")
         sys.stdout.flush()
         
-        for batch in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{epochs}", total=total_batches, **tqdm_kwargs):
+        for batch_idx, batch in enumerate(tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{epochs}", total=total_batches, **tqdm_kwargs)):
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
@@ -880,30 +882,32 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 if trainable_count == 0:
                     raise RuntimeError("Loss does not require grad! No trainable parameters found.")
                 
-                # This shouldn't happen - if LoRA is trainable, loss should have gradients
-                # The issue might be that logits don't connect to LoRA properly
-                # Force gradient connection by ensuring LoRA params are used in computation
-                print(f"  WARNING: Loss doesn't require grad but {trainable_count} LoRA params are trainable")
-                print(f"  Forcing gradient connection...")
+                # This shouldn't happen if classifier is trainable - but handle it anyway
+                # The issue might be that LoRA adapters aren't being used in forward pass
+                if batch_idx % 100 == 0:  # Only print every 100 batches to avoid spam
+                    print(f"  WARNING: Loss doesn't require grad but {trainable_count} params are trainable")
+                    print(f"  Checking if LoRA adapters are enabled...")
                 
-                # Get a LoRA parameter and ensure it's used in the computation graph
-                # This forces PyTorch to track gradients through LoRA
+                # Verify LoRA adapters are enabled
+                if hasattr(model, 'enable_adapter_layers'):
+                    model.enable_adapter_layers()
+                if hasattr(model, 'base_model') and hasattr(model.base_model, 'enable_adapter_layers'):
+                    model.base_model.enable_adapter_layers()
+                
+                # Try to force gradient connection
                 lora_param = next((p for n, p in model.named_parameters() 
-                                 if p.requires_grad and 'lora' in n.lower()), None)
+                                 if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
                 if lora_param is None:
-                    # Try any trainable param
+                    lora_param = next((p for n, p in model.named_parameters() 
+                                     if p.requires_grad and 'score' in n.lower()), None)
+                if lora_param is None:
                     lora_param = next(p for p in model.parameters() if p.requires_grad)
                 
-                # Add a zero contribution that depends on LoRA (forces gradient tracking)
-                # This is a workaround to ensure gradient flow
                 loss = loss + 0.0 * lora_param.sum()
                 
                 if not loss.requires_grad:
-                    # Still no gradients - this is a serious issue
-                    print(f"  CRITICAL: Cannot establish gradient connection!")
-                    print(f"  This suggests LoRA adapters are not used in forward pass.")
-                    print(f"  Check: Is LoRA properly applied? Is model using LoRA adapters?")
-                    print(f"  Skipping this batch...")
+                    if batch_idx % 100 == 0:
+                        print(f"  CRITICAL: Cannot establish gradient connection! This batch will be skipped.")
                     optimizer.zero_grad()
                     continue
             
