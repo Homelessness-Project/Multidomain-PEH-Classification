@@ -1571,16 +1571,40 @@ def main():
     # Clean model name for file saving
     model_name_clean = args.model.replace('/', '_').replace('-', '_')
     suffix = '_lora' if args.use_lora else ''
-    model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_best_{args.source}.pt'
     
-    # Save LoRA adapters separately if using LoRA
+    # Save model based on whether LoRA is used
     if args.use_lora and PEFT_AVAILABLE and hasattr(model, 'save_pretrained'):
-        # Save full model state (includes LoRA adapters)
-        model.save_pretrained(str(model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'))
-        print(f"\nLoRA model saved to: {model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'}")
+        # Save LoRA adapters using PEFT's save_pretrained (saves adapter weights + config)
+        lora_model_dir = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'
+        model.save_pretrained(str(lora_model_dir))
+        print(f"\n✓ LoRA adapters saved to: {lora_model_dir}")
+        print(f"  (Contains: adapter_model.bin, adapter_config.json)")
+        print(f"  To load: Use PEFT's PeftModel.from_pretrained() with base model")
+        
+        # Also save state_dict for compatibility
+        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_best_{args.source}.pt'
+        torch.save({
+            'model_state_dict': model.state_dict(),
+            'lora_config': {
+                'rank': args.lora_rank,
+                'alpha': args.lora_alpha,
+                'dropout': args.lora_dropout,
+                'target_modules': args.lora_target_modules
+            },
+            'model_name': args.model,
+            'source': args.source
+        }, model_path)
+        print(f"✓ Full state dict saved to: {model_path}")
     else:
-        torch.save(model.state_dict(), model_path)
-        print(f"\nModel saved to: {model_path}")
+        # Save full fine-tuned model
+        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_best_{args.source}.pt'
+        torch.save({
+            'model_state_dict': model.state_dict(),
+            'model_name': args.model,
+            'source': args.source,
+            'use_lora': False
+        }, model_path)
+        print(f"\n✓ Full fine-tuned model saved to: {model_path}")
     
     # Save results
     output_dir = Path('nlp_outputs') / args.source
@@ -1596,9 +1620,12 @@ def main():
         'use_lora': args.use_lora,
         'lora_rank': args.lora_rank if args.use_lora else None,
         'lora_alpha': args.lora_alpha if args.use_lora else None,
+        'lora_dropout': args.lora_dropout if args.use_lora else None,
+        'lora_target_modules': args.lora_target_modules if args.use_lora else None,
         'epochs': args.epochs,
         'batch_size': args.batch_size,
-        'learning_rate': args.learning_rate
+        'learning_rate': args.learning_rate,
+        'max_length': args.max_length
     }
     
     with open(results_file, 'w') as f:
