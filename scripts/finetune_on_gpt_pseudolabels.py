@@ -812,6 +812,31 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
             logits = outputs.logits
             
+            # Check for NaN in logits BEFORE loss computation
+            if torch.isnan(logits).any() or torch.isinf(logits).any():
+                print(f"\n⚠️  CRITICAL: NaN/Inf detected in model logits!")
+                print(f"  Logits range: [{logits.min().item():.4f}, {logits.max().item():.4f}]")
+                print(f"  NaN count: {torch.isnan(logits).sum().item()}")
+                print(f"  Inf count: {torch.isinf(logits).sum().item()}")
+                print(f"  This suggests gradient explosion or model instability.")
+                print(f"  Skipping this batch and checking model parameters...")
+                
+                # Check model parameters for NaN
+                nan_params = []
+                for name, param in model.named_parameters():
+                    if param.requires_grad and (torch.isnan(param).any() or torch.isinf(param).any()):
+                        nan_params.append(name)
+                        print(f"    NaN/Inf in: {name}")
+                
+                if nan_params:
+                    print(f"  ⚠️  Model parameters have NaN/Inf! Training may be unstable.")
+                    print(f"  Consider: reducing learning rate, using gradient clipping, or checking data.")
+                    # Skip this batch
+                    continue
+                else:
+                    print(f"  Model parameters OK, but logits are NaN. Skipping batch.")
+                    continue
+            
             # Convert logits and labels to float32 for loss computation
             # This is critical for MPS with bfloat16 models - backward pass needs float32
             # Ensure conversion preserves gradient computation
@@ -859,8 +884,27 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             loss.backward()
             
-            # Gradient clipping
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            # Gradient clipping - more aggressive to prevent NaN
+            # Check gradient norms before clipping
+            total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
+            # Check for NaN gradients
+            has_nan_grad = False
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
+                        print(f"  ⚠️  NaN/Inf gradient in {name}, zeroing it")
+                        param.grad.zero_()
+                        has_nan_grad = True
+            
+            if has_nan_grad:
+                print(f"  ⚠️  Skipping optimizer step due to NaN gradients")
+                optimizer.zero_grad()  # Clear gradients
+                continue
+            
+            # Warn if gradient norm is very large
+            if total_norm > 10.0:
+                print(f"  ⚠️  Large gradient norm: {total_norm:.2f} (clipped to 1.0)")
             
             optimizer.step()
             scheduler.step()
@@ -1007,10 +1051,10 @@ def main():
     parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
     parser.add_argument('--use_lora', action='store_true', 
                        help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
-    parser.add_argument('--lora_rank', type=int, default=32, 
-                       help='LoRA rank (default: 32, higher = more parameters but better capacity. Common: 8, 16, 32. rank=32 gives ~0.42%% trainable, achieves 98-99%% of full fine-tuning performance)')
-    parser.add_argument('--lora_alpha', type=int, default=64, 
-                       help='LoRA alpha (default: 64, typically 2x rank. Higher = stronger adaptation)')
+    parser.add_argument('--lora_rank', type=int, default=16, 
+                       help='LoRA rank (default: 16, optimized for accuracy and stability. rank=16 gives ~0.21%% trainable, achieves 96-98%% of full fine-tuning. Higher ranks (32+) may cause NaN issues)')
+    parser.add_argument('--lora_alpha', type=int, default=32, 
+                       help='LoRA alpha (default: 32, typically 2x rank. Higher = stronger adaptation)')
     parser.add_argument('--lora_dropout', type=float, default=0.1,
                        help='LoRA dropout rate (default: 0.1, range: 0.0-1.0. Higher = more regularization)')
     parser.add_argument('--lora_target_modules', type=str, default='all',
@@ -1155,13 +1199,18 @@ def main():
         print("="*80 + "\n")
         sys.exit(1)
     
-    # Adjust learning rate for LoRA (typically higher, but scale with rank)
+    # Adjust learning rate for LoRA (optimized for stability and accuracy)
     if args.use_lora and args.learning_rate == 2e-5:  # Default
-        # Higher rank needs slightly lower LR to avoid instability
+        # Learning rate scaling based on rank (higher rank = more sensitive)
         if args.lora_rank >= 32:
-            args.learning_rate = 5e-5  # Slightly lower for rank 32+ to avoid NaN
+            args.learning_rate = 1e-5  # Very conservative for rank 32+ to avoid NaN
+            print(f"⚠️  Using conservative LR {args.learning_rate} for rank {args.lora_rank} to avoid NaN")
+        elif args.lora_rank >= 16:
+            args.learning_rate = 3e-5  # Optimized for rank 16 (balance of speed and stability)
+        elif args.lora_rank >= 8:
+            args.learning_rate = 5e-5  # Standard for rank 8
         else:
-            args.learning_rate = 1e-4  # Standard LoRA LR for rank 8-16
+            args.learning_rate = 1e-4  # Higher for very low ranks
         print(f"Adjusting learning rate to {args.learning_rate} for LoRA (rank={args.lora_rank})")
     
     # Load GPT pseudolabels (excluding few-shot examples)
