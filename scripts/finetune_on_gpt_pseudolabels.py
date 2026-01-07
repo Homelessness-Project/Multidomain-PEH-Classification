@@ -979,10 +979,10 @@ def main():
     parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
     parser.add_argument('--use_lora', action='store_true', 
                        help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
-    parser.add_argument('--lora_rank', type=int, default=8, 
-                       help='LoRA rank (default: 8, higher = more parameters but better capacity. Try 4, 8, 16, 32)')
-    parser.add_argument('--lora_alpha', type=int, default=16, 
-                       help='LoRA alpha (default: 16, typically 2x rank. Higher = stronger adaptation)')
+    parser.add_argument('--lora_rank', type=int, default=16, 
+                       help='LoRA rank (default: 16, higher = more parameters but better capacity. Common: 8, 16, 32. rank=16 gives ~0.21%% trainable)')
+    parser.add_argument('--lora_alpha', type=int, default=32, 
+                       help='LoRA alpha (default: 32, typically 2x rank. Higher = stronger adaptation)')
     parser.add_argument('--lora_dropout', type=float, default=0.1,
                        help='LoRA dropout rate (default: 0.1, range: 0.0-1.0. Higher = more regularization)')
     parser.add_argument('--lora_target_modules', type=str, default='all',
