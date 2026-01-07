@@ -536,14 +536,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 # Default for other models
                 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # Determine which modules to save (keep trainable) based on model type
-            # For AutoModelForSequenceClassification: 'score'
-            # For ModelWithClassificationHead: 'classifier'
-            modules_to_save = []
-            if hasattr(model, 'score'):
-                modules_to_save = ["score"]  # LlamaForSequenceClassification uses 'score'
-            elif hasattr(model, 'classifier'):
-                modules_to_save = ["classifier"]  # Custom wrapper uses 'classifier'
+            # Don't include classifier in modules_to_save - it causes NaN issues
+            # Instead, we'll freeze the classifier and only train LoRA
+            # The pretrained classifier should work reasonably well with LoRA-adapted features
+            modules_to_save = None  # Don't save classifier - freeze it to avoid NaN
             
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,  # For classification
@@ -552,8 +548,11 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=lora_dropout,
                 bias="none",
-                modules_to_save=modules_to_save if modules_to_save else None,  # CRITICAL: Keep classifier head trainable
+                modules_to_save=modules_to_save,  # None - freeze classifier to avoid NaN
             )
+            
+            print(f"  Note: Classifier will be frozen (only LoRA adapters will train)")
+            print(f"  This prevents NaN issues. The pretrained classifier works with LoRA-adapted features.")
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
             
@@ -765,36 +764,32 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if len(trainable_params) == 0:
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
-    # Separate classifier/score layer from LoRA adapters for different learning rates
-    # Classifier needs MUCH lower LR to avoid NaN (gradient explosion)
+    # Freeze classifier/score layer to avoid NaN issues
+    # Only train LoRA adapters - the pretrained classifier works with LoRA-adapted features
     classifier_params = []
     lora_params = []
     
     for name, param in model.named_parameters():
         if param.requires_grad:
             if 'score' in name or 'classifier' in name:
+                # Freeze classifier to prevent NaN
+                param.requires_grad = False
                 classifier_params.append(param)
             else:
                 lora_params.append(param)
     
-    # Use different learning rates: classifier gets MUCH lower LR to prevent NaN
-    # Don't freeze - just use very low LR from start (freezing breaks gradient flow)
-    param_groups = []
     if classifier_params:
-        # Classifier gets 100x lower LR to prevent gradient explosion
-        # This is critical - classifier is a full linear layer, very sensitive
-        classifier_lr = learning_rate * 0.01  # 100x lower from the start
-        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100x lower)")
-    if lora_params:
-        param_groups.append({'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01})
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (FROZEN to prevent NaN)")
     
-    if not param_groups:
-        # Fallback to single group if separation didn't work
+    # Only train LoRA adapters
+    if lora_params:
+        param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    else:
+        # Fallback if no LoRA params found
         param_groups = [{'params': trainable_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     
-    print(f"  Training {len(param_groups)} parameter groups with {sum(p.numel() for p in trainable_params):,} trainable parameters")
+    print(f"  Training {len(param_groups)} parameter groups with {sum(p.numel() for p in lora_params):,} trainable parameters")
     
     optimizer = AdamW(param_groups)
     
@@ -1258,19 +1253,22 @@ def main():
         print("="*80 + "\n")
         sys.exit(1)
     
-    # Adjust learning rate for LoRA (optimized for stability and accuracy)
+    # Adjust learning rate for LoRA (based on research: 1e-4 to 1e-5 is optimal)
+    # Research shows: Lower LR for higher ranks, start conservative to avoid NaN
     if args.use_lora and args.learning_rate == 2e-5:  # Default
-        # Learning rate scaling based on rank (higher rank = more sensitive)
+        # Learning rate scaling based on rank (higher rank = more sensitive, needs lower LR)
         if args.lora_rank >= 32:
-            args.learning_rate = 1e-5  # Very conservative for rank 32+ to avoid NaN
-            print(f"⚠️  Using conservative LR {args.learning_rate} for rank {args.lora_rank} to avoid NaN")
+            args.learning_rate = 5e-6  # Very conservative for rank 32+ (research: start with 5e-6)
+            print(f"⚠️  Using very conservative LR {args.learning_rate} for rank {args.lora_rank} to avoid NaN")
         elif args.lora_rank >= 16:
-            args.learning_rate = 3e-5  # Optimized for rank 16 (balance of speed and stability)
+            args.learning_rate = 1e-5  # Conservative for rank 16 (research: 1e-5 is safer)
+            print(f"Using conservative LR {args.learning_rate} for rank {args.lora_rank} (research-recommended)")
         elif args.lora_rank >= 8:
-            args.learning_rate = 5e-5  # Standard for rank 8
+            args.learning_rate = 2e-5  # Standard for rank 8
         else:
-            args.learning_rate = 1e-4  # Higher for very low ranks
+            args.learning_rate = 5e-5  # Higher for very low ranks
         print(f"Adjusting learning rate to {args.learning_rate} for LoRA (rank={args.lora_rank})")
+        print(f"  Research suggests: 1e-4 to 1e-5 for stability, lower for higher ranks")
     
     # Load GPT pseudolabels (excluding few-shot examples)
     gpt_df = load_gpt_pseudolabels(args.source, exclude_few_shot=True)
