@@ -985,15 +985,40 @@ def main():
     args = parser.parse_args()
     
     # Set device - prioritize CUDA for GPU, then MPS, then CPU
+    print("\n" + "="*80)
+    print("Device Configuration:")
     if torch.cuda.is_available():
         device = torch.device('cuda')
-        print(f"Using CUDA GPU: {torch.cuda.get_device_name(0)}")
+        num_gpus = torch.cuda.device_count()
+        if num_gpus > 1:
+            print(f"  ✓ Using {num_gpus} CUDA GPU(s):")
+            for i in range(num_gpus):
+                print(f"    - GPU {i}: {torch.cuda.get_device_name(i)}")
+                print(f"      Memory: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.2f} GB")
+        else:
+            print(f"  ✓ Using CUDA GPU: {torch.cuda.get_device_name(0)}")
+            print(f"    Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
     elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
         device = torch.device('mps')
-        print("Using MPS (Apple Silicon GPU)")
+        print("  ✓ Using MPS (Apple Silicon GPU)")
+        # Try to get GPU info if available
+        try:
+            import subprocess
+            result = subprocess.run(['system_profiler', 'SPDisplaysDataType'], 
+                                  capture_output=True, text=True, timeout=2)
+            if 'Chipset Model' in result.stdout:
+                for line in result.stdout.split('\n'):
+                    if 'Chipset Model' in line:
+                        gpu_name = line.split('Chipset Model:')[1].strip()
+                        print(f"    GPU: {gpu_name}")
+                        break
+        except:
+            pass
     else:
         device = torch.device('cpu')
-        print("Using CPU")
+        print("  ⚠ Using CPU (no GPU detected)")
+        print("    Note: Training will be significantly slower on CPU")
+    print("="*80 + "\n")
     
     # Adjust batch size for local LLMs (they're larger)
     local_llms = ['llama', 'qwen', 'gemma3']
