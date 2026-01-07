@@ -766,7 +766,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
     # Separate classifier/score layer from LoRA adapters for different learning rates
-    # Classifier needs lower LR to avoid NaN
+    # Classifier needs MUCH lower LR to avoid NaN (gradient explosion)
     classifier_params = []
     lora_params = []
     
@@ -777,12 +777,15 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             else:
                 lora_params.append(param)
     
-    # Use different learning rates: classifier gets lower LR to prevent NaN
+    # Use different learning rates: classifier gets MUCH lower LR to prevent NaN
+    # Strategy: Freeze classifier for first epoch, then train with very low LR
     param_groups = []
     if classifier_params:
-        # Classifier gets 10x lower LR to prevent instability
-        param_groups.append({'params': classifier_params, 'lr': learning_rate * 0.1, 'weight_decay': 0.01})
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={learning_rate * 0.1:.2e}")
+        # Initially freeze classifier to let LoRA stabilize first
+        for param in classifier_params:
+            param.requires_grad = False
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (FROZEN for first epoch)")
+        print(f"  Will unfreeze after epoch 1 with LR={learning_rate * 0.01:.2e} (100x lower)")
     if lora_params:
         param_groups.append({'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01})
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
@@ -813,9 +816,23 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     patience = 3
     patience_counter = 0
     
+    # Track if classifier should be unfrozen
+    classifier_frozen = classifier_params and not any(p.requires_grad for p in classifier_params)
+    
     for epoch in range(epochs):
         print(f"\nEpoch {epoch + 1}/{epochs}")
         sys.stdout.flush()  # Flush before starting progress bar
+        
+        # Unfreeze classifier after first epoch with very low LR
+        if classifier_frozen and epoch == 1:
+            print(f"  Unfreezing classifier with very low LR to prevent NaN...")
+            classifier_lr = learning_rate * 0.01  # 100x lower
+            for param in classifier_params:
+                param.requires_grad = True
+            # Add classifier to optimizer with separate LR
+            optimizer.add_param_group({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
+            print(f"  Classifier LR: {classifier_lr:.2e} (100x lower than LoRA)")
+            classifier_frozen = False
         
         # Training
         model.train()
@@ -922,27 +939,45 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             loss.backward()
             
-            # Gradient clipping - more aggressive to prevent NaN
-            # Check gradient norms before clipping
-            total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # Separate gradient clipping for classifier vs LoRA
+            # Classifier needs much more aggressive clipping
+            classifier_norm = 0.0
+            lora_norm = 0.0
             
-            # Check for NaN gradients
-            has_nan_grad = False
             for name, param in model.named_parameters():
                 if param.grad is not None:
+                    # Check for NaN/Inf gradients first
                     if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
                         print(f"  ⚠️  NaN/Inf gradient in {name}, zeroing it")
                         param.grad.zero_()
-                        has_nan_grad = True
+                        continue
+                    
+                    # Calculate norms separately
+                    param_norm = param.grad.data.norm(2)
+                    if 'score' in name or 'classifier' in name:
+                        classifier_norm += param_norm.item() ** 2
+                    else:
+                        lora_norm += param_norm.item() ** 2
             
-            if has_nan_grad:
-                print(f"  ⚠️  Skipping optimizer step due to NaN gradients")
-                optimizer.zero_grad()  # Clear gradients
-                continue
+            classifier_norm = classifier_norm ** 0.5
+            lora_norm = lora_norm ** 0.5
             
-            # Warn if gradient norm is very large
-            if total_norm > 10.0:
-                print(f"  ⚠️  Large gradient norm: {total_norm:.2f} (clipped to 1.0)")
+            # Clip classifier gradients more aggressively (0.5 instead of 1.0)
+            for name, param in model.named_parameters():
+                if param.grad is not None and ('score' in name or 'classifier' in name):
+                    torch.nn.utils.clip_grad_norm_([param], max_norm=0.5)
+            
+            # Clip LoRA gradients normally
+            lora_params_list = [p for n, p in model.named_parameters() 
+                              if p.grad is not None and 'score' not in n and 'classifier' not in n]
+            if lora_params_list:
+                torch.nn.utils.clip_grad_norm_(lora_params_list, max_norm=1.0)
+            
+            # Warn if gradient norms are large
+            if classifier_norm > 5.0:
+                print(f"  ⚠️  Large classifier gradient norm: {classifier_norm:.2f} (clipped to 0.5)")
+            if lora_norm > 10.0:
+                print(f"  ⚠️  Large LoRA gradient norm: {lora_norm:.2f} (clipped to 1.0)")
             
             optimizer.step()
             scheduler.step()
