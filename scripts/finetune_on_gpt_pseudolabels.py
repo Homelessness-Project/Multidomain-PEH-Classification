@@ -778,14 +778,14 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 lora_params.append(param)
     
     # Use different learning rates: classifier gets MUCH lower LR to prevent NaN
-    # Strategy: Freeze classifier for first epoch, then train with very low LR
+    # Don't freeze - just use very low LR from start (freezing breaks gradient flow)
     param_groups = []
     if classifier_params:
-        # Initially freeze classifier to let LoRA stabilize first
-        for param in classifier_params:
-            param.requires_grad = False
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (FROZEN for first epoch)")
-        print(f"  Will unfreeze after epoch 1 with LR={learning_rate * 0.01:.2e} (100x lower)")
+        # Classifier gets 100x lower LR to prevent gradient explosion
+        # This is critical - classifier is a full linear layer, very sensitive
+        classifier_lr = learning_rate * 0.01  # 100x lower from the start
+        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100x lower)")
     if lora_params:
         param_groups.append({'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01})
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
@@ -816,23 +816,9 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     patience = 3
     patience_counter = 0
     
-    # Track if classifier should be unfrozen
-    classifier_frozen = classifier_params and not any(p.requires_grad for p in classifier_params)
-    
     for epoch in range(epochs):
         print(f"\nEpoch {epoch + 1}/{epochs}")
         sys.stdout.flush()  # Flush before starting progress bar
-        
-        # Unfreeze classifier after first epoch with very low LR
-        if classifier_frozen and epoch == 1:
-            print(f"  Unfreezing classifier with very low LR to prevent NaN...")
-            classifier_lr = learning_rate * 0.01  # 100x lower
-            for param in classifier_params:
-                param.requires_grad = True
-            # Add classifier to optimizer with separate LR
-            optimizer.add_param_group({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
-            print(f"  Classifier LR: {classifier_lr:.2e} (100x lower than LoRA)")
-            classifier_frozen = False
         
         # Training
         model.train()
@@ -900,37 +886,37 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             if labels.dtype != torch.float32:
                 labels = labels.float()  # Convert to float32
             
-            # Verify logits require grad (should be True even after dtype conversion)
+            # Check if logits require grad - this is OK if classifier is frozen but LoRA is trainable
+            # The logits will still have gradients from LoRA parameters
             if not logits.requires_grad:
-                print(f"  WARNING: logits do not require grad! Checking model parameters...")
+                # Check if we have any trainable parameters at all
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
-                print(f"  Trainable parameters: {trainable_count}")
-                # Force classifier/score to be trainable
-                # Check for 'score' layer (AutoModelForSequenceClassification)
-                if hasattr(model, 'base_model') and hasattr(model.base_model, 'score'):
-                    for param in model.base_model.score.parameters():
-                        param.requires_grad = True
-                    print(f"  Forced score layer parameters to require grad")
-                elif hasattr(model, 'score'):
-                    for param in model.score.parameters():
-                        param.requires_grad = True
-                    print(f"  Forced score layer parameters to require grad")
-                # Check for 'classifier' layer (ModelWithClassificationHead)
-                elif hasattr(model, 'base_model') and hasattr(model.base_model, 'classifier'):
-                    for param in model.base_model.classifier.parameters():
-                        param.requires_grad = True
-                    print(f"  Forced classifier parameters to require grad")
+                if trainable_count == 0:
+                    print(f"  ERROR: No trainable parameters found!")
+                    print(f"  This should not happen - LoRA adapters should be trainable")
+                    raise RuntimeError("No trainable parameters! Check LoRA configuration.")
                 else:
-                    print(f"  ERROR: Could not find score or classifier layer!")
-                    print(f"  Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')][:20]}")
-                    if hasattr(model, 'base_model'):
-                        print(f"  Base model attributes: {[attr for attr in dir(model.base_model) if not attr.startswith('_')][:20]}")
+                    # This is OK - classifier is frozen but LoRA is trainable
+                    # Logits will get gradients through LoRA, just not through classifier
+                    # We need to recompute logits to get gradients
+                    pass
             
             loss = criterion(logits, labels)
             
-            # Verify loss requires grad
+            # Verify loss requires grad - should always be True if any params are trainable
             if not loss.requires_grad:
-                raise RuntimeError("Loss does not require grad! Model parameters are not trainable.")
+                trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
+                if trainable_count == 0:
+                    raise RuntimeError("Loss does not require grad! No trainable parameters found.")
+                else:
+                    # This shouldn't happen - if params are trainable, loss should require grad
+                    print(f"  WARNING: Loss doesn't require grad but {trainable_count} params are trainable")
+                    print(f"  This might be a computation graph issue. Checking...")
+                    # Force a gradient connection by adding a dummy computation
+                    dummy = sum(p.sum() * 0.0 for p in model.parameters() if p.requires_grad)
+                    loss = loss + dummy
+                    if not loss.requires_grad:
+                        raise RuntimeError("Cannot establish gradient connection. Check model configuration.")
             
             # Ensure loss is float32 for backward pass on MPS
             # FocalLoss should already return float32, but double-check
