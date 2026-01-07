@@ -979,9 +979,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_per_sample_exact = (val_preds_binary == val_labels).all(axis=1).mean()
         val_per_label_accuracy = (val_preds_binary == val_labels).mean()
         
-        print(f"Train Loss: {train_loss:.4f if not np.isnan(train_loss) else 'nan'}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
+        train_loss_str = f"{train_loss:.4f}" if not np.isnan(train_loss) else "nan"
+        print(f"Train Loss: {train_loss_str}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
         print(f"  Train: Exact match: {train_per_sample_exact:.1%}, Per-label accuracy: {train_per_label_accuracy:.1%}")
-        print(f"Val Loss: {val_loss:.4f if not np.isnan(val_loss) else 'nan'}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
+        val_loss_str = f"{val_loss:.4f}" if not np.isnan(val_loss) else "nan"
+        print(f"Val Loss: {val_loss_str}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
         print(f"  Val: Exact match: {val_per_sample_exact:.1%}, Per-label accuracy: {val_per_label_accuracy:.1%}")
         
         # Early stopping
