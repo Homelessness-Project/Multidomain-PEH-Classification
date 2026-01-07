@@ -1153,7 +1153,13 @@ def main():
         # Normalize few-shot comments for matching (strip, lowercase, normalize whitespace)
         def normalize_text(text):
             # Remove newlines and normalize whitespace
-            return ' '.join(str(text).split()).strip().lower()
+            text = ' '.join(str(text).split()).strip().lower()
+            # Remove surrounding quotes if present (few-shot examples may have quotes)
+            if text.startswith('"') and text.endswith('"'):
+                text = text[1:-1]
+            elif text.startswith("'") and text.endswith("'"):
+                text = text[1:-1]
+            return text
         
         few_shot_comments_normalized = {normalize_text(c) for c in few_shot_comments}
         print(f"  Sample few-shot text (first 100 chars): {list(few_shot_comments_normalized)[0][:100] if few_shot_comments_normalized else 'N/A'}")
@@ -1184,27 +1190,44 @@ def main():
                 # 2. Check if few-shot text contains a significant portion of gold standard
                 # 3. Check for key phrases (first 50 chars)
                 
-                # Strategy 1: Check if gold standard contains first 100 chars of few-shot
-                if len(few_shot_text) > 100:
-                    search_text = few_shot_text[:100]
-                else:
-                    search_text = few_shot_text
+                # Try multiple substring lengths and both directions
+                matched = False
+                contains_mask = pd.Series([False] * len(gold_texts_normalized), index=gold_texts_normalized.index)
                 
-                # Escape special regex characters but allow flexible matching
-                search_text_escaped = re.escape(search_text)
-                contains_mask = gold_texts_normalized.str.contains(search_text_escaped, case=False, na=False, regex=True)
+                # Strategy 1: Check if gold standard contains portion of few-shot text
+                for substr_len in [100, 80, 60, 50, 40, 30]:
+                    if len(few_shot_text) >= substr_len:
+                        search_text = few_shot_text[:substr_len]
+                        search_text_escaped = re.escape(search_text)
+                        temp_mask = gold_texts_normalized.str.contains(search_text_escaped, case=False, na=False, regex=True)
+                        if temp_mask.any():
+                            contains_mask = temp_mask
+                            matched = True
+                            break
                 
-                # Also try with first 50 chars if 100 didn't work
-                if not contains_mask.any() and len(few_shot_text) > 50:
-                    search_text_50 = re.escape(few_shot_text[:50])
-                    contains_mask = gold_texts_normalized.str.contains(search_text_50, case=False, na=False, regex=True)
+                # Strategy 2: Check reverse - if gold standard text is contained in few-shot
+                if not matched:
+                    for idx, gs_text in enumerate(gold_texts_normalized):
+                        # Check if first 50+ chars of few-shot are in gold standard
+                        if len(few_shot_text) >= 50:
+                            if few_shot_text[:50] in gs_text or few_shot_text[:80] in gs_text:
+                                contains_mask.iloc[idx] = True
+                                matched = True
+                                break
+                        # Or check if first 50+ chars of gold standard are in few-shot
+                        if len(gs_text) >= 50:
+                            if gs_text[:50] in few_shot_text or gs_text[:80] in few_shot_text:
+                                contains_mask.iloc[idx] = True
+                                matched = True
+                                break
                 
                 # Update mask to exclude matched samples
-                mask = mask & ~contains_mask
-                
-                if contains_mask.any():
-                    match_idx = contains_mask.idxmax() if hasattr(contains_mask, 'idxmax') else None
+                if matched:
+                    mask = mask & ~contains_mask
+                    match_idx = contains_mask.idxmax() if hasattr(contains_mask, 'idxmax') and contains_mask.any() else None
                     print(f"    Matched: {few_shot_text[:60]}... at index {match_idx}")
+                else:
+                    print(f"    No match found for: {few_shot_text[:60]}...")
         
         matches_found = (~mask).sum()
         print(f"  Total matches found: {matches_found}/{len(few_shot_comments_normalized)}")
