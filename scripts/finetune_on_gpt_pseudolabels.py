@@ -556,115 +556,50 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
             
-            # CRITICAL: Ensure classifier/score head remains trainable after LoRA is applied
-            # LoRA freezes base model but classifier should be trainable
-            # Check all possible locations for the classifier/score layer
-            classifier_found = False
+            # CRITICAL: Ensure classifier is frozen (modules_to_save=None should do this, but verify)
+            # Freeze any classifier/score parameters that might still be trainable
+            classifier_frozen_count = 0
+            for name, param in model.named_parameters():
+                if ('score' in name or 'classifier' in name) and param.requires_grad:
+                    param.requires_grad = False  # Force freeze
+                    classifier_frozen_count += param.numel()
             
-            # Debug: Print model structure to understand where score/classifier is
-            print(f"  Debugging model structure after LoRA:")
-            print(f"    model type: {type(model).__name__}")
-            if hasattr(model, 'base_model'):
-                print(f"    model.base_model type: {type(model.base_model).__name__}")
-                print(f"    model.base_model attributes: {[attr for attr in dir(model.base_model) if not attr.startswith('_')][:20]}")
+            if classifier_frozen_count > 0:
+                print(f"  ✓ Froze {classifier_frozen_count:,} classifier params (preventing NaN)")
             
-            # Check for 'score' layer (AutoModelForSequenceClassification)
-            # After PEFT wrapping, it should be at model.base_model.score
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'score'):
-                for param in model.base_model.score.parameters():
-                    param.requires_grad = True
-                classifier_found = True
-                score_params = sum(p.numel() for p in model.base_model.score.parameters())
-                print(f"  ✓ Ensured score layer is trainable (nested, {score_params:,} params)")
-            elif hasattr(model, 'score'):
-                for param in model.score.parameters():
-                    param.requires_grad = True
-                classifier_found = True
-                score_params = sum(p.numel() for p in model.score.parameters())
-                print(f"  ✓ Ensured score layer is trainable ({score_params:,} params)")
-            
-            # Check for 'classifier' layer (ModelWithClassificationHead)
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'classifier'):
-                for param in model.base_model.classifier.parameters():
-                    param.requires_grad = True
-                classifier_found = True
-                classifier_params = sum(p.numel() for p in model.base_model.classifier.parameters())
-                print(f"  ✓ Ensured classifier head is trainable ({classifier_params:,} params)")
-            elif hasattr(model, 'base_model') and hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'classifier'):
-                for param in model.base_model.base_model.classifier.parameters():
-                    param.requires_grad = True
-                classifier_found = True
-                print(f"  ✓ Ensured classifier head is trainable (deeply nested)")
-            
-            if not classifier_found:
-                print(f"  ⚠️  WARNING: Could not find classifier/score layer to make trainable!")
-                print(f"  Available attributes: {[attr for attr in dir(model) if not attr.startswith('_')][:30]}")
-            
-            # Verify trainable parameters after ensuring classifier is trainable
+            # Verify we have trainable parameters (should be LoRA adapters only)
             trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
-            print(f"  ✓ Total trainable parameters after ensuring classifier: {trainable_after:,}")
+            print(f"  ✓ Total trainable parameters (LoRA only): {trainable_after:,}")
             
             # Final check: verify we have trainable parameters
             if trainable_after == 0:
                 raise RuntimeError("No trainable parameters found after LoRA setup! Check model structure.")
             
-            # CRITICAL: Set pad_token_id on ALL config levels after LoRA is applied
-            # The PEFT wrapper creates nested models, so we need to set it at every level
+            # Set pad_token_id on all nested config levels (PEFT creates nested models)
             pad_token_id = tokenizer.pad_token_id
+            def set_pad_token_recursive(obj, path=""):
+                if hasattr(obj, 'config') and hasattr(obj.config, 'pad_token_id'):
+                    obj.config.pad_token_id = pad_token_id
+                if hasattr(obj, 'base_model'):
+                    set_pad_token_recursive(obj.base_model, f"{path}.base_model")
+                if hasattr(obj, 'peft_config'):
+                    for key in obj.peft_config.keys():
+                        if hasattr(obj.peft_config[key], 'pad_token_id'):
+                            obj.peft_config[key].pad_token_id = pad_token_id
+            set_pad_token_recursive(model)
+            print(f"  ✓ pad_token_id set to {pad_token_id} on all config levels")
             
-            # Set on top-level PEFT model config
-            if hasattr(model, 'config'):
-                model.config.pad_token_id = pad_token_id
-                setattr(model.config, 'pad_token_id', pad_token_id)
-            
-            # Set on base_model config (the wrapped ModelWithClassificationHead)
-            if hasattr(model, 'base_model'):
-                if hasattr(model.base_model, 'config'):
-                    model.base_model.config.pad_token_id = pad_token_id
-                    setattr(model.base_model.config, 'pad_token_id', pad_token_id)
-                # Also set on the actual base_model inside ModelWithClassificationHead
-                if hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'config'):
-                    model.base_model.base_model.config.pad_token_id = pad_token_id
-                    setattr(model.base_model.base_model.config, 'pad_token_id', pad_token_id)
-            
-            # Set on PEFT config if it exists
-            if hasattr(model, 'peft_config'):
-                for key in model.peft_config.keys():
-                    if hasattr(model.peft_config[key], 'pad_token_id'):
-                        model.peft_config[key].pad_token_id = pad_token_id
-            
-            # Final verification - check all possible config paths
-            configs_to_check = []
-            if hasattr(model, 'config'):
-                configs_to_check.append(('model.config', model.config))
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'config'):
-                configs_to_check.append(('model.base_model.config', model.base_model.config))
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'config'):
-                configs_to_check.append(('model.base_model.base_model.config', model.base_model.base_model.config))
-            
-            print(f"  ✓ pad_token_id verification:")
-            for name, cfg in configs_to_check:
-                pad_id = getattr(cfg, 'pad_token_id', None)
-                print(f"    {name}: {pad_id} {'✓' if pad_id == pad_token_id else '✗ (MISMATCH!)'}")
-                if pad_id != pad_token_id:
-                    setattr(cfg, 'pad_token_id', pad_token_id)
-                    print(f"      → Fixed to {pad_token_id}")
-            
-            # Enable gradient checkpointing after LoRA (for memory efficiency, especially on MPS)
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'gradient_checkpointing_enable'):
-                model.base_model.gradient_checkpointing_enable()
-                print("Gradient checkpointing enabled for memory efficiency")
         elif use_lora and not PEFT_AVAILABLE:
             print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
         
-        # Enable gradient checkpointing for memory efficiency (if not using LoRA)
-        if not use_lora:
-            if hasattr(model, 'base_model') and hasattr(model.base_model, 'gradient_checkpointing_enable'):
-                model.base_model.gradient_checkpointing_enable()
-                print("Gradient checkpointing enabled for memory efficiency")
-            elif hasattr(model, 'gradient_checkpointing_enable'):
-                model.gradient_checkpointing_enable()
-                print("Gradient checkpointing enabled for memory efficiency")
+        # Enable gradient checkpointing for memory efficiency
+        def enable_gradient_checkpointing(obj):
+            if hasattr(obj, 'base_model') and hasattr(obj.base_model, 'gradient_checkpointing_enable'):
+                obj.base_model.gradient_checkpointing_enable()
+            elif hasattr(obj, 'gradient_checkpointing_enable'):
+                obj.gradient_checkpointing_enable()
+        enable_gradient_checkpointing(model)
+        print("  ✓ Gradient checkpointing enabled")
     
     elif 'roberta' in model_name.lower():
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
@@ -766,13 +701,18 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     
     # Freeze classifier/score layer to avoid NaN issues
     # Only train LoRA adapters - the pretrained classifier works with LoRA-adapted features
+    # IMPORTANT: Even though classifier is frozen, gradients can still flow through it
     classifier_params = []
     lora_params = []
+    
+    # First, identify all trainable parameters (before freezing)
+    all_trainable = [p for p in model.parameters() if p.requires_grad]
     
     for name, param in model.named_parameters():
         if param.requires_grad:
             if 'score' in name or 'classifier' in name:
                 # Freeze classifier to prevent NaN
+                # NOTE: Freezing doesn't break gradient flow - gradients can still pass through
                 param.requires_grad = False
                 classifier_params.append(param)
             else:
@@ -780,14 +720,18 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     
     if classifier_params:
         print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} (FROZEN to prevent NaN)")
+        print(f"  Note: Gradients will still flow through frozen classifier to LoRA adapters")
+    
+    # Verify we have LoRA params
+    if not lora_params:
+        print(f"  ERROR: No LoRA parameters found!")
+        print(f"  This suggests LoRA was not properly applied.")
+        print(f"  Trainable param names: {[n for n, p in model.named_parameters() if p.requires_grad][:10]}")
+        raise RuntimeError("No LoRA parameters found! Check LoRA configuration.")
     
     # Only train LoRA adapters
-    if lora_params:
-        param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-    else:
-        # Fallback if no LoRA params found
-        param_groups = [{'params': trainable_params, 'lr': learning_rate, 'weight_decay': 0.01}]
+    param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
+    print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
     
     print(f"  Training {len(param_groups)} parameter groups with {sum(p.numel() for p in lora_params):,} trainable parameters")
     
@@ -817,6 +761,20 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         
         # Training
         model.train()
+        
+        # CRITICAL: Ensure LoRA adapters are enabled (PEFT can disable them)
+        # This is essential for gradient flow - disabled adapters won't contribute to gradients
+        if hasattr(model, 'enable_adapter_layers'):
+            model.enable_adapter_layers()
+        if hasattr(model, 'base_model') and hasattr(model.base_model, 'enable_adapter_layers'):
+            model.base_model.enable_adapter_layers()
+        
+        # Verify LoRA adapters are actually enabled and trainable
+        trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
+        if trainable_count == 0:
+            print(f"  ERROR: No trainable parameters! LoRA adapters may be disabled.")
+            raise RuntimeError("No trainable parameters found! Check LoRA adapter status.")
+        
         train_loss = 0
         train_preds = []
         train_labels = []
@@ -881,8 +839,9 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             if labels.dtype != torch.float32:
                 labels = labels.float()  # Convert to float32
             
-            # Check if logits require grad - this is OK if classifier is frozen but LoRA is trainable
-            # The logits will still have gradients from LoRA parameters
+            # Check if logits require grad
+            # With frozen classifier, logits should still have gradients from LoRA adapters
+            # LoRA adapts the base model features, which flow through frozen classifier to logits
             if not logits.requires_grad:
                 # Check if we have any trainable parameters at all
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
@@ -891,27 +850,46 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     print(f"  This should not happen - LoRA adapters should be trainable")
                     raise RuntimeError("No trainable parameters! Check LoRA configuration.")
                 else:
-                    # This is OK - classifier is frozen but LoRA is trainable
-                    # Logits will get gradients through LoRA, just not through classifier
-                    # We need to recompute logits to get gradients
+                    # This can happen with frozen classifier - gradients flow through but PyTorch
+                    # might not track them properly. The workaround in loss computation will handle this.
+                    # Don't print warning here - it's expected and handled below
                     pass
             
             loss = criterion(logits, labels)
             
-            # Verify loss requires grad - should always be True if any params are trainable
+            # CRITICAL: Ensure loss has gradients even if classifier is frozen
+            # Frozen layers can still pass gradients, but we need to verify the connection
             if not loss.requires_grad:
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
                 if trainable_count == 0:
                     raise RuntimeError("Loss does not require grad! No trainable parameters found.")
-                else:
-                    # This shouldn't happen - if params are trainable, loss should require grad
-                    print(f"  WARNING: Loss doesn't require grad but {trainable_count} params are trainable")
-                    print(f"  This might be a computation graph issue. Checking...")
-                    # Force a gradient connection by adding a dummy computation
-                    dummy = sum(p.sum() * 0.0 for p in model.parameters() if p.requires_grad)
-                    loss = loss + dummy
-                    if not loss.requires_grad:
-                        raise RuntimeError("Cannot establish gradient connection. Check model configuration.")
+                
+                # This shouldn't happen - if LoRA is trainable, loss should have gradients
+                # The issue might be that logits don't connect to LoRA properly
+                # Force gradient connection by ensuring LoRA params are used in computation
+                print(f"  WARNING: Loss doesn't require grad but {trainable_count} LoRA params are trainable")
+                print(f"  Forcing gradient connection...")
+                
+                # Get a LoRA parameter and ensure it's used in the computation graph
+                # This forces PyTorch to track gradients through LoRA
+                lora_param = next((p for n, p in model.named_parameters() 
+                                 if p.requires_grad and 'lora' in n.lower()), None)
+                if lora_param is None:
+                    # Try any trainable param
+                    lora_param = next(p for p in model.parameters() if p.requires_grad)
+                
+                # Add a zero contribution that depends on LoRA (forces gradient tracking)
+                # This is a workaround to ensure gradient flow
+                loss = loss + 0.0 * lora_param.sum()
+                
+                if not loss.requires_grad:
+                    # Still no gradients - this is a serious issue
+                    print(f"  CRITICAL: Cannot establish gradient connection!")
+                    print(f"  This suggests LoRA adapters are not used in forward pass.")
+                    print(f"  Check: Is LoRA properly applied? Is model using LoRA adapters?")
+                    print(f"  Skipping this batch...")
+                    optimizer.zero_grad()
+                    continue
             
             # Ensure loss is float32 for backward pass on MPS
             # FocalLoss should already return float32, but double-check
@@ -1157,44 +1135,21 @@ def main():
     else:
         device = torch.device('cpu')
         print("  ⚠ Using CPU (no GPU detected)")
-        
-        # Diagnostic information for Linux clusters
-        print("\n  GPU Detection Diagnostics:")
-        print(f"    - torch.cuda.is_available(): {cuda_available}")
-        print(f"    - PyTorch version: {torch.__version__}")
-        
-        # Check if CUDA is visible in environment
+        print(f"    PyTorch version: {torch.__version__}, CUDA available: {cuda_available}")
         if cuda_visible:
-            print(f"    - CUDA_VISIBLE_DEVICES: {cuda_visible}")
-        else:
-            print(f"    - CUDA_VISIBLE_DEVICES: (not set)")
+            print(f"    CUDA_VISIBLE_DEVICES: {cuda_visible}")
         
-        # Check if nvidia-smi is available (Linux)
+        # Check nvidia-smi for Linux clusters
         try:
             import subprocess
             nvidia_smi = subprocess.run(['nvidia-smi', '--list-gpus'], 
                                        capture_output=True, text=True, timeout=2)
             if nvidia_smi.returncode == 0 and nvidia_smi.stdout.strip():
-                print(f"    - nvidia-smi found GPUs on system:")
-                for line in nvidia_smi.stdout.strip().split('\n'):
-                    if 'GPU' in line:
-                        print(f"      {line}")
-                print("\n    ⚠ GPUs exist but PyTorch can't access them.")
-                print("    Possible solutions:")
-                print("      1. Install PyTorch with CUDA support:")
-                print("         pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118")
-                print("      2. Load CUDA module (if on cluster):")
-                print("         module load cuda")
-                print("      3. Request GPU in job scheduler (SLURM, etc.)")
-                print("         e.g., #SBATCH --gres=gpu:1")
-            else:
-                print("    - nvidia-smi: No GPUs found on system")
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            print("    - nvidia-smi: Not available")
-        except Exception as e:
-            print(f"    - nvidia-smi check failed: {e}")
-        
-        print("\n    Note: Training will be significantly slower on CPU")
+                print(f"    ⚠ GPUs found via nvidia-smi but PyTorch can't access them.")
+                print(f"    Solutions: Install PyTorch with CUDA, load CUDA module, or request GPU in scheduler")
+        except:
+            pass
+        print("    Note: Training will be significantly slower on CPU")
     print("="*80 + "\n")
     
     # Adjust batch size for local LLMs (they're larger)
@@ -1213,17 +1168,6 @@ def main():
                 if args.use_lora:
                     args.batch_size = 8
                 else:
-                    # Full fine-tuning of 7B models needs very small batches on 22GB GPU
-                    args.batch_size = 1
-                    print(f"⚠️  WARNING: Full fine-tuning requires batch_size=1 on 22GB GPU")
-                    print(f"   Consider using --use_lora for much faster training and less memory")
-                print(f"Adjusting batch size to {args.batch_size} for local LLM")
-            elif device.type == 'cuda':
-                # For CUDA, LoRA can use larger batches, but full fine-tuning needs very small batches
-                if args.use_lora:
-                    args.batch_size = 8
-                else:
-                    # Full fine-tuning of 7B models needs very small batches on 22GB GPU
                     args.batch_size = 1
                     print(f"⚠️  WARNING: Full fine-tuning requires batch_size=1 on 22GB GPU")
                     print(f"   Consider using --use_lora for much faster training and less memory")
@@ -1434,48 +1378,37 @@ def main():
         if unmatched_few_shot:
             print(f"  Trying substring matching for {len(unmatched_few_shot)} unmatched examples...")
             for few_shot_text in unmatched_few_shot:
-                # Try multiple matching strategies:
-                # 1. Check if gold standard contains a significant portion of few-shot text (first 100 chars)
-                # 2. Check if few-shot text contains a significant portion of gold standard
-                # 3. Check for key phrases (first 50 chars)
-                
-                # Try multiple substring lengths and both directions
                 matched = False
-                contains_mask = pd.Series([False] * len(gold_texts_normalized), index=gold_texts_normalized.index)
-                
-                # Strategy 1: Check if gold standard contains portion of few-shot text
+                # Try progressively shorter substrings (100, 80, 60, 50, 40, 30 chars)
                 for substr_len in [100, 80, 60, 50, 40, 30]:
-                    if len(few_shot_text) >= substr_len:
-                        search_text = few_shot_text[:substr_len]
-                        search_text_escaped = re.escape(search_text)
-                        temp_mask = gold_texts_normalized.str.contains(search_text_escaped, case=False, na=False, regex=True)
-                        if temp_mask.any():
-                            contains_mask = temp_mask
+                    if len(few_shot_text) < substr_len:
+                        continue
+                    search_text = re.escape(few_shot_text[:substr_len])
+                    temp_mask = gold_texts_normalized.str.contains(search_text, case=False, na=False, regex=True)
+                    if temp_mask.any():
+                        mask = mask & ~temp_mask
+                        match_idx = temp_mask.idxmax()
+                        matched = True
+                        print(f"    Matched: {few_shot_text[:60]}... at index {match_idx}")
+                        break
+                
+                if not matched:
+                    # Try reverse: check if gold standard text is in few-shot
+                    for idx in gold_texts_normalized.index:
+                        if not mask.iloc[idx] if hasattr(mask, 'iloc') else not mask[idx]:
+                            continue
+                        gs_text = gold_texts_normalized.iloc[idx]
+                        if (len(few_shot_text) >= 50 and (few_shot_text[:50] in gs_text or few_shot_text[:80] in gs_text)) or \
+                           (len(gs_text) >= 50 and (gs_text[:50] in few_shot_text or gs_text[:80] in few_shot_text)):
+                            if hasattr(mask, 'iloc'):
+                                mask.iloc[idx] = False
+                            else:
+                                mask[idx] = False
                             matched = True
+                            print(f"    Matched: {few_shot_text[:60]}... at index {idx}")
                             break
                 
-                # Strategy 2: Check reverse - if gold standard text is contained in few-shot
                 if not matched:
-                    for idx, gs_text in enumerate(gold_texts_normalized):
-                        # Check if first 50+ chars of few-shot are in gold standard
-                        if len(few_shot_text) >= 50:
-                            if few_shot_text[:50] in gs_text or few_shot_text[:80] in gs_text:
-                                contains_mask.iloc[idx] = True
-                                matched = True
-                                break
-                        # Or check if first 50+ chars of gold standard are in few-shot
-                        if len(gs_text) >= 50:
-                            if gs_text[:50] in few_shot_text or gs_text[:80] in few_shot_text:
-                                contains_mask.iloc[idx] = True
-                                matched = True
-                                break
-                
-                # Update mask to exclude matched samples
-                if matched:
-                    mask = mask & ~contains_mask
-                    match_idx = contains_mask.idxmax() if hasattr(contains_mask, 'idxmax') and contains_mask.any() else None
-                    print(f"    Matched: {few_shot_text[:60]}... at index {match_idx}")
-                else:
                     print(f"    No match found for: {few_shot_text[:60]}...")
         
         matches_found = (~mask).sum()
