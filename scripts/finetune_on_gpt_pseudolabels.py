@@ -577,15 +577,31 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             
             # Set pad_token_id on all nested config levels (PEFT creates nested models)
             pad_token_id = tokenizer.pad_token_id
-            def set_pad_token_recursive(obj, path=""):
+            visited = set()
+            def set_pad_token_recursive(obj, depth=0, max_depth=5):
+                if depth > max_depth or id(obj) in visited:
+                    return
+                visited.add(id(obj))
+                
                 if hasattr(obj, 'config') and hasattr(obj.config, 'pad_token_id'):
                     obj.config.pad_token_id = pad_token_id
+                
                 if hasattr(obj, 'base_model'):
-                    set_pad_token_recursive(obj.base_model, f"{path}.base_model")
+                    try:
+                        base = obj.base_model
+                        if base is not obj:  # Prevent self-reference
+                            set_pad_token_recursive(base, depth + 1, max_depth)
+                    except (AttributeError, RecursionError):
+                        pass
+                
                 if hasattr(obj, 'peft_config'):
-                    for key in obj.peft_config.keys():
-                        if hasattr(obj.peft_config[key], 'pad_token_id'):
-                            obj.peft_config[key].pad_token_id = pad_token_id
+                    try:
+                        for key in obj.peft_config.keys():
+                            if hasattr(obj.peft_config[key], 'pad_token_id'):
+                                obj.peft_config[key].pad_token_id = pad_token_id
+                    except (AttributeError, TypeError):
+                        pass
+            
             set_pad_token_recursive(model)
             print(f"  ✓ pad_token_id set to {pad_token_id} on all config levels")
             
