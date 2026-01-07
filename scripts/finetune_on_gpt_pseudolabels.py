@@ -987,7 +987,12 @@ def main():
     # Set device - prioritize CUDA for GPU, then MPS, then CPU
     print("\n" + "="*80)
     print("Device Configuration:")
-    if torch.cuda.is_available():
+    
+    # Check CUDA availability
+    cuda_available = torch.cuda.is_available()
+    cuda_visible = os.environ.get('CUDA_VISIBLE_DEVICES', '')
+    
+    if cuda_available:
         device = torch.device('cuda')
         num_gpus = torch.cuda.device_count()
         if num_gpus > 1:
@@ -998,6 +1003,8 @@ def main():
         else:
             print(f"  ✓ Using CUDA GPU: {torch.cuda.get_device_name(0)}")
             print(f"    Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        if cuda_visible:
+            print(f"    CUDA_VISIBLE_DEVICES: {cuda_visible}")
     elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
         device = torch.device('mps')
         print("  ✓ Using MPS (Apple Silicon GPU)")
@@ -1017,7 +1024,44 @@ def main():
     else:
         device = torch.device('cpu')
         print("  ⚠ Using CPU (no GPU detected)")
-        print("    Note: Training will be significantly slower on CPU")
+        
+        # Diagnostic information for Linux clusters
+        print("\n  GPU Detection Diagnostics:")
+        print(f"    - torch.cuda.is_available(): {cuda_available}")
+        print(f"    - PyTorch version: {torch.__version__}")
+        
+        # Check if CUDA is visible in environment
+        if cuda_visible:
+            print(f"    - CUDA_VISIBLE_DEVICES: {cuda_visible}")
+        else:
+            print(f"    - CUDA_VISIBLE_DEVICES: (not set)")
+        
+        # Check if nvidia-smi is available (Linux)
+        try:
+            import subprocess
+            nvidia_smi = subprocess.run(['nvidia-smi', '--list-gpus'], 
+                                       capture_output=True, text=True, timeout=2)
+            if nvidia_smi.returncode == 0 and nvidia_smi.stdout.strip():
+                print(f"    - nvidia-smi found GPUs on system:")
+                for line in nvidia_smi.stdout.strip().split('\n'):
+                    if 'GPU' in line:
+                        print(f"      {line}")
+                print("\n    ⚠ GPUs exist but PyTorch can't access them.")
+                print("    Possible solutions:")
+                print("      1. Install PyTorch with CUDA support:")
+                print("         pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118")
+                print("      2. Load CUDA module (if on cluster):")
+                print("         module load cuda")
+                print("      3. Request GPU in job scheduler (SLURM, etc.)")
+                print("         e.g., #SBATCH --gres=gpu:1")
+            else:
+                print("    - nvidia-smi: No GPUs found on system")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            print("    - nvidia-smi: Not available")
+        except Exception as e:
+            print(f"    - nvidia-smi check failed: {e}")
+        
+        print("\n    Note: Training will be significantly slower on CPU")
     print("="*80 + "\n")
     
     # Adjust batch size for local LLMs (they're larger)
