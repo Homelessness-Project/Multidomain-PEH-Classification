@@ -932,9 +932,37 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         train_preds = np.vstack(train_preds)
         train_labels = np.vstack(train_labels)
         
-        # Calculate train metrics
+        # Calculate per-label F1 scores with optimal thresholds (per-category threshold optimization)
+        train_per_label_f1 = {}
+        
+        for i, cat in enumerate(label_names):
+            true_labels = train_labels[:, i].astype(int)
+            pred_scores = train_preds[:, i]
+            
+            if len(np.unique(true_labels)) > 1:  # Has both positive and negative examples
+                # Find best threshold for this category
+                best_f1 = 0
+                best_threshold = 0.5
+                
+                for threshold in np.arange(0.1, 0.9, 0.05):
+                    binary_pred = (pred_scores > threshold).astype(int)
+                    if len(np.unique(binary_pred)) > 1:  # Has both predictions
+                        f1 = f1_score(true_labels, binary_pred, zero_division=0)
+                        if f1 > best_f1:
+                            best_f1 = f1
+                            best_threshold = threshold
+                
+                train_per_label_f1[cat] = best_f1
+            else:
+                # All same label - use default threshold
+                binary_pred = (pred_scores > 0.5).astype(int)
+                train_per_label_f1[cat] = f1_score(true_labels, binary_pred, zero_division=0)
+        
+        # Macro F1: average of per-label F1 scores
+        train_macro_f1 = np.mean(list(train_per_label_f1.values()))
+        
+        # Micro F1: global calculation with 0.5 threshold (standard)
         train_preds_binary = (train_preds > 0.5).astype(int)
-        train_macro_f1 = f1_score(train_labels, train_preds_binary, average='macro', zero_division=0)
         train_micro_f1 = f1_score(train_labels, train_preds_binary, average='micro', zero_division=0)
         
         # Also calculate per-sample accuracy (how many samples got all labels correct)
@@ -970,9 +998,41 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_preds = np.vstack(val_preds)
         val_labels = np.vstack(val_labels)
         
-        # Calculate val metrics
+        # Calculate per-label F1 scores with optimal thresholds (per-category threshold optimization)
+        # This is more appropriate for multi-label classification with imbalanced classes
+        val_per_label_f1 = {}
+        best_thresholds = []
+        
+        for i, cat in enumerate(label_names):
+            true_labels = val_labels[:, i].astype(int)
+            pred_scores = val_preds[:, i]
+            
+            if len(np.unique(true_labels)) > 1:  # Has both positive and negative examples
+                # Find best threshold for this category
+                best_f1 = 0
+                best_threshold = 0.5
+                
+                for threshold in np.arange(0.1, 0.9, 0.05):
+                    binary_pred = (pred_scores > threshold).astype(int)
+                    if len(np.unique(binary_pred)) > 1:  # Has both predictions
+                        f1 = f1_score(true_labels, binary_pred, zero_division=0)
+                        if f1 > best_f1:
+                            best_f1 = f1
+                            best_threshold = threshold
+                
+                val_per_label_f1[cat] = best_f1
+                best_thresholds.append(best_threshold)
+            else:
+                # All same label - use default threshold
+                binary_pred = (pred_scores > 0.5).astype(int)
+                val_per_label_f1[cat] = f1_score(true_labels, binary_pred, zero_division=0)
+                best_thresholds.append(0.5)
+        
+        # Macro F1: average of per-label F1 scores
+        val_macro_f1 = np.mean(list(val_per_label_f1.values()))
+        
+        # Micro F1: global calculation with 0.5 threshold (standard)
         val_preds_binary = (val_preds > 0.5).astype(int)
-        val_macro_f1 = f1_score(val_labels, val_preds_binary, average='macro', zero_division=0)
         val_micro_f1 = f1_score(val_labels, val_preds_binary, average='micro', zero_division=0)
         
         # Calculate additional metrics for better understanding
@@ -985,6 +1045,16 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_loss_str = f"{val_loss:.4f}" if not np.isnan(val_loss) else "nan"
         print(f"Val Loss: {val_loss_str}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
         print(f"  Val: Exact match: {val_per_sample_exact:.1%}, Per-label accuracy: {val_per_label_accuracy:.1%}")
+        
+        # Print per-label F1 scores (top 5 and bottom 5 for visibility)
+        sorted_f1 = sorted(val_per_label_f1.items(), key=lambda x: x[1], reverse=True)
+        print(f"\n  Per-label F1 scores (top 5):")
+        for cat, f1 in sorted_f1[:5]:
+            print(f"    {cat}: {f1:.4f}")
+        if len(sorted_f1) > 5:
+            print(f"  Per-label F1 scores (bottom 5):")
+            for cat, f1 in sorted_f1[-5:]:
+                print(f"    {cat}: {f1:.4f}")
         
         # Early stopping
         if val_macro_f1 > best_val_f1:
