@@ -765,9 +765,35 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if len(trainable_params) == 0:
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
-    print(f"  Training {len(trainable_params)} parameter groups with {sum(p.numel() for p in trainable_params):,} trainable parameters")
+    # Separate classifier/score layer from LoRA adapters for different learning rates
+    # Classifier needs lower LR to avoid NaN
+    classifier_params = []
+    lora_params = []
     
-    optimizer = AdamW(trainable_params, lr=learning_rate, weight_decay=0.01)
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            if 'score' in name or 'classifier' in name:
+                classifier_params.append(param)
+            else:
+                lora_params.append(param)
+    
+    # Use different learning rates: classifier gets lower LR to prevent NaN
+    param_groups = []
+    if classifier_params:
+        # Classifier gets 10x lower LR to prevent instability
+        param_groups.append({'params': classifier_params, 'lr': learning_rate * 0.1, 'weight_decay': 0.01})
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={learning_rate * 0.1:.2e}")
+    if lora_params:
+        param_groups.append({'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01})
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    
+    if not param_groups:
+        # Fallback to single group if separation didn't work
+        param_groups = [{'params': trainable_params, 'lr': learning_rate, 'weight_decay': 0.01}]
+    
+    print(f"  Training {len(param_groups)} parameter groups with {sum(p.numel() for p in trainable_params):,} trainable parameters")
+    
+    optimizer = AdamW(param_groups)
     
     # Use focal loss for class imbalance
     criterion = FocalLoss(alpha=1, gamma=2)
@@ -829,9 +855,21 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                         print(f"    NaN/Inf in: {name}")
                 
                 if nan_params:
-                    print(f"  ⚠️  Model parameters have NaN/Inf! Training may be unstable.")
-                    print(f"  Consider: reducing learning rate, using gradient clipping, or checking data.")
-                    # Skip this batch
+                    print(f"  ⚠️  Model parameters have NaN/Inf! Attempting to fix...")
+                    # Try to reset NaN parameters to small random values
+                    for name, param in model.named_parameters():
+                        if param.requires_grad and (torch.isnan(param).any() or torch.isinf(param).any()):
+                            if 'score' in name or 'classifier' in name:
+                                # Reinitialize classifier with small values
+                                nn.init.normal_(param, mean=0.0, std=0.02)
+                                print(f"    Reset {name} to small random values")
+                            else:
+                                # For LoRA params, zero them
+                                param.data.zero_()
+                                print(f"    Zeroed {name}")
+                    print(f"  Resetting optimizer state...")
+                    optimizer.zero_grad()
+                    # Skip this batch to let reset take effect
                     continue
                 else:
                     print(f"  Model parameters OK, but logits are NaN. Skipping batch.")
