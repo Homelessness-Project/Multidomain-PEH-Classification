@@ -294,7 +294,7 @@ def load_gold_standard(source):
     return gold_df, text_col, gold_labels_df
 
 
-def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=False, lora_rank=8, lora_alpha=16):
+def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=False, lora_rank=8, lora_alpha=16, lora_dropout=0.1, lora_target_modules='all'):
     """Create model and tokenizer based on model name, supporting both transformers and local LLMs
     
     Args:
@@ -304,6 +304,8 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         use_lora: Whether to use LoRA for efficient fine-tuning
         lora_rank: LoRA rank (only used if use_lora=True)
         lora_alpha: LoRA alpha (only used if use_lora=True)
+        lora_dropout: LoRA dropout rate (only used if use_lora=True)
+        lora_target_modules: Which modules to apply LoRA to: 'all', 'attention', 'mlp', 'attention+mlp'
     """
     
     # Determine torch dtype based on device
@@ -531,7 +533,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 r=lora_rank,
                 lora_alpha=lora_alpha,
                 target_modules=target_modules,
-                lora_dropout=0.1,
+                lora_dropout=lora_dropout,
                 bias="none",
                 modules_to_save=modules_to_save if modules_to_save else None,  # CRITICAL: Keep classifier head trainable
             )
@@ -978,9 +980,14 @@ def main():
     parser.add_argument('--use_lora', action='store_true', 
                        help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
     parser.add_argument('--lora_rank', type=int, default=8, 
-                       help='LoRA rank (default: 8, higher = more parameters but better capacity)')
+                       help='LoRA rank (default: 8, higher = more parameters but better capacity. Try 4, 8, 16, 32)')
     parser.add_argument('--lora_alpha', type=int, default=16, 
-                       help='LoRA alpha (default: 16, typically 2x rank)')
+                       help='LoRA alpha (default: 16, typically 2x rank. Higher = stronger adaptation)')
+    parser.add_argument('--lora_dropout', type=float, default=0.1,
+                       help='LoRA dropout rate (default: 0.1, range: 0.0-1.0. Higher = more regularization)')
+    parser.add_argument('--lora_target_modules', type=str, default='all',
+                       choices=['all', 'attention', 'mlp', 'attention+mlp'],
+                       help='Which modules to apply LoRA to: all (qkv+mlp), attention (qkv only), mlp (ffn only), attention+mlp (both)')
     
     args = parser.parse_args()
     
@@ -1075,6 +1082,26 @@ def main():
                 # MPS has ~20GB limit, use smaller batches
                 args.batch_size = 2 if args.use_lora else 1
                 print(f"Adjusting batch size to {args.batch_size} for local LLM on MPS (memory-constrained)")
+            elif device.type == 'cuda':
+                # For CUDA, LoRA can use larger batches, but full fine-tuning needs very small batches
+                if args.use_lora:
+                    args.batch_size = 8
+                else:
+                    # Full fine-tuning of 7B models needs very small batches on 22GB GPU
+                    args.batch_size = 1
+                    print(f"⚠️  WARNING: Full fine-tuning requires batch_size=1 on 22GB GPU")
+                    print(f"   Consider using --use_lora for much faster training and less memory")
+                print(f"Adjusting batch size to {args.batch_size} for local LLM")
+            elif device.type == 'cuda':
+                # For CUDA, LoRA can use larger batches, but full fine-tuning needs very small batches
+                if args.use_lora:
+                    args.batch_size = 8
+                else:
+                    # Full fine-tuning of 7B models needs very small batches on 22GB GPU
+                    args.batch_size = 1
+                    print(f"⚠️  WARNING: Full fine-tuning requires batch_size=1 on 22GB GPU")
+                    print(f"   Consider using --use_lora for much faster training and less memory")
+                print(f"Adjusting batch size to {args.batch_size} for local LLM")
             else:
                 args.batch_size = 8 if args.use_lora else 4
                 print(f"Adjusting batch size to {args.batch_size} for local LLM")
@@ -1084,6 +1111,21 @@ def main():
             print(f"\n⚠️  Recommendation: Consider using --use_lora for {args.model}")
             print(f"   This will make training 3-10x faster and use less memory.")
             print(f"   Example: python {sys.argv[0]} --source {args.source} --model {args.model} --use_lora")
+    
+    # Check if LoRA is requested but PEFT is not available
+    if args.use_lora and not PEFT_AVAILABLE:
+        print("\n" + "="*80)
+        print("ERROR: --use_lora requested but PEFT is not installed!")
+        print("="*80)
+        print("\nTo use LoRA, you must install PEFT:")
+        print("  pip install peft")
+        print("\nWithout LoRA, full fine-tuning of 7B models requires:")
+        print("  - Much more GPU memory (~40GB+ for Qwen 7B)")
+        print("  - Smaller batch sizes (batch_size=1 or 2)")
+        print("  - Significantly longer training time")
+        print("\nExiting. Please install PEFT or remove --use_lora flag.")
+        print("="*80 + "\n")
+        sys.exit(1)
     
     # Adjust learning rate for LoRA (typically higher)
     if args.use_lora and args.learning_rate == 2e-5:  # Default
@@ -1484,6 +1526,8 @@ def main():
         len(ALL_CATEGORIES), 
         device=device,
         use_lora=args.use_lora,
+        lora_dropout=args.lora_dropout,
+        lora_target_modules=args.lora_target_modules,
         lora_rank=args.lora_rank,
         lora_alpha=args.lora_alpha
     )
