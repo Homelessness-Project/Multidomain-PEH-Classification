@@ -128,17 +128,34 @@ class FocalLoss(nn.Module):
         inputs = inputs.to(dtype=torch.float32)
         targets = targets.to(dtype=torch.float32)
         
-        # Apply sigmoid to inputs
+        # Apply sigmoid to inputs to get probabilities
         probs = torch.sigmoid(inputs)
         
-        # Calculate binary cross entropy
-        bce_loss = nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        # Clamp probabilities to avoid numerical instability (log(0) or log(1))
+        probs = torch.clamp(probs, min=1e-7, max=1.0 - 1e-7)
         
-        # Calculate p_t
+        # Calculate binary cross entropy using probabilities (not logits)
+        # This is more numerically stable than using logits with sigmoid
+        bce_loss = -(targets * torch.log(probs) + (1 - targets) * torch.log(1 - probs))
+        
+        # Calculate p_t (probability of true class)
         p_t = probs * targets + (1 - probs) * (1 - targets)
+        
+        # Clamp p_t to avoid numerical issues with (1 - p_t) ** gamma when p_t is very close to 1
+        p_t = torch.clamp(p_t, min=1e-7, max=1.0 - 1e-7)
         
         # Calculate focal loss
         focal_loss = self.alpha * (1 - p_t) ** self.gamma * bce_loss
+        
+        # Check for NaN or Inf
+        if torch.isnan(focal_loss).any() or torch.isinf(focal_loss).any():
+            print(f"WARNING: NaN/Inf detected in focal loss!")
+            print(f"  Input range: [{inputs.min().item():.4f}, {inputs.max().item():.4f}]")
+            print(f"  Probs range: [{probs.min().item():.4f}, {probs.max().item():.4f}]")
+            print(f"  p_t range: [{p_t.min().item():.4f}, {p_t.max().item():.4f}]")
+            print(f"  BCE loss range: [{bce_loss.min().item():.4f}, {bce_loss.max().item():.4f}]")
+            # Replace NaN/Inf with a large finite value
+            focal_loss = torch.nan_to_num(focal_loss, nan=1e6, posinf=1e6, neginf=-1e6)
         
         return focal_loss.mean()
 
@@ -864,6 +881,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         train_macro_f1 = f1_score(train_labels, train_preds_binary, average='macro', zero_division=0)
         train_micro_f1 = f1_score(train_labels, train_preds_binary, average='micro', zero_division=0)
         
+        # Also calculate per-sample accuracy (how many samples got all labels correct)
+        # and partial accuracy (how many labels were correct per sample)
+        train_per_sample_exact = (train_preds_binary == train_labels).all(axis=1).mean()
+        train_per_label_accuracy = (train_preds_binary == train_labels).mean()
+        
         # Validation
         model.eval()
         val_loss = 0
@@ -897,8 +919,14 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_macro_f1 = f1_score(val_labels, val_preds_binary, average='macro', zero_division=0)
         val_micro_f1 = f1_score(val_labels, val_preds_binary, average='micro', zero_division=0)
         
-        print(f"Train Loss: {train_loss:.4f}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
-        print(f"Val Loss: {val_loss:.4f}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
+        # Calculate additional metrics for better understanding
+        val_per_sample_exact = (val_preds_binary == val_labels).all(axis=1).mean()
+        val_per_label_accuracy = (val_preds_binary == val_labels).mean()
+        
+        print(f"Train Loss: {train_loss:.4f if not np.isnan(train_loss) else 'nan'}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
+        print(f"  Train: Exact match: {train_per_sample_exact:.1%}, Per-label accuracy: {train_per_label_accuracy:.1%}")
+        print(f"Val Loss: {val_loss:.4f if not np.isnan(val_loss) else 'nan'}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
+        print(f"  Val: Exact match: {val_per_sample_exact:.1%}, Per-label accuracy: {val_per_label_accuracy:.1%}")
         
         # Early stopping
         if val_macro_f1 > best_val_f1:
@@ -1127,10 +1155,14 @@ def main():
         print("="*80 + "\n")
         sys.exit(1)
     
-    # Adjust learning rate for LoRA (typically higher)
+    # Adjust learning rate for LoRA (typically higher, but scale with rank)
     if args.use_lora and args.learning_rate == 2e-5:  # Default
-        args.learning_rate = 1e-4  # LoRA typically uses higher LR
-        print(f"Adjusting learning rate to {args.learning_rate} for LoRA (LoRA typically uses higher LR)")
+        # Higher rank needs slightly lower LR to avoid instability
+        if args.lora_rank >= 32:
+            args.learning_rate = 5e-5  # Slightly lower for rank 32+ to avoid NaN
+        else:
+            args.learning_rate = 1e-4  # Standard LoRA LR for rank 8-16
+        print(f"Adjusting learning rate to {args.learning_rate} for LoRA (rank={args.lora_rank})")
     
     # Load GPT pseudolabels (excluding few-shot examples)
     gpt_df = load_gpt_pseudolabels(args.source, exclude_few_shot=True)
