@@ -616,22 +616,41 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             # This ensures LoRA adapters are the only trainable parts managed by PEFT
             modules_to_save = []  # Explicitly empty list (not None) to prevent auto-add
             
-            # CRITICAL: Use SEQ_CLS task type for sequence classification models
-            # FEATURE_EXTRACTION may not properly activate LoRA adapters in forward pass
+            # CRITICAL: Use FEATURE_EXTRACTION to prevent classifier from being added to modules_to_save
+            # SEQ_CLS auto-adds classifier to modules_to_save, which breaks gradient flow to LoRA
+            # FEATURE_EXTRACTION works if we ensure LoRA is active in forward pass (which we do)
             lora_config = LoraConfig(
-                task_type=TaskType.SEQ_CLS,  # For sequence classification (not FEATURE_EXTRACTION)
+                task_type=TaskType.FEATURE_EXTRACTION,  # Prevents classifier from being added to modules_to_save
                 r=lora_rank,
                 lora_alpha=lora_alpha,
                 target_modules=target_modules,
                 lora_dropout=lora_dropout,
                 bias="none",
-                modules_to_save=modules_to_save,  # None - classifier handled separately
+                modules_to_save=modules_to_save,  # Empty list - classifier NOT in modules_to_save
             )
             
             print(f"  Note: Classifier will be FROZEN (standard LoRA practice)")
             print(f"  PyTorch allows gradients to flow through frozen layers to trainable params")
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
+            
+            # CRITICAL: Remove classifier from modules_to_save if PEFT auto-added it
+            # TaskType.SEQ_CLS may auto-add classifier to modules_to_save, breaking gradient flow
+            # We need to remove it to allow gradients to flow: loss → classifier → base_model → LoRA
+            if hasattr(model, 'peft_config'):
+                for adapter_name, adapter_config in model.peft_config.items():
+                    if hasattr(adapter_config, 'modules_to_save') and adapter_config.modules_to_save:
+                        # Check if classifier is in modules_to_save
+                        modules_list = list(adapter_config.modules_to_save) if adapter_config.modules_to_save else []
+                        classifier_modules = [m for m in modules_list if 'score' in m.lower() or 'classifier' in m.lower()]
+                        if classifier_modules:
+                            print(f"  ⚠️  WARNING: PEFT auto-added classifier to modules_to_save: {classifier_modules}")
+                            print(f"  Removing classifier from modules_to_save to allow gradient flow to LoRA...")
+                            # Remove classifier from modules_to_save
+                            adapter_config.modules_to_save = [m for m in modules_list if m not in classifier_modules]
+                            if not adapter_config.modules_to_save:
+                                adapter_config.modules_to_save = None
+                            print(f"  ✓ Removed classifier from modules_to_save")
             
             # CRITICAL: Verify PEFT model structure and adapter configuration
             print(f"\n  PEFT Model Structure Verification:")
@@ -650,13 +669,12 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 except:
                     pass
             
-            # CRITICAL: Check if classifier is in modules_to_save (PEFT may auto-add it)
-            # If it is, we need to remove it from PEFT management to allow proper gradient flow
+            # Verify classifier is NOT in modules_to_save after removal
             classifier_in_modules_to_save = False
             for name, param in model.named_parameters():
                 if ('score' in name or 'classifier' in name) and 'modules_to_save' in name:
                     classifier_in_modules_to_save = True
-                    print(f"  ⚠️  WARNING: Classifier is in modules_to_save: {name}")
+                    print(f"  ⚠️  WARNING: Classifier still in modules_to_save: {name}")
                     print(f"  This may prevent gradient flow to LoRA adapters!")
                     break
             
