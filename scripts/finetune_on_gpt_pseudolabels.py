@@ -459,15 +459,25 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             print(f"  Model config pad_token_id: {getattr(model.config, 'pad_token_id', 'Not set')}")
             
             # For AutoModelForSequenceClassification, the classifier is called 'score', not 'classifier'
-            # Ensure it's trainable before LoRA is applied
+            # Reinitialize with tiny values to prevent NaN
             if hasattr(model, 'score'):
                 for param in model.score.parameters():
                     param.requires_grad = True
-                print(f"  ✓ Score layer (classifier) is trainable ({sum(p.numel() for p in model.score.parameters()):,} params)")
+                    # Reinitialize with very tiny values
+                    if len(param.shape) >= 2:
+                        nn.init.uniform_(param, -0.0001, 0.0001)
+                    else:
+                        nn.init.zeros_(param)
+                print(f"  ✓ Score layer (classifier) reinitialized with tiny values ({sum(p.numel() for p in model.score.parameters()):,} params)")
             elif hasattr(model, 'classifier'):
                 for param in model.classifier.parameters():
                     param.requires_grad = True
-                print(f"  ✓ Classifier is trainable ({sum(p.numel() for p in model.classifier.parameters()):,} params)")
+                    # Reinitialize with very tiny values
+                    if len(param.shape) >= 2:
+                        nn.init.uniform_(param, -0.0001, 0.0001)
+                    else:
+                        nn.init.zeros_(param)
+                print(f"  ✓ Classifier reinitialized with tiny values ({sum(p.numel() for p in model.classifier.parameters()):,} params)")
         except Exception as e:
             print(f"Could not load as sequence classification: {e}")
             print("Loading as causal LM and adding classification head...")
@@ -576,14 +586,15 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             
             model = ModelWithClassificationHead(base_model, num_labels, pad_token_id=tokenizer.pad_token_id)
             
-            # Initialize classifier with VERY small weights to prevent NaN
-            # Use zeros initialization for maximum stability (classifier learns from scratch)
+            # Initialize classifier with VERY small random weights to prevent NaN
+            # Zero init can cause issues - use tiny random values instead
             for param in model.classifier.parameters():
                 if len(param.shape) >= 2:
-                    nn.init.zeros_(param)  # Start from zeros - most stable
+                    # Use uniform initialization with very small range
+                    nn.init.uniform_(param, -0.0001, 0.0001)  # Very small range
                 else:
                     nn.init.zeros_(param)  # Bias to zero
-            print(f"  ✓ Classifier head initialized to ZERO ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
+            print(f"  ✓ Classifier head initialized with tiny random weights ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
             print(f"  ✓ Classifier will be trainable with VERY low LR (10000x lower than LoRA)")
         
         # Apply LoRA if requested
@@ -813,12 +824,12 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     
     if classifier_params:
-        # Use EXTREMELY low LR for classifier (10000x lower to prevent NaN)
-        # With zero initialization, we can use a very low LR safely
-        classifier_lr = max(learning_rate * 0.0001, 1e-9)  # 10000x lower, minimum 1e-9
-        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
+        # Use EXTREMELY low LR for classifier (100000x lower to prevent NaN)
+        # With tiny random initialization, we need even lower LR
+        classifier_lr = max(learning_rate * 0.00001, 1e-10)  # 100000x lower, minimum 1e-10
+        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.0})  # No weight decay for classifier
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (10000x lower to prevent NaN)")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100000x lower to prevent NaN)")
     else:
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
     
@@ -909,6 +920,20 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 print(f"  NaN count: {torch.isnan(logits).sum().item()}")
                 print(f"  Inf count: {torch.isinf(logits).sum().item()}")
                 print(f"  This suggests gradient explosion or model instability.")
+                
+                # Check if the issue is in the base model outputs (before classifier)
+                # This helps diagnose if the problem is in base model or classifier
+                try:
+                    # Try to get hidden states from the model to see if they're reasonable
+                    with torch.no_grad():
+                        # Get a sample to check
+                        sample_outputs = model.base_model.model(input_ids=input_ids[:1], attention_mask=attention_mask[:1], use_cache=False)
+                        if hasattr(sample_outputs, 'last_hidden_state'):
+                            hidden = sample_outputs.last_hidden_state
+                            print(f"  Base model hidden states: range=[{hidden.min().item():.4f}, {hidden.max().item():.4f}], has_nan={torch.isnan(hidden).any().item()}")
+                except Exception as e:
+                    print(f"  Could not check base model outputs: {e}")
+                
                 print(f"  Skipping this batch and checking model parameters...")
                 
                 # Check model parameters for NaN
@@ -920,18 +945,29 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 
                 if nan_params:
                     print(f"  ⚠️  Model parameters have NaN/Inf! Attempting to fix...")
-                    # Try to reset NaN parameters to small random values
+                    # Try to reset NaN parameters to very small random values
                     for name, param in model.named_parameters():
                         if param.requires_grad and (torch.isnan(param).any() or torch.isinf(param).any()):
                             if 'score' in name or 'classifier' in name:
-                                # Reinitialize classifier with small values
-                                nn.init.normal_(param, mean=0.0, std=0.02)
-                                print(f"    Reset {name} to small random values")
+                                # Reinitialize classifier with very tiny values
+                                if len(param.shape) >= 2:
+                                    nn.init.uniform_(param, -0.0001, 0.0001)
+                                else:
+                                    nn.init.zeros_(param)
+                                print(f"    Reset {name} to tiny random values")
                             else:
                                 # For LoRA params, zero them
                                 param.data.zero_()
                                 print(f"    Zeroed {name}")
                     print(f"  Resetting optimizer state...")
+                    # Create new optimizer to reset state completely
+                    lora_params_new = [p for n, p in model.named_parameters() if p.requires_grad and 'score' not in n and 'classifier' not in n]
+                    classifier_params_new = [p for n, p in model.named_parameters() if p.requires_grad and ('score' in n or 'classifier' in n)]
+                    param_groups_new = [{'params': lora_params_new, 'lr': learning_rate, 'weight_decay': 0.01}]
+                    if classifier_params_new:
+                        classifier_lr = max(learning_rate * 0.00001, 1e-10)
+                        param_groups_new.append({'params': classifier_params_new, 'lr': classifier_lr, 'weight_decay': 0.0})
+                    optimizer = AdamW(param_groups_new)
                     optimizer.zero_grad()
                     # Skip this batch to let reset take effect
                     continue
@@ -1035,13 +1071,13 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                                   if p.grad is not None and p.requires_grad 
                                   and ('score' not in n and 'classifier' not in n)]
                 
-                # Clip classifier gradients VERY aggressively (max 0.001) BEFORE optimizer step
+                # Clip classifier gradients EXTREMELY aggressively (max 0.0001) BEFORE optimizer step
                 if classifier_grad_params:
-                    classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=0.001)
+                    classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=0.0001)
                     if epoch == 0 and batch_idx == 0:
-                        print(f"    Classifier gradient norm (after clip to 0.001): {classifier_grad_norm:.6f}")
-                        if classifier_grad_norm > 0.001:
-                            print(f"    ⚠️  Classifier gradients were clipped from {classifier_grad_norm:.2f} to 0.001")
+                        print(f"    Classifier gradient norm (after clip to 0.0001): {classifier_grad_norm:.6f}")
+                        if classifier_grad_norm > 0.0001:
+                            print(f"    ⚠️  Classifier gradients were clipped from {classifier_grad_norm:.2f} to 0.0001")
                 
                 # Clip LoRA gradients (max 1.0)
                 if lora_grad_params:
