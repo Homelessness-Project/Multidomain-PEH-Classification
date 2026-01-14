@@ -802,26 +802,32 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if len(trainable_params) == 0:
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
-    # SIMPLE: All trainable parameters get same LR (standard practice)
-    # In standard LoRA, both LoRA adapters and classifier train with same LR
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    # Separate LoRA and classifier parameters
+    # Classifier needs MUCH lower LR to prevent NaN (standard practice)
+    lora_params = []
+    classifier_params = []
     
-    if not trainable_params:
-        raise RuntimeError("No trainable parameters found! Check LoRA configuration.")
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            if 'score' in name or 'classifier' in name or 'modules_to_save' in name:
+                classifier_params.append(param)
+            else:
+                lora_params.append(param)
     
-    # Count LoRA vs classifier params for info
-    lora_count = sum(1 for n, p in model.named_parameters() 
-                    if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower()))
-    classifier_count = sum(1 for n, p in model.named_parameters() 
-                         if p.requires_grad and ('score' in n.lower() or 'classifier' in n.lower()))
+    if not lora_params:
+        raise RuntimeError("No LoRA parameters found! Check LoRA configuration.")
     
-    print(f"  Trainable parameters: {sum(p.numel() for p in trainable_params):,}")
-    print(f"    LoRA adapters: {lora_count} parameter groups")
-    print(f"    Classifier: {classifier_count} parameter groups")
-    print(f"  Learning rate: {learning_rate:.2e} (for all trainable params)")
+    # LoRA: normal LR, Classifier: 100x lower LR (prevents NaN)
+    # This is standard practice - classifier is more sensitive to LR
+    param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     
-    # SIMPLE: Single parameter group with same LR for everything
-    param_groups = [{'params': trainable_params, 'lr': learning_rate, 'weight_decay': 0.01}]
+    if classifier_params:
+        classifier_lr = learning_rate / 100.0  # 100x lower to prevent NaN
+        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100x lower to prevent NaN)")
+    else:
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
     
     total_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Training {len(param_groups)} parameter groups with {total_trainable:,} trainable parameters")
