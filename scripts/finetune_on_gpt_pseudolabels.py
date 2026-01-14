@@ -961,27 +961,47 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             print(f"  PEFT config adapters: {list(model.peft_config.keys())}")
         
         # CRITICAL: Test if LoRA adapters are actually active in forward pass
-        # Create a test input and check if outputs require grad
+        # Use the SAME forward pass as training to ensure consistency
         print(f"\n  Testing LoRA adapter activation...")
         model.train()  # Ensure training mode
         try:
             test_input_ids = torch.randint(0, 1000, (1, 10)).to(device)
             test_attention_mask = torch.ones(1, 10).to(device)
             
-            # Forward pass
+            # Use the SAME forward pass as training (through base_model to activate LoRA)
             with torch.set_grad_enabled(True):
-                test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
-                test_logits = test_outputs.logits
-                
-                if test_logits.requires_grad:
-                    print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+                if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
+                    # Call through PEFT wrapper's base_model (this applies LoRA)
+                    test_base_outputs = model.base_model(
+                        input_ids=test_input_ids,
+                        attention_mask=test_attention_mask,
+                        use_cache=False,
+                        output_hidden_states=True
+                    )
+                    
+                    if hasattr(test_base_outputs, 'last_hidden_state'):
+                        test_hidden = test_base_outputs.last_hidden_state
+                        if test_hidden.requires_grad:
+                            print(f"  ✓ LoRA adapters ARE active (base model hidden states require grad)")
+                        else:
+                            print(f"  ⚠️  LoRA adapters are NOT active (base model hidden states don't require grad)")
+                            print(f"  This means LoRA won't receive gradients during training!")
+                    else:
+                        # Fallback test
+                        test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
+                        test_logits = test_outputs.logits
+                        if test_logits.requires_grad:
+                            print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+                        else:
+                            print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
                 else:
-                    print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
-                    print(f"  This means LoRA won't receive gradients during training!")
-                    print(f"  Possible fixes:")
-                    print(f"    1. Check PEFT version compatibility")
-                    print(f"    2. Verify LoRA config is correct")
-                    print(f"    3. Try reinitializing PEFT model")
+                    # Fallback: normal forward pass
+                    test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
+                    test_logits = test_outputs.logits
+                    if test_logits.requires_grad:
+                        print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+                    else:
+                        print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
         except Exception as e:
             print(f"  ⚠️  Could not test LoRA activation: {e}")
         
@@ -1515,6 +1535,12 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             if patience_counter >= patience:
                 print(f"Early stopping at epoch {epoch + 1}")
                 break
+        
+        # Progress percent after epoch completion
+        progress_percent = ((epoch + 1) / epochs) * 100
+        print(f"\n{'='*60}")
+        print(f"Progress: {progress_percent:.1f}% ({epoch + 1}/{epochs} epochs complete)")
+        print(f"{'='*60}\n")
     
     # Load best model
     if best_model_state is not None:
