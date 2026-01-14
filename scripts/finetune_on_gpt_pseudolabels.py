@@ -618,8 +618,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             # This is a known workaround for PEFT models (see CODE_REVIEW_LORA_CLASSIFIER.md)
             modules_to_save = None  # Don't save classifier in PEFT config
             
+            # CRITICAL: Use SEQ_CLS task type for sequence classification models
+            # FEATURE_EXTRACTION may not properly activate LoRA adapters in forward pass
             lora_config = LoraConfig(
-                task_type=TaskType.FEATURE_EXTRACTION,  # For classification
+                task_type=TaskType.SEQ_CLS,  # For sequence classification (not FEATURE_EXTRACTION)
                 r=lora_rank,
                 lora_alpha=lora_alpha,
                 target_modules=target_modules,
@@ -801,7 +803,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             print(f"Applying LoRA to BERT with rank={lora_rank}, alpha={lora_alpha}")
             target_modules = ["query", "key", "value", "dense"]  # BERT attention modules
             lora_config = LoraConfig(
-                task_type=TaskType.FEATURE_EXTRACTION,
+                task_type=TaskType.SEQ_CLS,  # For sequence classification
                 r=lora_rank,
                 lora_alpha=lora_alpha,
                 target_modules=target_modules,
