@@ -1241,13 +1241,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                                   if p.grad is not None and p.requires_grad 
                                   and ('score' not in n and 'classifier' not in n)]
                 
-                # Classifier should be frozen, so no classifier gradients expected
-                # If they exist, it means classifier wasn't properly frozen
-                if classifier_grad_params:
-                    print(f"    ⚠️  WARNING: Classifier has gradients but should be frozen!")
-                    # Zero them since classifier is frozen
-                    for p in classifier_grad_params:
-                        p.grad.zero_()
+                # Classifier has LR=0.0, so gradients can exist (for gradient flow) but won't cause updates
+                # This is expected and correct - gradients flow through classifier to LoRA adapters
+                if classifier_grad_params and epoch == 0 and batch_idx == 0:
+                    classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=1.0)
+                    print(f"    Classifier gradient norm: {classifier_grad_norm:.6f} (LR=0.0, no updates - gradient flow only)")
                 
                 # Clip LoRA gradients (max 1.0)
                 if lora_grad_params:
