@@ -565,15 +565,16 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             
             model = ModelWithClassificationHead(base_model, num_labels, pad_token_id=tokenizer.pad_token_id)
             
-            # Initialize classifier with small weights to prevent NaN
-            # Use Xavier uniform initialization (more stable than default)
+            # Initialize classifier with VERY small weights to prevent NaN
+            # Use Kaiming normal with very small std for stability
             for param in model.classifier.parameters():
                 if len(param.shape) >= 2:
-                    nn.init.xavier_uniform_(param, gain=0.1)  # Small gain for stability
+                    nn.init.kaiming_normal_(param, mode='fan_out', nonlinearity='linear')
+                    param.data.mul_(0.01)  # Scale down by 100x for extra stability
                 else:
                     nn.init.zeros_(param)  # Bias to zero
-            print(f"  ✓ Classifier head initialized with small weights ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
-            print(f"  ⚠️  Classifier will be frozen during LoRA training to prevent NaN")
+            print(f"  ✓ Classifier head initialized with very small weights ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
+            print(f"  ✓ Classifier will be trainable with very low LR (100x lower than LoRA)")
         
         # Apply LoRA if requested
         if use_lora and PEFT_AVAILABLE:
@@ -790,11 +791,12 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     
     if classifier_params:
-        # Use MUCH lower LR for classifier (1e-7 = 100x lower than typical 1e-5)
-        classifier_lr = max(learning_rate * 0.01, 1e-7)  # At least 100x lower, minimum 1e-7
+        # Use MUCH lower LR for classifier (1000x lower to prevent NaN)
+        # With large gradient norms (30+), we need very conservative LR
+        classifier_lr = max(learning_rate * 0.001, 1e-8)  # 1000x lower, minimum 1e-8
         param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100x lower)")
+        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (1000x lower to prevent NaN)")
     else:
         print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
     
@@ -835,11 +837,29 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         if hasattr(model, 'base_model') and hasattr(model.base_model, 'enable_adapter_layers'):
             model.base_model.enable_adapter_layers()
         
+        # Also try to enable adapters on nested models (PEFT can have multiple levels)
+        if hasattr(model, 'base_model'):
+            if hasattr(model.base_model, 'base_model') and hasattr(model.base_model.base_model, 'enable_adapter_layers'):
+                model.base_model.base_model.enable_adapter_layers()
+        
         # Verify LoRA adapters are actually enabled and trainable
         trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
         if trainable_count == 0:
             print(f"  ERROR: No trainable parameters! LoRA adapters may be disabled.")
             raise RuntimeError("No trainable parameters found! Check LoRA adapter status.")
+        
+        # Diagnostic: Check which parameters are trainable (first epoch only)
+        if epoch == 0:
+            trainable_names = [n for n, p in model.named_parameters() if p.requires_grad]
+            lora_trainable = [n for n in trainable_names if 'lora' in n.lower() or 'adapter' in n.lower()]
+            classifier_trainable = [n for n in trainable_names if 'score' in n.lower() or 'classifier' in n.lower()]
+            print(f"  Trainable parameters: {len(trainable_names)} total")
+            print(f"    LoRA adapters: {len(lora_trainable)}")
+            print(f"    Classifier: {len(classifier_trainable)}")
+            if len(lora_trainable) == 0:
+                print(f"    ⚠️  WARNING: No LoRA adapter parameters are trainable!")
+                print(f"    This means only classifier will be trained, which may cause instability.")
+                print(f"    Sample trainable params: {trainable_names[:5]}")
         
         train_loss = 0
         train_preds = []
@@ -972,18 +992,39 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     for name, norm in sample_grads:
                         print(f"      {name[:60]}: {norm:.6f}")
             
-            # Clip LoRA gradients (classifier is frozen, so no classifier gradients)
-            lora_params_list = [p for n, p in model.named_parameters() 
-                              if p.grad is not None and p.requires_grad]
-            if lora_params_list:
-                grad_norm_before_clip = torch.nn.utils.clip_grad_norm_(lora_params_list, max_norm=1.0)
-                # Diagnostic: Check if gradients are being clipped too aggressively
-                if epoch == 0 and batch_idx == 0:
-                    print(f"    Gradient norm before clipping: {grad_norm_before_clip:.6f}")
-                    if grad_norm_before_clip < 1e-6:
-                        print(f"    ⚠️  WARNING: Very small gradients! Model may not learn effectively.")
+            # Clip ALL gradients (both LoRA and classifier) to prevent explosion
+            # Use separate clipping for classifier (much smaller) and LoRA
+            all_trainable_params = [p for n, p in model.named_parameters() 
+                                  if p.grad is not None and p.requires_grad]
+            
+            if all_trainable_params:
+                # Separate classifier and LoRA params for different clipping
+                classifier_grad_params = [p for n, p in model.named_parameters() 
+                                        if p.grad is not None and p.requires_grad 
+                                        and ('score' in n or 'classifier' in n)]
+                lora_grad_params = [p for n, p in model.named_parameters() 
+                                  if p.grad is not None and p.requires_grad 
+                                  and ('score' not in n and 'classifier' not in n)]
+                
+                # Clip classifier gradients very aggressively (max 0.1)
+                if classifier_grad_params:
+                    classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=0.1)
+                    if epoch == 0 and batch_idx == 0:
+                        print(f"    Classifier gradient norm (after clip to 0.1): {classifier_grad_norm:.6f}")
+                        if classifier_grad_norm > 0.1:
+                            print(f"    ⚠️  Classifier gradients were clipped from {classifier_grad_norm:.2f} to 0.1")
+                
+                # Clip LoRA gradients (max 1.0)
+                if lora_grad_params:
+                    lora_grad_norm = torch.nn.utils.clip_grad_norm_(lora_grad_params, max_norm=1.0)
+                    if epoch == 0 and batch_idx == 0:
+                        print(f"    LoRA gradient norm (after clip to 1.0): {lora_grad_norm:.6f}")
+                elif epoch == 0 and batch_idx == 0:
+                    print(f"    ⚠️  WARNING: No LoRA parameters have gradients!")
+                    print(f"    This suggests LoRA adapters aren't receiving gradients.")
+                    print(f"    Check: LoRA adapter enable status, gradient flow through base model")
             elif epoch == 0 and batch_idx == 0:
-                print(f"    ⚠️  WARNING: No LoRA parameters have gradients!")
+                print(f"    ⚠️  WARNING: No trainable parameters have gradients!")
             
             # Store parameter values before update (for first batch only, to check if they change)
             if epoch == 0 and batch_idx == 0:
