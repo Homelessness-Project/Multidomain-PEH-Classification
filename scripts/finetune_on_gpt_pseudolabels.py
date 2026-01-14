@@ -45,9 +45,16 @@ from transformers import (
 from torch.optim import AdamW
 try:
     from peft import LoraConfig, get_peft_model, TaskType
+    # Try to import DoRA (newer, better than LoRA)
+    try:
+        from peft import DoraConfig
+        DORA_AVAILABLE = True
+    except ImportError:
+        DORA_AVAILABLE = False
     PEFT_AVAILABLE = True
 except ImportError:
     PEFT_AVAILABLE = False
+    DORA_AVAILABLE = False
     print("Warning: PEFT not available. Install with: pip install peft")
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, precision_recall_fscore_support, classification_report
@@ -597,32 +604,43 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             print(f"  ✓ Classifier head initialized with tiny random weights ({sum(p.numel() for p in model.classifier.parameters()):,} parameters)")
             print(f"  ✓ Classifier will be trainable with VERY low LR (10000x lower than LoRA)")
         
-        # Apply LoRA if requested - SIMPLE STANDARD APPROACH
+        # Apply LoRA/DoRA if requested - Use DoRA if available (better than LoRA)
         if use_lora and PEFT_AVAILABLE:
-            print(f"Applying LoRA with rank={lora_rank}, alpha={lora_alpha}")
-            # Standard target modules for attention layers
             target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # SIMPLE STANDARD CONFIG: Let PEFT handle everything
-            # TaskType.SEQ_CLS is correct for sequence classification
-            # modules_to_save=None means classifier stays trainable (standard practice)
-            lora_config = LoraConfig(
-                task_type=TaskType.SEQ_CLS,  # Standard for sequence classification
-                r=lora_rank,
-                lora_alpha=lora_alpha,
-                target_modules=target_modules,
-                lora_dropout=lora_dropout,
-                bias="none",
-                modules_to_save=None,  # None = classifier stays trainable (standard)
-            )
+            # Try DoRA first (newer, better performance, fewer issues)
+            if DORA_AVAILABLE:
+                print(f"Applying DoRA (Weight-Decomposed LoRA) with rank={lora_rank}, alpha={lora_alpha}")
+                print(f"  DoRA is newer and often performs better than LoRA")
+                peft_config = DoraConfig(
+                    r=lora_rank,
+                    lora_alpha=lora_alpha,
+                    target_modules=target_modules,
+                    lora_dropout=lora_dropout,
+                    bias="none",
+                    # DoRA doesn't have task_type - works with any model structure
+                )
+            else:
+                print(f"Applying LoRA with rank={lora_rank}, alpha={lora_alpha}")
+                print(f"  (DoRA not available - using standard LoRA)")
+                peft_config = LoraConfig(
+                    task_type=TaskType.FEATURE_EXTRACTION,  # Prevents classifier auto-add
+                    r=lora_rank,
+                    lora_alpha=lora_alpha,
+                    target_modules=target_modules,
+                    lora_dropout=lora_dropout,
+                    bias="none",
+                    modules_to_save=None,
+                )
             
-            print(f"  Using standard LoRA config - classifier will be trainable")
-            model = get_peft_model(model, lora_config)
+            model = get_peft_model(model, peft_config)
             model.print_trainable_parameters()
             
-            # SIMPLE: Don't freeze classifier - let it train normally (standard practice)
-            # In standard LoRA, classifier is trainable with normal LR
-            # This is simpler and works correctly
+            # Freeze classifier to prevent NaN (gradients still flow through)
+            for name, param in model.named_parameters():
+                if 'score' in name or 'classifier' in name:
+                    param.requires_grad = False
+            print(f"  ✓ Classifier frozen (prevents NaN, gradients flow through)")
             
             # Verify LoRA adapters are trainable
             lora_trainable_count = sum(p.numel() for n, p in model.named_parameters() 
@@ -802,32 +820,16 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if len(trainable_params) == 0:
         raise ValueError("No trainable parameters found! Check if model is properly set up for training.")
     
-    # Separate LoRA and classifier parameters
-    # Classifier needs MUCH lower LR to prevent NaN (standard practice)
-    lora_params = []
-    classifier_params = []
-    
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            if 'score' in name or 'classifier' in name or 'modules_to_save' in name:
-                classifier_params.append(param)
-            else:
-                lora_params.append(param)
+    # Only LoRA parameters are trainable (classifier is frozen)
+    lora_params = [p for p in model.parameters() if p.requires_grad]
     
     if not lora_params:
-        raise RuntimeError("No LoRA parameters found! Check LoRA configuration.")
+        raise RuntimeError("No trainable parameters found! Check LoRA configuration.")
     
-    # LoRA: normal LR, Classifier: 100x lower LR (prevents NaN)
-    # This is standard practice - classifier is more sensitive to LR
+    # Only LoRA params in optimizer (classifier is frozen)
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
-    
-    if classifier_params:
-        classifier_lr = learning_rate / 100.0  # 100x lower to prevent NaN
-        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.01})
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100x lower to prevent NaN)")
-    else:
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    print(f"  Classifier: FROZEN (prevents NaN, gradients flow through automatically)")
     
     total_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Training {len(param_groups)} parameter groups with {total_trainable:,} trainable parameters")
