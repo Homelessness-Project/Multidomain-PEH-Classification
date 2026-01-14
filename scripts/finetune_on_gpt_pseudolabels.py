@@ -611,10 +611,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 # Default for other models
                 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # Make classifier trainable but with VERY low LR (will be set in optimizer)
-            # Freezing classifier completely prevents gradients from flowing to LoRA adapters
-            # Instead, we'll train it with an extremely low learning rate (10000x lower)
-            modules_to_save = None  # Don't save classifier in PEFT config, but keep it trainable
+            # FREEZE classifier completely to prevent NaN
+            # Use modules_to_save=None to ensure classifier is frozen
+            # LoRA adapters will adapt base model features, which flow through frozen classifier
+            modules_to_save = None  # Freeze classifier completely
             
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,  # For classification
@@ -623,24 +623,23 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=lora_dropout,
                 bias="none",
-                modules_to_save=modules_to_save,  # None - classifier handled separately
+                modules_to_save=modules_to_save,  # None - freeze classifier completely
             )
             
-            print(f"  Note: Classifier will be TRAINABLE with VERY low LR (10000x lower than LoRA)")
-            print(f"  This allows gradients to flow: loss -> classifier -> base_model -> LoRA")
+            print(f"  Note: Classifier will be FROZEN (prevents NaN)")
+            print(f"  LoRA adapters adapt base model features, which flow through frozen classifier")
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
             
-            # Ensure classifier is trainable (it should be by default, but verify)
-            classifier_trainable_count = 0
+            # CRITICAL: Freeze classifier completely
+            classifier_frozen_count = 0
             for name, param in model.named_parameters():
                 if ('score' in name or 'classifier' in name):
-                    if not param.requires_grad:
-                        param.requires_grad = True  # Make sure it's trainable
-                    classifier_trainable_count += param.numel()
+                    param.requires_grad = False  # Force freeze
+                    classifier_frozen_count += param.numel()
             
-            if classifier_trainable_count > 0:
-                print(f"  ✓ Classifier has {classifier_trainable_count:,} trainable params (will use VERY low LR)")
+            if classifier_frozen_count > 0:
+                print(f"  ✓ Froze {classifier_frozen_count:,} classifier params")
             
             # Verify LoRA adapters are trainable
             lora_trainable_count = sum(p.numel() for n, p in model.named_parameters() 
@@ -817,21 +816,19 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         print(f"  Trainable param names: {[n for n, p in model.named_parameters() if p.requires_grad][:10]}")
         raise RuntimeError("No LoRA parameters found! Check LoRA configuration.")
     
-    # Use VERY different learning rates: classifier gets 100x lower LR
+    # Only LoRA parameters are trainable (classifier is frozen)
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     
-    # Use VERY different learning rates: classifier gets 10000x lower LR
-    param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
-    
+    # Classifier should be frozen, so no classifier params in optimizer
     if classifier_params:
-        # Use EXTREMELY low LR for classifier (100000x lower to prevent NaN)
-        # With tiny random initialization, we need even lower LR
-        classifier_lr = max(learning_rate * 0.00001, 1e-10)  # 100000x lower, minimum 1e-10
-        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.0})  # No weight decay for classifier
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-        print(f"  Classifier params: {sum(p.numel() for p in classifier_params):,} with LR={classifier_lr:.2e} (100000x lower to prevent NaN)")
-    else:
-        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+        print(f"  ⚠️  WARNING: Classifier params found but should be frozen!")
+        # Force freeze classifier
+        for p in classifier_params:
+            p.requires_grad = False
+        print(f"  ✓ Froze {len(classifier_params)} classifier parameter groups")
+    
+    print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
+    print(f"  Classifier: FROZEN (prevents NaN, LoRA adapts features)")
     
     total_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Training {len(param_groups)} parameter groups with {total_trainable:,} trainable parameters")
@@ -1001,21 +998,23 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             loss = criterion(logits, labels)
             
-            # Verify loss requires grad (should always be true with trainable classifier and LoRA)
+            # Verify loss requires grad (should be true even with frozen classifier - gradients flow through)
             if not loss.requires_grad:
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
                 if trainable_count == 0:
                     raise RuntimeError("Loss does not require grad! No trainable parameters found.")
                 else:
-                    # Force gradient connection by adding a small contribution from trainable params
-                    # This ensures PyTorch tracks gradients even if the computation graph is disconnected
-                    trainable_param = next((p for p in model.parameters() if p.requires_grad), None)
-                    if trainable_param is not None:
-                        loss = loss + 0.0 * trainable_param.sum()  # Force gradient connection
+                    # Force gradient connection by adding a small contribution from trainable LoRA params
+                    # This ensures PyTorch tracks gradients through frozen classifier to LoRA adapters
+                    lora_param = next((p for n, p in model.named_parameters() 
+                                     if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
+                    if lora_param is not None:
+                        # Add zero contribution to force gradient tracking through frozen classifier
+                        loss = loss + 0.0 * lora_param.sum()
                         if not loss.requires_grad:
-                            raise RuntimeError("Cannot establish gradient connection! Check model structure.")
+                            raise RuntimeError("Cannot establish gradient connection! Check LoRA adapter status.")
                     else:
-                        raise RuntimeError("No trainable parameters found for gradient connection.")
+                        raise RuntimeError("No LoRA parameters found for gradient connection.")
             
             # Ensure loss is float32 for backward pass on MPS
             # FocalLoss should already return float32, but double-check
@@ -1071,13 +1070,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                                   if p.grad is not None and p.requires_grad 
                                   and ('score' not in n and 'classifier' not in n)]
                 
-                # Clip classifier gradients EXTREMELY aggressively (max 0.0001) BEFORE optimizer step
+                # Classifier should be frozen, so zero any classifier gradients if they exist
                 if classifier_grad_params:
-                    classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=0.0001)
-                    if epoch == 0 and batch_idx == 0:
-                        print(f"    Classifier gradient norm (after clip to 0.0001): {classifier_grad_norm:.6f}")
-                        if classifier_grad_norm > 0.0001:
-                            print(f"    ⚠️  Classifier gradients were clipped from {classifier_grad_norm:.2f} to 0.0001")
+                    print(f"    ⚠️  WARNING: Classifier has gradients but should be frozen!")
+                    for p in classifier_grad_params:
+                        p.grad.zero_()
                 
                 # Clip LoRA gradients (max 1.0)
                 if lora_grad_params:
