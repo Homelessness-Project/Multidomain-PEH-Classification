@@ -611,12 +611,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 # Default for other models
                 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # Keep classifier trainable with LR=0.0 (PEFT wrapper limitation workaround)
-            # Research: Standard PyTorch allows gradients through frozen layers, BUT
-            # PEFT wrapper can break computation graph with frozen layers
-            # Solution: Use LR=0.0 to allow gradient flow while preventing updates
-            # This is a known workaround for PEFT models (see CODE_REVIEW_LORA_CLASSIFIER.md)
-            modules_to_save = None  # Don't save classifier in PEFT config
+            # CRITICAL: For AutoModelForSequenceClassification, PEFT may auto-add classifier to modules_to_save
+            # We need to explicitly exclude it to prevent PEFT from managing it
+            # This ensures LoRA adapters are the only trainable parts managed by PEFT
+            modules_to_save = []  # Explicitly empty list (not None) to prevent auto-add
             
             # CRITICAL: Use SEQ_CLS task type for sequence classification models
             # FEATURE_EXTRACTION may not properly activate LoRA adapters in forward pass
@@ -652,7 +650,18 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 except:
                     pass
             
+            # CRITICAL: Check if classifier is in modules_to_save (PEFT may auto-add it)
+            # If it is, we need to remove it from PEFT management to allow proper gradient flow
+            classifier_in_modules_to_save = False
+            for name, param in model.named_parameters():
+                if ('score' in name or 'classifier' in name) and 'modules_to_save' in name:
+                    classifier_in_modules_to_save = True
+                    print(f"  ⚠️  WARNING: Classifier is in modules_to_save: {name}")
+                    print(f"  This may prevent gradient flow to LoRA adapters!")
+                    break
+            
             # FREEZE classifier - gradients will flow through to LoRA adapters automatically
+            # But we need to ensure it's NOT in modules_to_save
             classifier_frozen_count = 0
             for name, param in model.named_parameters():
                 if ('score' in name or 'classifier' in name):
@@ -661,6 +670,9 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             
             if classifier_frozen_count > 0:
                 print(f"  ✓ Froze {classifier_frozen_count:,} classifier params (gradients flow through automatically)")
+                if classifier_in_modules_to_save:
+                    print(f"  ⚠️  NOTE: Classifier is in modules_to_save - this may break gradient flow to LoRA")
+                    print(f"  Consider recreating model without classifier in modules_to_save")
             
             # Verify LoRA adapters are trainable
             lora_trainable_count = sum(p.numel() for n, p in model.named_parameters() 
@@ -996,22 +1008,62 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             if lora_param is None:
                 raise RuntimeError("No LoRA parameters found! Check LoRA adapter configuration.")
             
-            # Forward pass through PEFT model
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
-            logits = outputs.logits
+            # CRITICAL: Forward pass must go through PEFT wrapper to activate LoRA
+            # The issue: AutoModelForSequenceClassification forward may bypass LoRA adapters
+            # Solution: Ensure we call through the PEFT wrapper's forward method
             
-            # CRITICAL: Force gradient connection IMMEDIATELY after forward pass
-            # The issue is that PEFT wrapper may not connect computation graph properly
-            # We need to explicitly create a dependency on LoRA parameters
-            if not logits.requires_grad:
-                # Method 1: Add dependency (creates gradient path)
-                logits = logits + 0.0 * lora_param.sum()
-            
-            # If still no grad, try more aggressive connection
-            if not logits.requires_grad:
-                # Method 2: Multiply by value that depends on LoRA param
-                # This creates a stronger dependency in computation graph
-                logits = logits * (1.0 + 0.0 * lora_param.sum())
+            # Get base model outputs first (this should activate LoRA adapters)
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
+                # Call through PEFT wrapper's base_model (this applies LoRA)
+                base_outputs = model.base_model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    use_cache=False,
+                    output_hidden_states=True
+                )
+                
+                # Get pooled representation from base model (with LoRA applied)
+                if hasattr(base_outputs, 'last_hidden_state'):
+                    hidden_states = base_outputs.last_hidden_state
+                elif hasattr(base_outputs, 'hidden_states') and len(base_outputs.hidden_states) > 0:
+                    hidden_states = base_outputs.hidden_states[-1]
+                else:
+                    # Fallback to normal forward
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                    logits = outputs.logits
+                    hidden_states = None
+                
+                if hidden_states is not None:
+                    # CRITICAL: Check if hidden states require grad (LoRA should make them require grad)
+                    if not hidden_states.requires_grad:
+                        # LoRA adapters aren't active - force connection
+                        hidden_states = hidden_states + 0.0 * lora_param.sum()
+                    
+                    # Mean pooling
+                    if attention_mask is not None:
+                        mask = attention_mask.unsqueeze(-1).expand(hidden_states.size()).float()
+                        hidden_states = hidden_states * mask
+                        pooled = hidden_states.sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
+                    else:
+                        pooled = hidden_states.mean(dim=1)
+                    
+                    # Pass through classifier
+                    if hasattr(model.base_model.model, 'score'):
+                        classifier_dtype = next(model.base_model.model.score.parameters()).dtype
+                        pooled = pooled.to(dtype=classifier_dtype)
+                        logits = model.base_model.model.score(pooled)
+                    else:
+                        # Fallback
+                        outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                        logits = outputs.logits
+                else:
+                    # Fallback to normal forward
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                    logits = outputs.logits
+            else:
+                # Fallback: use normal forward pass
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                logits = outputs.logits
             
             # If STILL no grad, the base model isn't using LoRA adapters
             if not logits.requires_grad:
