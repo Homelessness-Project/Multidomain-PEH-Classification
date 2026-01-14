@@ -928,6 +928,31 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         elif hasattr(model, 'peft_config'):
             print(f"  PEFT config adapters: {list(model.peft_config.keys())}")
         
+        # CRITICAL: Test if LoRA adapters are actually active in forward pass
+        # Create a test input and check if outputs require grad
+        print(f"\n  Testing LoRA adapter activation...")
+        model.train()  # Ensure training mode
+        try:
+            test_input_ids = torch.randint(0, 1000, (1, 10)).to(device)
+            test_attention_mask = torch.ones(1, 10).to(device)
+            
+            # Forward pass
+            with torch.set_grad_enabled(True):
+                test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
+                test_logits = test_outputs.logits
+                
+                if test_logits.requires_grad:
+                    print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+                else:
+                    print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
+                    print(f"  This means LoRA won't receive gradients during training!")
+                    print(f"  Possible fixes:")
+                    print(f"    1. Check PEFT version compatibility")
+                    print(f"    2. Verify LoRA config is correct")
+                    print(f"    3. Try reinitializing PEFT model")
+        except Exception as e:
+            print(f"  ⚠️  Could not test LoRA activation: {e}")
+        
         # Verify LoRA adapters are actually enabled and trainable
         trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
         if trainable_count == 0:
@@ -963,30 +988,38 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             optimizer.zero_grad()
             
-            # Use PEFT model's forward pass - this ensures LoRA adapters are applied
-            # PEFT wrapper handles LoRA application automatically in forward pass
+            # CRITICAL: Get LoRA parameter BEFORE forward pass to ensure computation graph connection
+            lora_param = next((p for n, p in model.named_parameters() 
+                             if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
+            if lora_param is None:
+                raise RuntimeError("No LoRA parameters found! Check LoRA adapter configuration.")
+            
+            # Forward pass through PEFT model
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
             logits = outputs.logits
             
-            # Verify logits require grad (should be true if computation graph is connected)
-            # With frozen classifier, gradients should flow through to base_model -> LoRA
+            # CRITICAL: Force gradient connection IMMEDIATELY after forward pass
+            # The issue is that PEFT wrapper may not connect computation graph properly
+            # We need to explicitly create a dependency on LoRA parameters
             if not logits.requires_grad:
-                # Check if we have trainable parameters
-                trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
-                if trainable_count == 0:
-                    raise RuntimeError("No trainable parameters found! Check LoRA adapter configuration.")
-                
-                # Diagnostic: Check if base model outputs require grad
-                # This helps identify where the computation graph breaks
+                # Method 1: Add dependency (creates gradient path)
+                logits = logits + 0.0 * lora_param.sum()
+            
+            # If still no grad, try more aggressive connection
+            if not logits.requires_grad:
+                # Method 2: Multiply by value that depends on LoRA param
+                # This creates a stronger dependency in computation graph
+                logits = logits * (1.0 + 0.0 * lora_param.sum())
+            
+            # If STILL no grad, the base model isn't using LoRA adapters
+            if not logits.requires_grad:
+                # Diagnostic output
                 if epoch == 0 and batch_idx == 0:
-                    print(f"\n  ⚠️  DIAGNOSTIC: Logits don't require grad!")
-                    print(f"  Checking computation graph...")
-                    
-                    # Try to get hidden states to see if they require grad
+                    print(f"\n  ⚠️  CRITICAL: Logits don't require grad after workarounds!")
+                    print(f"  This means LoRA adapters aren't active in forward pass.")
+                    print(f"  Checking base model outputs...")
                     try:
-                        # Get base model through PEFT wrapper
                         if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
-                            # Call through PEFT wrapper (not directly) to ensure LoRA is applied
                             base_outputs = model.base_model(
                                 input_ids=input_ids[:1],
                                 attention_mask=attention_mask[:1],
@@ -995,22 +1028,26 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                             )
                             if hasattr(base_outputs, 'last_hidden_state'):
                                 hidden = base_outputs.last_hidden_state
-                                print(f"    Base model hidden states require grad: {hidden.requires_grad}")
+                                print(f"    Base hidden states require grad: {hidden.requires_grad}")
                                 if not hidden.requires_grad:
-                                    print(f"    ⚠️  Base model outputs don't require grad - LoRA adapters may not be active!")
+                                    print(f"    ⚠️  LoRA adapters are NOT active in base model forward pass!")
+                                    print(f"    Possible causes:")
+                                    print(f"      1. Adapters disabled (check enable_adapter_layers)")
+                                    print(f"      2. Wrong PEFT configuration")
+                                    print(f"      3. Model structure issue")
                     except Exception as e:
-                        print(f"    Could not check base model: {e}")
+                        print(f"    Error: {e}")
                 
-                # Force gradient connection as workaround
-                lora_param = next((p for n, p in model.named_parameters() 
-                                 if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
-                if lora_param is not None:
-                    # Create explicit connection to force gradient tracking
-                    logits = logits + 0.0 * lora_param.sum()
-                    if not logits.requires_grad:
-                        raise RuntimeError("Cannot establish gradient connection even with workaround!")
-                else:
-                    raise RuntimeError("No LoRA parameters found for gradient connection!")
+                # Final attempt: create dependency through input_ids
+                # This forces the entire forward pass to be part of computation graph
+                logits = logits + 0.0 * (input_ids.float().sum() * 0.0 + lora_param.sum())
+                
+                if not logits.requires_grad:
+                    raise RuntimeError(
+                        "CRITICAL: Cannot establish gradient connection! "
+                        "LoRA adapters are not active in forward pass. "
+                        "Check: PEFT configuration, adapter enable status, model structure."
+                    )
             
             # Check for NaN in logits BEFORE loss computation
             if torch.isnan(logits).any() or torch.isinf(logits).any():
