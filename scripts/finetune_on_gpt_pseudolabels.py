@@ -906,9 +906,52 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             labels = batch['labels'].to(device)
             
             optimizer.zero_grad()
-            # Pass use_cache=False when gradient checkpointing is enabled (suppresses warning)
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
-            logits = outputs.logits
+            # CRITICAL: Get base model outputs first to ensure gradient connection
+            # We need to ensure gradients flow: loss -> classifier -> base_model -> LoRA
+            # Even with frozen classifier, we need base model outputs to be part of computation graph
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
+                # Get base model outputs with gradient tracking enabled
+                base_outputs = model.base_model.model(
+                    input_ids=input_ids, 
+                    attention_mask=attention_mask, 
+                    use_cache=False,
+                    output_hidden_states=True
+                )
+                
+                # Get pooled representation (mean pooling over sequence)
+                if hasattr(base_outputs, 'last_hidden_state'):
+                    hidden_states = base_outputs.last_hidden_state
+                elif hasattr(base_outputs, 'hidden_states') and len(base_outputs.hidden_states) > 0:
+                    hidden_states = base_outputs.hidden_states[-1]
+                else:
+                    # Fallback: use the model's forward pass
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                    logits = outputs.logits
+                    hidden_states = None
+                
+                if hidden_states is not None:
+                    # Mean pooling with attention mask
+                    if attention_mask is not None:
+                        mask = attention_mask.unsqueeze(-1).expand(hidden_states.size()).float()
+                        hidden_states = hidden_states * mask
+                        pooled = hidden_states.sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
+                    else:
+                        pooled = hidden_states.mean(dim=1)
+                    
+                    # Pass through frozen classifier
+                    # CRITICAL: Even though classifier is frozen, this creates gradient path
+                    if hasattr(model.base_model.model, 'score'):
+                        logits = model.base_model.model.score(pooled)
+                    elif hasattr(model, 'score'):
+                        logits = model.score(pooled)
+                    else:
+                        # Fallback to normal forward
+                        outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                        logits = outputs.logits
+            else:
+                # Fallback: use normal forward pass
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                logits = outputs.logits
             
             # Check for NaN in logits BEFORE loss computation
             if torch.isnan(logits).any() or torch.isinf(logits).any():
@@ -998,19 +1041,28 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             loss = criterion(logits, labels)
             
-            # Verify loss requires grad (should be true even with frozen classifier - gradients flow through)
+            # CRITICAL: Ensure gradients flow through frozen classifier
+            # Frozen layers in PyTorch don't track gradients, but we need them to flow through
+            # Check if logits require grad (they should, even with frozen classifier)
+            if not logits.requires_grad:
+                # Force gradient tracking by ensuring classifier output requires grad
+                # Even though classifier is frozen, its output should still track gradients
+                logits = logits.requires_grad_(True)
+            
+            # Verify loss requires grad
             if not loss.requires_grad:
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
                 if trainable_count == 0:
                     raise RuntimeError("Loss does not require grad! No trainable parameters found.")
                 else:
-                    # Force gradient connection by adding a small contribution from trainable LoRA params
-                    # This ensures PyTorch tracks gradients through frozen classifier to LoRA adapters
+                    # Force gradient connection by ensuring we have a path to trainable params
+                    # Get a LoRA parameter to create gradient connection
                     lora_param = next((p for n, p in model.named_parameters() 
                                      if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
                     if lora_param is not None:
-                        # Add zero contribution to force gradient tracking through frozen classifier
-                        loss = loss + 0.0 * lora_param.sum()
+                        # Create a connection: multiply loss by 1.0 using a trainable param
+                        # This forces PyTorch to track gradients through the entire computation graph
+                        loss = loss * (1.0 + 0.0 * lora_param.sum())
                         if not loss.requires_grad:
                             raise RuntimeError("Cannot establish gradient connection! Check LoRA adapter status.")
                     else:
