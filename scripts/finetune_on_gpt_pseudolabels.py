@@ -589,10 +589,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 # Default for other models
                 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # FREEZE classifier completely - it's causing NaN even with conservative settings
-            # The pretrained classifier should work fine with LoRA-adapted features
-            # We'll use a workaround to ensure gradients flow through frozen classifier to LoRA
-            modules_to_save = None  # Freeze classifier completely
+            # Make classifier trainable but with very low LR (will be set in optimizer)
+            # Freezing classifier completely prevents gradients from flowing to LoRA adapters
+            # Instead, we'll train it with a much lower learning rate (100x lower)
+            modules_to_save = None  # Don't save classifier in PEFT config, but keep it trainable
             
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,  # For classification
@@ -601,24 +601,24 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=lora_dropout,
                 bias="none",
-                modules_to_save=modules_to_save,  # None - freeze classifier completely
+                modules_to_save=modules_to_save,  # None - classifier handled separately
             )
             
-            print(f"  Note: Classifier will be FROZEN (prevents NaN)")
-            print(f"  Pretrained classifier works with LoRA-adapted features")
-            print(f"  Gradients flow through frozen classifier via workaround")
+            print(f"  Note: Classifier will be TRAINABLE with very low LR (100x lower than LoRA)")
+            print(f"  This allows gradients to flow: loss -> classifier -> base_model -> LoRA")
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
             
-            # CRITICAL: Ensure classifier is frozen
-            classifier_frozen_count = 0
+            # Ensure classifier is trainable (it should be by default, but verify)
+            classifier_trainable_count = 0
             for name, param in model.named_parameters():
-                if ('score' in name or 'classifier' in name) and param.requires_grad:
-                    param.requires_grad = False  # Force freeze
-                    classifier_frozen_count += param.numel()
+                if ('score' in name or 'classifier' in name):
+                    if not param.requires_grad:
+                        param.requires_grad = True  # Make sure it's trainable
+                    classifier_trainable_count += param.numel()
             
-            if classifier_frozen_count > 0:
-                print(f"  ✓ Froze {classifier_frozen_count:,} classifier params")
+            if classifier_trainable_count > 0:
+                print(f"  ✓ Classifier has {classifier_trainable_count:,} trainable params (will use low LR)")
             
             # Verify we have trainable parameters (should be LoRA adapters only)
             trainable_after = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -923,27 +923,14 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             loss = criterion(logits, labels)
             
-            # CRITICAL: With frozen classifier, we need to force gradient connection
-            # Frozen layers don't track gradients by default, but we need them to flow to LoRA
+            # Verify loss requires grad (should always be true now that classifier is trainable)
             if not loss.requires_grad:
                 trainable_count = sum(1 for p in model.parameters() if p.requires_grad)
                 if trainable_count == 0:
                     raise RuntimeError("Loss does not require grad! No trainable parameters found.")
-                
-                # Force gradient connection: add zero contribution from LoRA param
-                # This ensures PyTorch tracks gradients through frozen classifier to LoRA
-                lora_param = next((p for n, p in model.named_parameters() 
-                                 if p.requires_grad and ('lora' in n.lower() or 'adapter' in n.lower())), None)
-                if lora_param is None:
-                    lora_param = next(p for p in model.parameters() if p.requires_grad)
-                
-                # This workaround forces gradient tracking through frozen classifier
-                loss = loss + 0.0 * lora_param.sum()
-                
-                if not loss.requires_grad:
-                    print(f"  CRITICAL: Cannot establish gradient connection! Skipping batch...")
-                    optimizer.zero_grad()
-                    continue
+                else:
+                    print(f"  ⚠️  WARNING: Loss does not require grad but trainable params exist!")
+                    print(f"     This shouldn't happen with trainable classifier. Checking gradient flow...")
             
             # Ensure loss is float32 for backward pass on MPS
             # FocalLoss should already return float32, but double-check
@@ -954,20 +941,74 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             # Gradient clipping for LoRA only (classifier is frozen, no gradients)
             # Check for NaN/Inf gradients first
+            grad_norm = 0.0
+            grad_count = 0
             for name, param in model.named_parameters():
                 if param.grad is not None:
+                    grad_count += 1
+                    param_grad_norm = param.grad.norm().item()
+                    grad_norm += param_grad_norm ** 2
                     if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
                         print(f"  ⚠️  NaN/Inf gradient in {name}, zeroing it")
                         param.grad.zero_()
+            
+            # Diagnostic: Check if we have gradients (first batch of first epoch only)
+            if epoch == 0 and batch_idx == 0:
+                print(f"\n  Gradient diagnostic (first batch):")
+                print(f"    Parameters with gradients: {grad_count}")
+                print(f"    Total gradient norm: {grad_norm**0.5:.6f}")
+                if grad_count == 0:
+                    print(f"    ⚠️  WARNING: No gradients detected! Model won't learn.")
+                    print(f"    This suggests gradients aren't flowing to LoRA adapters.")
+                else:
+                    # Show sample gradient norms
+                    sample_grads = []
+                    for name, param in model.named_parameters():
+                        if param.grad is not None and param.requires_grad:
+                            sample_grads.append((name, param.grad.norm().item()))
+                            if len(sample_grads) >= 5:
+                                break
+                    print(f"    Sample gradient norms:")
+                    for name, norm in sample_grads:
+                        print(f"      {name[:60]}: {norm:.6f}")
             
             # Clip LoRA gradients (classifier is frozen, so no classifier gradients)
             lora_params_list = [p for n, p in model.named_parameters() 
                               if p.grad is not None and p.requires_grad]
             if lora_params_list:
-                torch.nn.utils.clip_grad_norm_(lora_params_list, max_norm=1.0)
+                grad_norm_before_clip = torch.nn.utils.clip_grad_norm_(lora_params_list, max_norm=1.0)
+                # Diagnostic: Check if gradients are being clipped too aggressively
+                if epoch == 0 and batch_idx == 0:
+                    print(f"    Gradient norm before clipping: {grad_norm_before_clip:.6f}")
+                    if grad_norm_before_clip < 1e-6:
+                        print(f"    ⚠️  WARNING: Very small gradients! Model may not learn effectively.")
+            elif epoch == 0 and batch_idx == 0:
+                print(f"    ⚠️  WARNING: No LoRA parameters have gradients!")
+            
+            # Store parameter values before update (for first batch only, to check if they change)
+            if epoch == 0 and batch_idx == 0:
+                param_before = {}
+                for name, param in model.named_parameters():
+                    if param.requires_grad:
+                        param_before[name] = param.data.clone()
             
             optimizer.step()
             scheduler.step()
+            
+            # Check if parameters actually changed (first batch only)
+            if epoch == 0 and batch_idx == 0:
+                param_changed = False
+                for name, param in model.named_parameters():
+                    if param.requires_grad and name in param_before:
+                        if not torch.equal(param.data, param_before[name]):
+                            param_changed = True
+                            max_diff = (param.data - param_before[name]).abs().max().item()
+                            print(f"    Parameter '{name[:50]}' changed (max diff: {max_diff:.8f})")
+                            break
+                if not param_changed:
+                    print(f"    ⚠️  CRITICAL: Parameters did NOT change after optimizer.step()!")
+                    print(f"    This means the optimizer isn't updating parameters.")
+                    print(f"    Check: learning rate, optimizer state, parameter requires_grad")
             
             train_loss += loss.item()
             
