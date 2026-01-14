@@ -1089,7 +1089,6 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
             # Convert to float32 for sigmoid computation (more stable)
             logits = outputs.logits.to(dtype=torch.float32)
-            logits = outputs.logits
             
             probs = torch.sigmoid(logits).cpu().detach().numpy()
             test_preds.append(probs)
@@ -1098,8 +1097,44 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
     test_preds = np.vstack(test_preds)
     test_labels = np.vstack(test_labels)
     
+    # Diagnostic information
+    print(f"\nEvaluation Diagnostics:")
+    print(f"  Test set size: {len(test_preds)} samples")
+    print(f"  Number of labels: {len(label_names)}")
+    print(f"  Prediction shape: {test_preds.shape}")
+    print(f"  Label shape: {test_labels.shape}")
+    print(f"  Prediction range: [{test_preds.min():.4f}, {test_preds.max():.4f}]")
+    print(f"  Prediction mean: {test_preds.mean():.4f}")
+    print(f"  Label range: [{test_labels.min():.4f}, {test_labels.max():.4f}]")
+    print(f"  Label sum (total positives): {test_labels.sum():.0f}")
+    print(f"  Positive labels per category:")
+    for i, cat in enumerate(label_names):
+        pos_count = test_labels[:, i].sum()
+        print(f"    {cat}: {pos_count:.0f} ({pos_count/len(test_labels)*100:.1f}%)")
+    
     # Calculate metrics with threshold 0.5
     test_preds_binary = (test_preds > 0.5).astype(int)
+    
+    # Diagnostic: check how many positive predictions we have
+    print(f"  Positive predictions per category (threshold=0.5):")
+    for i, cat in enumerate(label_names):
+        pred_pos_count = test_preds_binary[:, i].sum()
+        true_pos_count = test_labels[:, i].sum()
+        print(f"    {cat}: {pred_pos_count:.0f} predicted, {true_pos_count:.0f} true")
+    
+    # Check if we have any positive labels at all
+    if test_labels.sum() == 0:
+        print(f"\n  ⚠️  WARNING: Test set has NO positive labels! All metrics will be 0.0.")
+        print(f"     This suggests an issue with label loading or test set preparation.")
+    
+    # Check if we have any positive predictions
+    if test_preds_binary.sum() == 0:
+        print(f"\n  ⚠️  WARNING: Model made NO positive predictions! All predictions < 0.5.")
+        print(f"     This suggests the model didn't learn or predictions are too conservative.")
+        print(f"     Consider checking:")
+        print(f"       - Model training logs for convergence")
+        print(f"       - Whether the model loaded correctly")
+        print(f"       - Prediction threshold (currently 0.5)")
     
     macro_f1 = f1_score(test_labels, test_preds_binary, average='macro', zero_division=0)
     micro_f1 = f1_score(test_labels, test_preds_binary, average='micro', zero_division=0)
