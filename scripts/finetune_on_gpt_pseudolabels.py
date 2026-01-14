@@ -278,12 +278,24 @@ def load_gold_standard(source):
     soft_labels_file = f'output/annotation/soft_labels/{source}_soft_labels.csv'
     raw_scores_file = f'annotation/{source}_raw_scores.csv'
     
+    # Track which format we're using (needed for proper thresholding)
+    using_soft_labels = False
+    using_raw_scores = False
+    
     if Path(soft_labels_file).exists():
         print(f"  Loading gold standard labels from {soft_labels_file}...")
         gold_labels_df = pd.read_csv(soft_labels_file)
+        using_soft_labels = True
+        print(f"    Loaded {len(gold_labels_df)} rows")
+        print(f"    Columns: {list(gold_labels_df.columns)[:10]}..." if len(gold_labels_df.columns) > 10 else f"    Columns: {list(gold_labels_df.columns)}")
+        print(f"    Format: Soft labels (0.0-1.0), threshold at >= 0.5")
     elif Path(raw_scores_file).exists():
         print(f"  Loading gold standard labels from {raw_scores_file}...")
         gold_labels_df = pd.read_csv(raw_scores_file)
+        using_raw_scores = True
+        print(f"    Loaded {len(gold_labels_df)} rows")
+        print(f"    Columns: {list(gold_labels_df.columns)[:10]}..." if len(gold_labels_df.columns) > 10 else f"    Columns: {list(gold_labels_df.columns)}")
+        print(f"    Format: Raw scores (0-3), threshold at >= 2")
         # Convert raw scores (0-3) to binary (threshold at >= 2 for 2+ annotator agreement)
         # Map columns to match ALL_CATEGORIES
         category_to_col = {
@@ -306,6 +318,42 @@ def load_gold_standard(source):
         }
     else:
         print(f"  WARNING: No gold standard labels found. Will use GPT pseudolabels for test/val.")
+        print(f"    Checked files:")
+        print(f"      - {soft_labels_file}")
+        print(f"      - {raw_scores_file}")
+    
+    # Store format info for later use
+    if gold_labels_df is not None:
+        gold_labels_df.attrs['using_soft_labels'] = using_soft_labels
+        gold_labels_df.attrs['using_raw_scores'] = using_raw_scores
+    
+    # Diagnostic: Check if gold_labels_df has the expected columns
+    if gold_labels_df is not None:
+        print(f"\n  Gold labels diagnostic:")
+        print(f"    Shape: {gold_labels_df.shape}")
+        print(f"    Expected categories: {len(ALL_CATEGORIES)}")
+        missing_categories = []
+        for cat in ALL_CATEGORIES:
+            if cat not in gold_labels_df.columns:
+                # Check for case variations
+                if cat == 'racist' and 'Racist' in gold_labels_df.columns:
+                    continue
+                missing_categories.append(cat)
+        
+        if missing_categories:
+            print(f"    ⚠️  Missing categories in gold labels: {missing_categories}")
+            print(f"    Available columns matching categories:")
+            for cat in ALL_CATEGORIES:
+                if cat in gold_labels_df.columns:
+                    sample_val = gold_labels_df[cat].iloc[0] if len(gold_labels_df) > 0 else 'N/A'
+                    non_zero_count = (gold_labels_df[cat] > 0).sum() if len(gold_labels_df) > 0 else 0
+                    print(f"      {cat}: sample={sample_val}, non-zero={non_zero_count}/{len(gold_labels_df)}")
+                elif cat == 'racist' and 'Racist' in gold_labels_df.columns:
+                    sample_val = gold_labels_df['Racist'].iloc[0] if len(gold_labels_df) > 0 else 'N/A'
+                    non_zero_count = (gold_labels_df['Racist'] > 0).sum() if len(gold_labels_df) > 0 else 0
+                    print(f"      {cat} (as 'Racist'): sample={sample_val}, non-zero={non_zero_count}/{len(gold_labels_df)}")
+        else:
+            print(f"    ✓ All expected categories found in gold labels")
     
     print(f"  Loaded {len(gold_df)} gold standard samples")
     return gold_df, text_col, gold_labels_df
@@ -1003,9 +1051,20 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         val_per_label_f1 = {}
         best_thresholds = []
         
+        # Diagnostic: Check validation labels
+        val_total_positives = val_labels.sum()
+        if val_total_positives == 0:
+            print(f"\n  ⚠️  VALIDATION SET HAS NO POSITIVE LABELS!")
+            print(f"     This is why all F1 scores are 0.0")
+            print(f"     Check gold standard label loading above")
+        
         for i, cat in enumerate(label_names):
             true_labels = val_labels[:, i].astype(int)
             pred_scores = val_preds[:, i]
+            
+            # Diagnostic for each category
+            true_pos_count = true_labels.sum()
+            pred_pos_count = (pred_scores > 0.5).sum()
             
             if len(np.unique(true_labels)) > 1:  # Has both positive and negative examples
                 # Find best threshold for this category
@@ -1027,6 +1086,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 binary_pred = (pred_scores > 0.5).astype(int)
                 val_per_label_f1[cat] = f1_score(true_labels, binary_pred, zero_division=0)
                 best_thresholds.append(0.5)
+                
+                # Diagnostic: warn if no positives
+                if true_pos_count == 0:
+                    # This is expected - category has no positives in validation set
+                    pass
         
         # Macro F1: average of per-label F1 scores
         val_macro_f1 = np.mean(list(val_per_label_f1.values()))
@@ -1615,20 +1679,31 @@ def main():
                     val = matched_row['racist']
                 
                 if pd.notna(val) and val != '':
-                    # If it's a score (0-3 from raw_scores), threshold at >= 2 (2+ annotators agree)
+                    # Determine format and apply appropriate threshold
+                    # Check if we're using soft labels (0.0-1.0) or raw scores (0-3)
+                    using_soft = gold_labels_df.attrs.get('using_soft_labels', False)
+                    using_raw = gold_labels_df.attrs.get('using_raw_scores', False)
+                    
                     try:
-                        score = float(val)
-                        if score >= 2:
-                            label_vector.append(1.0)
+                        num_val = float(val)
+                        
+                        if using_soft:
+                            # Soft labels: threshold at >= 0.5 (2+ annotators agreed)
+                            label_vector.append(1.0 if num_val >= 0.5 else 0.0)
+                        elif using_raw:
+                            # Raw scores: threshold at >= 2 (2+ annotators agreed)
+                            label_vector.append(1.0 if num_val >= 2 else 0.0)
                         else:
-                            label_vector.append(0.0)
+                            # Auto-detect: if value > 1.0, it's raw scores (0-3), else soft labels (0-1)
+                            if num_val > 1.0:
+                                # Raw scores: threshold at >= 2
+                                label_vector.append(1.0 if num_val >= 2 else 0.0)
+                            else:
+                                # Soft labels: threshold at >= 0.5
+                                label_vector.append(1.0 if num_val >= 0.5 else 0.0)
                     except (ValueError, TypeError):
-                        # If it's already binary or soft label (0-1), threshold at >= 0.5
-                        try:
-                            soft_val = float(val)
-                            label_vector.append(1.0 if soft_val >= 0.5 else 0.0)
-                        except:
-                            label_vector.append(0.0)
+                        # Non-numeric value, set to 0
+                        label_vector.append(0.0)
                 else:
                     label_vector.append(0.0)
             
@@ -1663,10 +1738,48 @@ def main():
     
     print(f"  Prepared {len(gold_eval_texts)} eval samples with {len(gold_eval_labels)} labels")
     
+    # Diagnostic: Check label distribution BEFORE splitting
+    print(f"\n  Gold eval label distribution (BEFORE split):")
+    total_positives = gold_eval_labels.sum()
+    print(f"    Total positive labels: {total_positives:.0f} across all categories")
+    if total_positives == 0:
+        print(f"    ⚠️  WARNING: NO positive labels found in gold eval set!")
+        print(f"       This will cause all validation/test F1 scores to be 0.0")
+        print(f"       Possible causes:")
+        print(f"         - Gold labels file has all zeros or missing values")
+        print(f"         - Label column names don't match")
+        print(f"         - Threshold too high (>=2 for raw scores, >=0.5 for soft labels)")
+    
+    for i, cat in enumerate(ALL_CATEGORIES):
+        pos_count = gold_eval_labels[:, i].sum()
+        if pos_count > 0:
+            print(f"    {cat}: {pos_count:.0f} positives ({pos_count/len(gold_eval_labels)*100:.1f}%)")
+    
     # Split gold standard eval set into val and test (50/50 split)
     val_texts, test_texts, val_labels, test_labels = train_test_split(
         gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
     )
+    
+    # Diagnostic: Check label distribution AFTER splitting
+    print(f"\n  Validation set label distribution (AFTER split):")
+    val_total_positives = val_labels.sum()
+    print(f"    Total positive labels: {val_total_positives:.0f} across all categories")
+    if val_total_positives == 0:
+        print(f"    ⚠️  WARNING: Validation set has NO positive labels!")
+    for i, cat in enumerate(ALL_CATEGORIES):
+        pos_count = val_labels[:, i].sum()
+        if pos_count > 0:
+            print(f"    {cat}: {pos_count:.0f} positives")
+    
+    print(f"\n  Test set label distribution (AFTER split):")
+    test_total_positives = test_labels.sum()
+    print(f"    Total positive labels: {test_total_positives:.0f} across all categories")
+    if test_total_positives == 0:
+        print(f"    ⚠️  WARNING: Test set has NO positive labels!")
+    for i, cat in enumerate(ALL_CATEGORIES):
+        pos_count = test_labels[:, i].sum()
+        if pos_count > 0:
+            print(f"    {cat}: {pos_count:.0f} positives")
     
     # Train set: Only GPT pseudolabels (no gold standard)
     train_texts = gpt_texts.copy()
