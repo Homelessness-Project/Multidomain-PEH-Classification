@@ -938,11 +938,15 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     else:
                         pooled = hidden_states.mean(dim=1)
                     
-                    # Pass through frozen classifier
-                    # CRITICAL: Even though classifier is frozen, this creates gradient path
+                    # Ensure pooled has same dtype as classifier weights
+                    # Get dtype from classifier to match
                     if hasattr(model.base_model.model, 'score'):
+                        classifier_dtype = next(model.base_model.model.score.parameters()).dtype
+                        pooled = pooled.to(dtype=classifier_dtype)
                         logits = model.base_model.model.score(pooled)
                     elif hasattr(model, 'score'):
+                        classifier_dtype = next(model.score.parameters()).dtype
+                        pooled = pooled.to(dtype=classifier_dtype)
                         logits = model.score(pooled)
                     else:
                         # Fallback to normal forward
