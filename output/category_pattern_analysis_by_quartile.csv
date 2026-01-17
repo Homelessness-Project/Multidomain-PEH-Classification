@@ -1,0 +1,65 @@
+Quartile,Category,Full_Category,Count,Percentage,Quartile_Total
+Q1 (Lowest),ask a genuine question,Comment_ask a genuine question,1694,13.669006697329136,12393
+Q1 (Lowest),ask a rhetorical question,Comment_ask a rhetorical question,1624,13.104171709836198,12393
+Q1 (Lowest),provide a fact or claim,Comment_provide a fact or claim,8189,66.07762446542404,12393
+Q1 (Lowest),provide an observation,Comment_provide an observation,3940,31.792140724602596,12393
+Q1 (Lowest),express their opinion,Comment_express their opinion,10322,83.28895344145889,12393
+Q1 (Lowest),express others opinions,Comment_express others opinions,2005,16.17848785604777,12393
+Q1 (Lowest),money aid allocation,Critique_money aid allocation,2619,21.13289760348584,12393
+Q1 (Lowest),government critique,Critique_government critique,3481,28.088437020898894,12393
+Q1 (Lowest),societal critique,Critique_societal critique,9234,74.50980392156863,12393
+Q1 (Lowest),solutions/interventions,Response_solutions/interventions,3122,25.191640442185104,12393
+Q1 (Lowest),personal interaction,Perception_personal interaction,1534,12.377955297345276,12393
+Q1 (Lowest),media portrayal,Perception_media portrayal,875,7.060437343661745,12393
+Q1 (Lowest),not in my backyard,Perception_not in my backyard,996,8.03679496489954,12393
+Q1 (Lowest),harmful generalization,Perception_harmful generalization,3130,25.256193012184298,12393
+Q1 (Lowest),deserving/undeserving,Perception_deserving/undeserving,3725,30.057290405874284,12393
+Q1 (Lowest),racist,Racist_Flag,24,0.19365770999757928,12393
+Q2,ask a genuine question,Comment_ask a genuine question,781,12.751020408163265,6125
+Q2,ask a rhetorical question,Comment_ask a rhetorical question,583,9.518367346938776,6125
+Q2,provide a fact or claim,Comment_provide a fact or claim,4245,69.3061224489796,6125
+Q2,provide an observation,Comment_provide an observation,2350,38.36734693877551,6125
+Q2,express their opinion,Comment_express their opinion,5102,83.29795918367347,6125
+Q2,express others opinions,Comment_express others opinions,974,15.902040816326531,6125
+Q2,money aid allocation,Critique_money aid allocation,1400,22.857142857142858,6125
+Q2,government critique,Critique_government critique,1714,27.983673469387753,6125
+Q2,societal critique,Critique_societal critique,4294,70.10612244897959,6125
+Q2,solutions/interventions,Response_solutions/interventions,1640,26.77551020408163,6125
+Q2,personal interaction,Perception_personal interaction,898,14.661224489795918,6125
+Q2,media portrayal,Perception_media portrayal,463,7.559183673469387,6125
+Q2,not in my backyard,Perception_not in my backyard,525,8.571428571428571,6125
+Q2,harmful generalization,Perception_harmful generalization,1627,26.563265306122446,6125
+Q2,deserving/undeserving,Perception_deserving/undeserving,1941,31.68979591836735,6125
+Q2,racist,Racist_Flag,11,0.17959183673469387,6125
+Q3,ask a genuine question,Comment_ask a genuine question,1142,12.778337249636342,8937
+Q3,ask a rhetorical question,Comment_ask a rhetorical question,879,9.83551527358174,8937
+Q3,provide a fact or claim,Comment_provide a fact or claim,6202,69.39688933646637,8937
+Q3,provide an observation,Comment_provide an observation,3521,39.398008280183504,8937
+Q3,express their opinion,Comment_express their opinion,7454,83.40606467494685,8937
+Q3,express others opinions,Comment_express others opinions,1401,15.676401477005705,8937
+Q3,money aid allocation,Critique_money aid allocation,2008,22.468389839991048,8937
+Q3,government critique,Critique_government critique,2376,26.586102719033235,8937
+Q3,societal critique,Critique_societal critique,6376,71.34385140427436,8937
+Q3,solutions/interventions,Response_solutions/interventions,2333,26.10495692066689,8937
+Q3,personal interaction,Perception_personal interaction,1333,14.915519749356607,8937
+Q3,media portrayal,Perception_media portrayal,581,6.5010629965312745,8937
+Q3,not in my backyard,Perception_not in my backyard,830,9.287232852187536,8937
+Q3,harmful generalization,Perception_harmful generalization,2511,28.09667673716012,8937
+Q3,deserving/undeserving,Perception_deserving/undeserving,3025,33.84804744321361,8937
+Q3,racist,Racist_Flag,14,0.15665212039834397,8937
+Q4 (Highest),ask a genuine question,Comment_ask a genuine question,901,10.200384920185668,8833
+Q4 (Highest),ask a rhetorical question,Comment_ask a rhetorical question,782,8.853164270349824,8833
+Q4 (Highest),provide a fact or claim,Comment_provide a fact or claim,6383,72.26310426808558,8833
+Q4 (Highest),provide an observation,Comment_provide an observation,3659,41.42420468696932,8833
+Q4 (Highest),express their opinion,Comment_express their opinion,7718,87.37688214649609,8833
+Q4 (Highest),express others opinions,Comment_express others opinions,1495,16.92516698743349,8833
+Q4 (Highest),money aid allocation,Critique_money aid allocation,2008,22.732933318238423,8833
+Q4 (Highest),government critique,Critique_government critique,2719,30.7822936714593,8833
+Q4 (Highest),societal critique,Critique_societal critique,6756,76.48590512849542,8833
+Q4 (Highest),solutions/interventions,Response_solutions/interventions,2404,27.216121363070307,8833
+Q4 (Highest),personal interaction,Perception_personal interaction,1494,16.913845805502095,8833
+Q4 (Highest),media portrayal,Perception_media portrayal,594,6.724782067247821,8833
+Q4 (Highest),not in my backyard,Perception_not in my backyard,1053,11.9212045737575,8833
+Q4 (Highest),harmful generalization,Perception_harmful generalization,2968,33.60126797237631,8833
+Q4 (Highest),deserving/undeserving,Perception_deserving/undeserving,3307,37.439148647118756,8833
+Q4 (Highest),racist,Racist_Flag,9,0.10189063738254274,8833

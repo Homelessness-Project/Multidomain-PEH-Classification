@@ -1,0 +1,17 @@
+Category,Full_Category,Count,Percentage,Mean_Engagement,Median_Engagement
+express their opinion,Comment_express their opinion,30596,84.31437389770723,12.79791476009936,3.0
+societal critique,Critique_societal critique,26660,73.46781305114638,12.931582895723931,3.0
+provide a fact or claim,Comment_provide a fact or claim,25019,68.9456569664903,13.186778048683001,4.0
+provide an observation,Comment_provide an observation,13470,37.11970899470899,14.749220489977729,4.0
+deserving/undeserving,Perception_deserving/undeserving,11998,33.06327160493827,14.881730288381396,4.0
+government critique,Critique_government critique,10290,28.35648148148148,13.57463556851312,3.0
+harmful generalization,Perception_harmful generalization,10236,28.20767195767196,15.58450566627589,4.0
+solutions/interventions,Response_solutions/interventions,9499,26.176697530864196,13.151068533529845,3.0
+money aid allocation,Critique_money aid allocation,8035,22.142305996472665,13.041568139390169,3.0
+express others opinions,Comment_express others opinions,5875,16.18992504409171,13.783489361702127,3.0
+personal interaction,Perception_personal interaction,5259,14.49239417989418,16.105153070926033,4.0
+ask a genuine question,Comment_ask a genuine question,4518,12.450396825396826,9.120185922974768,3.0
+ask a rhetorical question,Comment_ask a rhetorical question,3868,10.659171075837742,8.355739400206826,2.0
+not in my backyard,Perception_not in my backyard,3404,9.380511463844798,17.849588719153935,5.0
+media portrayal,Perception_media portrayal,2513,6.925154320987654,11.328292877039395,3.0
+racist,Racist_Flag,58,0.15983245149911815,5.5344827586206895,2.0

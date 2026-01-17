@@ -1,0 +1,17 @@
+Category,Full_Category,Count,Mean_Impressions,Median_Impressions,SE_Impressions,P_Value,P_Value_Corrected,Significant
+ask a rhetorical question,Comment_ask a rhetorical question,413,10877.6803874092,32.0,9514.209497909853,0.017900183208192644,0.2864029313310823,False
+money aid allocation,Critique_money aid allocation,608,8648.649671052632,38.5,6479.197852568112,0.03767871052683325,0.602859368429332,False
+government critique,Critique_government critique,1180,4540.448305084746,34.0,3325.5412723070217,0.3988352773060453,1.0,False
+societal critique,Critique_societal critique,1721,4216.895990703079,37.0,2349.5112403119265,0.4102976248809733,1.0,False
+provide a fact or claim,Comment_provide a fact or claim,2345,3450.0200426439233,43.0,1707.5755251308171,0.6746250401696021,1.0,False
+personal interaction,Perception_personal interaction,712,3406.703651685393,45.0,1417.969238848076,0.8302190929771003,1.0,False
+ask a genuine question,Comment_ask a genuine question,222,3229.4774774774774,31.0,2860.9525990388224,0.9353001805273464,1.0,False
+provide an observation,Comment_provide an observation,1475,2709.504406779661,44.0,797.5101195898704,0.934896065489343,1.0,False
+express their opinion,Comment_express their opinion,2937,2620.5675859720805,35.0,1362.2954457918663,0.8527978221817121,1.0,False
+deserving/undeserving,Perception_deserving/undeserving,649,2412.2064714946073,31.0,1192.83077061789,0.869287246098446,1.0,False
+express others opinions,Comment_express others opinions,433,1819.5819861431871,46.0,676.5791094723897,0.7534584703726959,1.0,False
+media portrayal,Perception_media portrayal,348,1813.2040229885058,47.5,760.9544944513726,0.7769735109354707,1.0,False
+harmful generalization,Perception_harmful generalization,1414,1407.0381895332391,34.0,506.3250270451563,0.427250144271377,1.0,False
+solutions/interventions,Response_solutions/interventions,792,1387.7121212121212,64.0,390.4281649198471,0.54716916032696,1.0,False
+not in my backyard,Perception_not in my backyard,263,538.1216730038022,34.0,151.6790912333035,0.5841858126252104,1.0,False
+racist,Racist_Flag,6,53.833333333333336,44.5,19.710262414398354,0.9241832850221392,1.0,False

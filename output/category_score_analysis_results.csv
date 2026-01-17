@@ -1,0 +1,17 @@
+Category,Full_Category,N_Category,N_Other,Mean_Category,Mean_Other,Median_Category,Median_Other,Difference,P_Value,P_Value_Corrected,Significant,Direction,Cohens_D
+ask a genuine question,Comment_ask a genuine question,4518,31770,9.12,12.86,3.0,3.0,-3.74,0.000000,0.000000,True,LOWER,-0.094
+ask a rhetorical question,Comment_ask a rhetorical question,3868,32420,8.36,12.88,2.0,3.0,-4.52,0.000000,0.000000,True,LOWER,-0.119
+provide a fact or claim,Comment_provide a fact or claim,25019,11269,13.19,10.64,4.0,3.0,+2.55,0.000000,0.000000,True,HIGHER,+0.061
+provide an observation,Comment_provide an observation,13470,22818,14.75,11.01,4.0,3.0,+3.74,0.000000,0.000000,True,HIGHER,+0.086
+express their opinion,Comment_express their opinion,30596,5692,12.80,10.23,3.0,3.0,+2.57,0.000000,0.000000,True,HIGHER,+0.065
+express others opinions,Comment_express others opinions,5875,30413,13.78,12.13,3.0,3.0,+1.66,0.893218,1.000000,False,NS,+0.036
+money aid allocation,Critique_money aid allocation,8035,28253,13.04,12.21,3.0,3.0,+0.83,0.000478,0.007645,True,HIGHER,+0.020
+government critique,Critique_government critique,10290,25998,13.57,11.93,3.0,3.0,+1.65,0.003074,0.049185,True,HIGHER,+0.038
+societal critique,Critique_societal critique,26660,9628,12.93,10.91,3.0,3.0,+2.02,0.821133,1.000000,False,NS,+0.051
+solutions/interventions,Response_solutions/interventions,9499,26789,13.15,12.13,3.0,3.0,+1.02,0.000370,0.005927,True,HIGHER,+0.024
+personal interaction,Perception_personal interaction,5259,31029,16.11,11.77,4.0,3.0,+4.34,0.000000,0.000000,True,HIGHER,+0.093
+media portrayal,Perception_media portrayal,2513,33775,11.33,12.47,3.0,3.0,-1.15,0.149194,1.000000,False,NS,-0.029
+not in my backyard,Perception_not in my backyard,3404,32884,17.85,11.83,5.0,3.0,+6.02,0.000000,0.000000,True,HIGHER,+0.126
+harmful generalization,Perception_harmful generalization,10236,26052,15.58,11.14,4.0,3.0,+4.44,0.000000,0.000000,True,HIGHER,+0.099
+deserving/undeserving,Perception_deserving/undeserving,11998,24290,14.88,11.17,4.0,3.0,+3.71,0.000000,0.000000,True,HIGHER,+0.084
+Racist_Flag,Racist_Flag,58,36230,5.53,12.41,2.0,3.0,-6.87,0.256303,1.000000,False,NS,-0.226

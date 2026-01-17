@@ -1,0 +1,65 @@
+Quartile,Category,Full_Category,Count,Percentage,Quartile_Total
+Q1 (Lowest),ask a genuine question,Comment_ask a genuine question,222,6.1993856464674675,3581
+Q1 (Lowest),ask a rhetorical question,Comment_ask a rhetorical question,413,11.533091315275062,3581
+Q1 (Lowest),provide a fact or claim,Comment_provide a fact or claim,2339,65.3169505724658,3581
+Q1 (Lowest),provide an observation,Comment_provide an observation,1467,40.966210555710695,3581
+Q1 (Lowest),express their opinion,Comment_express their opinion,2924,81.65316950572465,3581
+Q1 (Lowest),express others opinions,Comment_express others opinions,432,12.063669366098855,3581
+Q1 (Lowest),money aid allocation,Critique_money aid allocation,606,16.922647305222004,3581
+Q1 (Lowest),government critique,Critique_government critique,1175,32.8120636693661,3581
+Q1 (Lowest),societal critique,Critique_societal critique,1714,47.863725216419994,3581
+Q1 (Lowest),solutions/interventions,Response_solutions/interventions,789,22.032951689472213,3581
+Q1 (Lowest),personal interaction,Perception_personal interaction,709,19.798938843898352,3581
+Q1 (Lowest),media portrayal,Perception_media portrayal,344,9.606255235967605,3581
+Q1 (Lowest),not in my backyard,Perception_not in my backyard,263,7.344317229824071,3581
+Q1 (Lowest),harmful generalization,Perception_harmful generalization,1406,39.26277576096063,3581
+Q1 (Lowest),deserving/undeserving,Perception_deserving/undeserving,648,18.095504049148285,3581
+Q1 (Lowest),racist,Racist_Flag,6,0.16755096341803966,3581
+Q2,ask a genuine question,Comment_ask a genuine question,0,0.0,12
+Q2,ask a rhetorical question,Comment_ask a rhetorical question,0,0.0,12
+Q2,provide a fact or claim,Comment_provide a fact or claim,6,50.0,12
+Q2,provide an observation,Comment_provide an observation,6,50.0,12
+Q2,express their opinion,Comment_express their opinion,11,91.66666666666666,12
+Q2,express others opinions,Comment_express others opinions,1,8.333333333333332,12
+Q2,money aid allocation,Critique_money aid allocation,2,16.666666666666664,12
+Q2,government critique,Critique_government critique,5,41.66666666666667,12
+Q2,societal critique,Critique_societal critique,7,58.333333333333336,12
+Q2,solutions/interventions,Response_solutions/interventions,3,25.0,12
+Q2,personal interaction,Perception_personal interaction,2,16.666666666666664,12
+Q2,media portrayal,Perception_media portrayal,3,25.0,12
+Q2,not in my backyard,Perception_not in my backyard,0,0.0,12
+Q2,harmful generalization,Perception_harmful generalization,6,50.0,12
+Q2,deserving/undeserving,Perception_deserving/undeserving,1,8.333333333333332,12
+Q2,racist,Racist_Flag,0,0.0,12
+Q3,ask a genuine question,Comment_ask a genuine question,0,0.0,1
+Q3,ask a rhetorical question,Comment_ask a rhetorical question,0,0.0,1
+Q3,provide a fact or claim,Comment_provide a fact or claim,0,0.0,1
+Q3,provide an observation,Comment_provide an observation,1,100.0,1
+Q3,express their opinion,Comment_express their opinion,1,100.0,1
+Q3,express others opinions,Comment_express others opinions,0,0.0,1
+Q3,money aid allocation,Critique_money aid allocation,0,0.0,1
+Q3,government critique,Critique_government critique,0,0.0,1
+Q3,societal critique,Critique_societal critique,0,0.0,1
+Q3,solutions/interventions,Response_solutions/interventions,0,0.0,1
+Q3,personal interaction,Perception_personal interaction,0,0.0,1
+Q3,media portrayal,Perception_media portrayal,1,100.0,1
+Q3,not in my backyard,Perception_not in my backyard,0,0.0,1
+Q3,harmful generalization,Perception_harmful generalization,1,100.0,1
+Q3,deserving/undeserving,Perception_deserving/undeserving,0,0.0,1
+Q3,racist,Racist_Flag,0,0.0,1
+Q4 (Highest),ask a genuine question,Comment_ask a genuine question,0,0.0,1
+Q4 (Highest),ask a rhetorical question,Comment_ask a rhetorical question,0,0.0,1
+Q4 (Highest),provide a fact or claim,Comment_provide a fact or claim,0,0.0,1
+Q4 (Highest),provide an observation,Comment_provide an observation,1,100.0,1
+Q4 (Highest),express their opinion,Comment_express their opinion,1,100.0,1
+Q4 (Highest),express others opinions,Comment_express others opinions,0,0.0,1
+Q4 (Highest),money aid allocation,Critique_money aid allocation,0,0.0,1
+Q4 (Highest),government critique,Critique_government critique,0,0.0,1
+Q4 (Highest),societal critique,Critique_societal critique,0,0.0,1
+Q4 (Highest),solutions/interventions,Response_solutions/interventions,0,0.0,1
+Q4 (Highest),personal interaction,Perception_personal interaction,1,100.0,1
+Q4 (Highest),media portrayal,Perception_media portrayal,0,0.0,1
+Q4 (Highest),not in my backyard,Perception_not in my backyard,0,0.0,1
+Q4 (Highest),harmful generalization,Perception_harmful generalization,1,100.0,1
+Q4 (Highest),deserving/undeserving,Perception_deserving/undeserving,0,0.0,1
+Q4 (Highest),racist,Racist_Flag,0,0.0,1
