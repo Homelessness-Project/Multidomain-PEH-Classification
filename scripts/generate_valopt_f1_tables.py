@@ -7,6 +7,7 @@ Outputs LaTeX tables under output/f1/val_opt by default.
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -82,7 +83,7 @@ def filter_summary(
     summary["eval_threshold"] = summary["eval_threshold"].fillna("")
     keep_zero_few = summary["method"].isin(["zero_shot", "few_shot"])
     keep_lora = (summary["method"] == "lora_gpt") & (summary["eval_threshold"] == lora_eval_threshold)
-    keep_ft = summary["method"] == "ft_gpt"
+    keep_ft = summary["method"].isin(["ft_gpt", "ft_gold"])
     return summary[keep_zero_few | keep_lora | keep_ft].copy()
 
 
@@ -143,6 +144,56 @@ def load_transformer_metrics() -> tuple[list[dict], list[dict]]:
                         "eval_threshold": "val_opt",
                     }
                 )
+    return rows, per_category_rows
+
+
+def load_gpt_pseudolabel_results(lora_eval_threshold: str) -> tuple[list[dict], list[dict]]:
+    rows = []
+    per_category_rows = []
+    for path in Path("nlp_outputs").rglob("gpt_pseudolabel*_results.json"):
+        with open(path, "r") as f:
+            data = json.load(f)
+        training = data.get("training_config", {})
+        source = training.get("source")
+        model = training.get("model")
+        if source not in SOURCE_ORDER or not model:
+            continue
+        eval_threshold = training.get("eval_threshold", "")
+        use_lora = bool(training.get("use_lora"))
+        method = "lora_gpt" if use_lora else "ft_gpt"
+        if method == "lora_gpt" and eval_threshold != lora_eval_threshold:
+            continue
+        rows.append(
+            {
+                "source": source,
+                "model": model,
+                "method": method,
+                "macro_f1": float(data.get("macro_f1", np.nan)),
+                "micro_f1": float(data.get("micro_f1", np.nan)),
+                "macro_kappa": float(data.get("macro_kappa", np.nan)) if data.get("macro_kappa") is not None else np.nan,
+                "n_eval": None,
+                "label_source": "gold_labels",
+                "label_threshold": None,
+                "file": str(path),
+                "eval_threshold": eval_threshold,
+            }
+        )
+        per_f1 = data.get("per_category_f1", {})
+        for category in CATEGORY_ORDER:
+            per_category_rows.append(
+                {
+                    "source": source,
+                    "model": model,
+                    "method": method,
+                    "category": category,
+                    "f1": float(per_f1.get(category, np.nan)),
+                    "n_eval": None,
+                    "label_source": "gold_labels",
+                    "label_threshold": None,
+                    "file": str(path),
+                    "eval_threshold": eval_threshold,
+                }
+            )
     return rows, per_category_rows
 
 
@@ -350,17 +401,34 @@ def main() -> None:
 
     transformer_rows, transformer_per_category = load_transformer_metrics()
     if transformer_rows:
-        summary = pd.concat([summary, pd.DataFrame(transformer_rows)], ignore_index=True)
+        transformer_df = pd.DataFrame(transformer_rows).dropna(axis=1, how="all")
+        summary = pd.concat([summary, transformer_df], ignore_index=True)
     if transformer_per_category:
-        per_category = pd.concat([per_category, pd.DataFrame(transformer_per_category)], ignore_index=True)
+        transformer_cat_df = pd.DataFrame(transformer_per_category).dropna(axis=1, how="all")
+        per_category = pd.concat([per_category, transformer_cat_df], ignore_index=True)
+
+    gpt_rows, gpt_per_category = load_gpt_pseudolabel_results(args.lora_eval_threshold)
+    if gpt_rows:
+        gpt_df = pd.DataFrame(gpt_rows).dropna(axis=1, how="all")
+        summary = pd.concat([summary, gpt_df], ignore_index=True)
+    if gpt_per_category:
+        gpt_cat_df = pd.DataFrame(gpt_per_category).dropna(axis=1, how="all")
+        per_category = pd.concat([per_category, gpt_cat_df], ignore_index=True)
+
+    # Drop duplicates keeping latest file path
+    summary = summary.drop_duplicates(subset=["source", "model", "method", "eval_threshold"], keep="last")
+    per_category = per_category.drop_duplicates(
+        subset=["source", "model", "method", "category", "eval_threshold"],
+        keep="last",
+    )
 
     summary = filter_summary(summary, args.lora_eval_threshold)
     per_category = per_category[
-        per_category["method"].isin(["zero_shot", "few_shot", "lora_gpt", "ft_gpt"])
+        per_category["method"].isin(["zero_shot", "few_shot", "lora_gpt", "ft_gpt", "ft_gold"])
     ].copy()
     per_category["eval_threshold"] = per_category["eval_threshold"].fillna("")
     per_category = per_category[
-        (per_category["method"].isin(["zero_shot", "few_shot", "ft_gpt"]))
+        (per_category["method"].isin(["zero_shot", "few_shot", "ft_gpt", "ft_gold"]))
         | ((per_category["method"] == "lora_gpt") & (per_category["eval_threshold"] == args.lora_eval_threshold))
     ]
 
