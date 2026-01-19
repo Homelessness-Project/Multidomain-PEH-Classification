@@ -1007,22 +1007,6 @@ meeting_minutes,phi4,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/m
 meeting_minutes,phi4,lora_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_phi4_lora_valopt_results.json,val_opt
 meeting_minutes,phi4,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_phi4_lora_valopt_results.json,val_opt
 meeting_minutes,phi4,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_phi4_lora_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,ask a genuine question,0.6938775510204082,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,ask a rhetorical question,0.3333333333333333,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,provide a fact or claim,0.9830508474576272,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,provide an observation,0.24242424242424243,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,express their opinion,0.8260869565217391,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,express others opinions,0.07142857142857142,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,money aid allocation,0.7032967032967034,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,government critique,0.45714285714285713,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,societal critique,0.2222222222222222,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,solutions/interventions,0.7464114832535885,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,personal interaction,0.5,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
-meeting_minutes,bert-base-uncased,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_valopt_results.json,val_opt
 meeting_minutes,qwen,lora_gpt,ask a genuine question,0.3368421052631579,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 meeting_minutes,qwen,lora_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 meeting_minutes,qwen,lora_gpt,provide a fact or claim,0.9830508474576272,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
@@ -1039,22 +1023,22 @@ meeting_minutes,qwen,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/m
 meeting_minutes,qwen,lora_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 meeting_minutes,qwen,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 meeting_minutes,qwen,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,ask a genuine question,0.75,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,ask a rhetorical question,0.25,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,provide a fact or claim,0.9830508474576272,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,provide an observation,0.2,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,express their opinion,0.8470588235294118,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,express others opinions,0.06666666666666667,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,money aid allocation,0.7619047619047619,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,government critique,0.39215686274509803,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,societal critique,0.22727272727272727,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,solutions/interventions,0.7255813953488373,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,personal interaction,0.4,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-meeting_minutes,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,ask a rhetorical question,0.0273972602739726,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,provide a fact or claim,0.993006993006993,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,express their opinion,0.7894736842105263,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,express others opinions,0.0273972602739726,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,money aid allocation,0.3448275862068966,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,government critique,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,societal critique,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,solutions/interventions,0.7027027027027027,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,not in my backyard,0.05405405405405406,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
 meeting_minutes,llama,lora_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 meeting_minutes,llama,lora_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 meeting_minutes,llama,lora_gpt,provide a fact or claim,0.9830508474576272,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
@@ -1071,6 +1055,22 @@ meeting_minutes,llama,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/
 meeting_minutes,llama,lora_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 meeting_minutes,llama,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 meeting_minutes,llama,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,provide a fact or claim,0.993006993006993,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,express their opinion,0.8181818181818182,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,express others opinions,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,money aid allocation,0.3448275862068966,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,government critique,0.17721518987341772,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,societal critique,0.029411764705882353,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,solutions/interventions,0.7027027027027027,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+meeting_minutes,bert-base-uncased,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
 meeting_minutes,modernbert-base,ft_gpt,ask a genuine question,0.7317073170731707,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 meeting_minutes,modernbert-base,ft_gpt,ask a rhetorical question,0.2222222222222222,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 meeting_minutes,modernbert-base,ft_gpt,provide a fact or claim,0.9830508474576272,,gold_labels,,nlp_outputs/meeting_minutes/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
@@ -1119,6 +1119,22 @@ news,qwen,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/news/gpt_pse
 news,qwen,lora_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 news,qwen,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 news,qwen,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,provide a fact or claim,0.972972972972973,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,express their opinion,0.29213483146067415,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,express others opinions,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,money aid allocation,0.3829787234042553,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,government critique,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,societal critique,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,solutions/interventions,0.6055045871559633,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,harmful generalization,0.030303030303030304,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+news,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
 news,llama,lora_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 news,llama,lora_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 news,llama,lora_gpt,provide a fact or claim,0.9617486338797814,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
@@ -1135,6 +1151,22 @@ news,llama,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/news/gpt_ps
 news,llama,lora_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 news,llama,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 news,llama,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,ask a genuine question,0.05,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,provide a fact or claim,0.972972972972973,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,express their opinion,0.2894736842105263,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,express others opinions,0.1568627450980392,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,money aid allocation,0.3829787234042553,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,government critique,0.18181818181818182,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,societal critique,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,solutions/interventions,0.6055045871559633,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+news,bert-base-uncased,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
 news,modernbert-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 news,modernbert-base,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 news,modernbert-base,ft_gpt,provide a fact or claim,0.9666666666666667,,gold_labels,,nlp_outputs/news/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
@@ -1231,22 +1263,22 @@ reddit,qwen,lora_gpt,not in my backyard,0.45454545454545453,,gold_labels,,nlp_ou
 reddit,qwen,lora_gpt,harmful generalization,0.39285714285714285,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 reddit,qwen,lora_gpt,deserving/undeserving,0.36363636363636365,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 reddit,qwen,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,ask a genuine question,0.7,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,ask a rhetorical question,0.6823529411764706,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,provide a fact or claim,0.782051282051282,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,provide an observation,0.6330935251798561,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,express their opinion,0.8931116389548693,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,express others opinions,0.24615384615384617,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,money aid allocation,0.5333333333333333,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,government critique,0.6153846153846154,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,societal critique,0.42857142857142855,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,solutions/interventions,0.7203791469194313,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,personal interaction,0.625,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,not in my backyard,0.6111111111111112,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,harmful generalization,0.42857142857142855,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,deserving/undeserving,0.05970149253731343,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-reddit,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,ask a genuine question,0.1834862385321101,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,ask a rhetorical question,0.33613445378151263,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,provide a fact or claim,0.7058823529411765,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,provide an observation,0.4032258064516129,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,express their opinion,0.9180327868852459,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,express others opinions,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,money aid allocation,0.21621621621621623,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,government critique,0.2,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,societal critique,0.35,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,solutions/interventions,0.5547445255474452,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+reddit,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
 reddit,llama,lora_gpt,ask a genuine question,0.5277777777777778,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 reddit,llama,lora_gpt,ask a rhetorical question,0.6126126126126126,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 reddit,llama,lora_gpt,provide a fact or claim,0.7804878048780488,,gold_labels,,nlp_outputs/reddit/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
@@ -1311,22 +1343,22 @@ x,qwen,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolab
 x,qwen,lora_gpt,harmful generalization,0.192,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 x,qwen,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
 x,qwen,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_qwen_lora_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,ask a rhetorical question,0.5,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,provide a fact or claim,0.965675057208238,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,provide an observation,0.1111111111111111,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,express their opinion,0.7886178861788617,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,express others opinions,0.15037593984962405,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,money aid allocation,0.6923076923076923,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,government critique,0.5901639344262295,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,societal critique,0.3617021276595745,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,solutions/interventions,0.6946107784431138,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,personal interaction,0.3448275862068966,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,harmful generalization,0.5084745762711864,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
-x,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,provide a fact or claim,0.96,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,express their opinion,0.7448275862068966,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,express others opinions,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,money aid allocation,0.26666666666666666,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,government critique,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,societal critique,0.19801980198019803,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,solutions/interventions,0.43103448275862066,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
+x,roberta-base,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_roberta_base_train-gold_only_valopt_results.json,val_opt
 x,llama,lora_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 x,llama,lora_gpt,ask a rhetorical question,0.14754098360655737,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 x,llama,lora_gpt,provide a fact or claim,0.965675057208238,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
@@ -1343,6 +1375,22 @@ x,llama,lora_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudola
 x,llama,lora_gpt,harmful generalization,0.192,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 x,llama,lora_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
 x,llama,lora_gpt,racist,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_llama_lora_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,ask a rhetorical question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,provide a fact or claim,0.96,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,provide an observation,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,express their opinion,0.762589928057554,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,express others opinions,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,money aid allocation,0.27184466019417475,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,government critique,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,societal critique,0.15384615384615385,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,solutions/interventions,0.45652173913043476,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,personal interaction,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,media portrayal,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,not in my backyard,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,harmful generalization,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,deserving/undeserving,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
+x,bert-base-uncased,ft_gpt,racist,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_bert_base_uncased_train-gold_only_valopt_results.json,val_opt
 x,modernbert-base,ft_gpt,ask a genuine question,0.0,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 x,modernbert-base,ft_gpt,ask a rhetorical question,0.5283018867924528,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt
 x,modernbert-base,ft_gpt,provide a fact or claim,0.965675057208238,,gold_labels,,nlp_outputs/x/gpt_pseudolabel_modernbert_base_valopt_results.json,val_opt

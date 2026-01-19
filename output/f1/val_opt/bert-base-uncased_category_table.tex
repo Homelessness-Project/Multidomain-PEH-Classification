@@ -1,0 +1,30 @@
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt \\
+\midrule
+Ask Genuine Question & \textbf{27.69} & 19.61 & 0.00 & \textbf{5.00} & \textbf{15.38} & 0.00 & \textbf{18.75} & 0.00 \\
+Ask Rhetorical Question & 0.00 & \textbf{39.18} & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Provide Fact/Claim & \textbf{75.16} & 73.47 & 92.09 & \textbf{97.30} & 84.80 & \textbf{99.30} & 69.12 & \textbf{96.00} \\
+Provide Observation & \textbf{53.06} & 46.51 & \textbf{5.41} & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Express Opinion & 86.71 & \textbf{88.62} & 0.00 & \textbf{28.95} & 12.00 & \textbf{81.82} & 0.00 & \textbf{76.26} \\
+Express Others Opinions & 0.00 & 0.00 & \textbf{17.14} & 15.69 & 0.00* & 0.00* & \textbf{12.24} & 0.00 \\
+Money Aid Allocation & \textbf{18.60} & 7.41 & 0.00 & \textbf{38.30} & 0.00 & \textbf{34.48} & \textbf{39.02} & 27.18 \\
+Government Critique & 12.50 & \textbf{17.14} & 10.26 & \textbf{18.18} & 10.34 & \textbf{17.72} & \textbf{20.20} & 0.00 \\
+Societal Critique & 18.37 & \textbf{45.57} & 0.00 & 0.00 & 0.00 & \textbf{2.94} & \textbf{24.76} & 15.38 \\
+Solutions/Interventions & 43.24 & \textbf{57.60} & 52.43 & \textbf{60.55} & 58.25 & \textbf{70.27} & \textbf{46.15} & 45.65 \\
+Personal Interaction & \textbf{25.00} & 17.65 & 0.00* & 0.00* & \textbf{5.71} & 0.00 & 0.00 & 0.00 \\
+Media Portrayal & \textbf{14.12} & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.00 & 0.00 \\
+Not in My Backyard & \textbf{32.76} & 15.38 & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{6.78} & 0.00 \\
+Harmful Generalization & 0.00 & \textbf{20.78} & 0.00* & 0.00* & 0.00 & 0.00 & \textbf{17.39} & 0.00 \\
+Deserving/Undeserving & 0.00 & \textbf{2.25} & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{21.05} & 0.00 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{13.64*} & 0.00* \\
+\bottomrule
+\end{tabular}
+\vspace{0.25em}
+\footnotesize{* <5 positive examples in gold labels; interpret with caution.}
+\centering\caption{Validation-optimized Category-wise F1 Scores for BERT-BASE-UNCASED Model}
+\label{tab:bert-base-uncased_category_breakdown}
+\end{table*}

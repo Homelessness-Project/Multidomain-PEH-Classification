@@ -6,6 +6,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 import os
 import json
 from collections import defaultdict
+from typing import Optional
 import argparse
 
 # Configuration
@@ -179,7 +180,7 @@ def create_latex_table(summary_df):
     latex_table = []
     latex_table.append(r"\begin{table}[htbp]")
     latex_table.append(r"\centering")
-    latex_table.append(r"\centering\caption{Best Macro F1 Scores by Data Source}")
+    latex_table.append(r"\centering\caption{Soft-label Macro F1 Scores by Data Source}")
     latex_table.append(r"\label{tab:best_macro_f1_scores}")
     latex_table.append(r"\begin{tabular}{lccc}")
     latex_table.append(r"\toprule")
@@ -209,7 +210,7 @@ def create_detailed_latex_table(summary_df):
     latex_table = []
     latex_table.append(r"\begin{table*}[htbp]")
     latex_table.append(r"\centering")
-    latex_table.append(r"\centering\caption{Macro and Micro F1 Scores for All Models by Data Source}")
+    latex_table.append(r"\centering\caption{Soft-label Macro and Micro F1 Scores for All Models by Data Source}")
     latex_table.append(r"\label{tab:detailed_f1_scores}")
     latex_table.append(r"\resizebox{\textwidth}{!}{")
     latex_table.append(r"\begin{tabular}{lcccccccccccc}")
@@ -431,6 +432,22 @@ def create_detailed_latex_table(summary_df):
     
     return "\n".join(latex_table)
 
+def load_soft_label_positive_counts():
+    counts = {source: {} for source in SOURCES}
+    for source in SOURCES:
+        soft_labels_path = f'output/annotation/soft_labels/{source}_soft_labels.csv'
+        if not os.path.exists(soft_labels_path):
+            continue
+        df = pd.read_csv(soft_labels_path)
+        for col in df.columns:
+            if col in ['Comment', 'City']:
+                continue
+            counts[source][col] = int((df[col] >= 0.5).sum())
+        if 'Racist' in df.columns:
+            counts[source]['racist'] = int((df['Racist'] >= 0.5).sum())
+    return counts
+
+
 def create_individual_model_tables(all_results):
     """Create individual LaTeX tables for each model showing category-wise F1 scores"""
     
@@ -455,6 +472,25 @@ def create_individual_model_tables(all_results):
         'racist': 'Racist',
         'Racist': 'Racist'  # Handle case variations
     }
+
+    category_order = [
+        'ask a genuine question',
+        'ask a rhetorical question',
+        'provide a fact or claim',
+        'provide an observation',
+        'express their opinion',
+        'express others opinions',
+        'money aid allocation',
+        'government critique',
+        'societal critique',
+        'solutions/interventions',
+        'personal interaction',
+        'media portrayal',
+        'not in my backyard',
+        'harmful generalization',
+        'deserving/undeserving',
+        'racist'
+    ]
     
     # Define source display names
     source_display_names = {
@@ -464,16 +500,17 @@ def create_individual_model_tables(all_results):
         'x': 'X (Twitter)'
     }
     
-    # Get all unique categories across all results
-    all_categories = set()
-    for source_results in all_results.values():
-        for model_results in source_results.values():
-            if 'category_metrics' in model_results:
-                all_categories.update(model_results['category_metrics'].keys())
+    def resolve_category_key(metrics: dict, category: str) -> Optional[str]:
+        if category in metrics:
+            return category
+        if category == 'ask a rhetorical question' and 'ask a rheorical question' in metrics:
+            return 'ask a rheorical question'
+        if category == 'racist' and 'Racist' in metrics:
+            return 'Racist'
+        return None
     
-    # Sort categories for consistent ordering
-    sorted_categories = sorted(all_categories)
-    
+    positive_counts = load_soft_label_positive_counts()
+
     # Create tables for each model
     for model in MODELS:
         print(f"Creating table for {model.upper()}...")
@@ -522,39 +559,36 @@ def create_individual_model_tables(all_results):
             latex_table.append(r"\midrule")
             
             # Add rows for each category
-            processed_categories = set()
-            for category in sorted_categories:
-                # Skip unnamed categories and handle display names
-                if category.startswith('Unnamed:') or category not in category_display_names:
-                    continue
-                
-                # Skip if we've already processed this category (handle duplicates)
-                category_display = category_display_names[category]
-                if category_display in processed_categories:
-                    continue
-                processed_categories.add(category_display)
-                
+            for category in category_order:
+                category_display = category_display_names.get(category, category.title())
                 row_data = [category_display]
+                has_value = False
                 
                 # Add data for each source
                 for source in SOURCES:
                     key = f"{source}_bert"
-                    if key in model_data and category in model_data[key]:
-                        # BERT has direct F1 scores, not nested structure
-                        f1_score = model_data[key][category]
-                        if isinstance(f1_score, dict):
-                            f1_score = f1_score['f1']
-                        f1_score = f1_score * 100  # Convert to percentage
-                        # Round to 2 significant figures only at the end
-                        row_data.append(f"{f1_score:.2f}")
-                    else:
-                        row_data.append("--")
+                    value = "--"
+                    if key in model_data:
+                        metric_key = resolve_category_key(model_data[key], category)
+                        if metric_key is not None:
+                            f1_score = model_data[key][metric_key]
+                            if isinstance(f1_score, dict):
+                                f1_score = f1_score['f1']
+                            f1_score = f1_score * 100  # Convert to percentage
+                            value = f"{f1_score:.2f}"
+                            if positive_counts.get(source, {}).get(category, 0) < 5:
+                                value = f"{value}*"
+                            has_value = True
+                    row_data.append(value)
                 
-                latex_table.append(" & ".join(row_data) + " \\\\")
+                if has_value:
+                    latex_table.append(" & ".join(row_data) + " \\\\")
             
             latex_table.append(r"\bottomrule")
             latex_table.append(r"\end{tabular}")
-            latex_table.append(fr"\centering\caption{{Category-wise F1 Scores for BERT Fine-tuned Model}}")
+            latex_table.append(r"\vspace{0.25em}")
+            latex_table.append(r"\footnotesize{* <5 positive examples in soft labels; interpret with caution.}")
+            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for BERT Fine-tuned Model}}")
             latex_table.append(fr"\label{{tab:bert_category_breakdown}}")
         else:
             # Other models table format (with zero/few shot distinction)
@@ -564,58 +598,71 @@ def create_individual_model_tables(all_results):
             latex_table.append(r"& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\")
             latex_table.append(r"\midrule")
             
-            # Add rows for each category
-            for category in sorted_categories:
-                if category in category_display_names:
-                    category_display = category_display_names[category]
-                    row_data = [category_display]
+            # Add rows for each category in fixed order
+            for category in category_order:
+                category_display = category_display_names.get(category, category.title())
+                row_data = [category_display]
+                has_value = False
+                
+                # Add data for each source and shot type
+                for source in SOURCES:
+                    zero_shot_key = f"{source}_zero_shot"
+                    few_shot_key = f"{source}_few_shot"
                     
-                    # Add data for each source and shot type
-                    for source in SOURCES:
-                        zero_shot_key = f"{source}_zero_shot"
-                        few_shot_key = f"{source}_few_shot"
-                        
-                        zero_shot_value = None
-                        few_shot_value = None
-                        
-                        if zero_shot_key in model_data and category in model_data[zero_shot_key]:
-                            zero_shot_value = model_data[zero_shot_key][category]['f1'] * 100
-                        
-                        if few_shot_key in model_data and category in model_data[few_shot_key]:
-                            few_shot_value = model_data[few_shot_key][category]['f1'] * 100
-                        
-                        # Format zero-shot value
-                        if zero_shot_value is not None:
-                            # Round to 2 significant figures only at the end
-                            zero_shot_str = f"{zero_shot_value:.2f}"
-                        else:
-                            zero_shot_str = "--"
-                        
-                        # Format few-shot value
-                        if few_shot_value is not None:
-                            # Round to 2 significant figures only at the end
-                            few_shot_str = f"{few_shot_value:.2f}"
-                        else:
-                            few_shot_str = "--"
-                        
-                        # Bold the better score
-                        if zero_shot_value is not None and few_shot_value is not None:
-                            if zero_shot_value > few_shot_value:
-                                zero_shot_str = f"\\textbf{{{zero_shot_str}}}"
-                            elif few_shot_value > zero_shot_value:
-                                few_shot_str = f"\\textbf{{{few_shot_str}}}"
-                        elif zero_shot_value is not None:
+                    zero_shot_value = None
+                    few_shot_value = None
+                    
+                    if zero_shot_key in model_data:
+                        metric_key = resolve_category_key(model_data[zero_shot_key], category)
+                        if metric_key is not None:
+                            zero_shot_value = model_data[zero_shot_key][metric_key]['f1'] * 100
+                    
+                    if few_shot_key in model_data:
+                        metric_key = resolve_category_key(model_data[few_shot_key], category)
+                        if metric_key is not None:
+                            few_shot_value = model_data[few_shot_key][metric_key]['f1'] * 100
+                    
+                    pos_count = positive_counts.get(source, {}).get(category, 0)
+                    
+                    # Format zero-shot value
+                    if zero_shot_value is not None:
+                        zero_shot_str = f"{zero_shot_value:.2f}"
+                        if pos_count < 5:
+                            zero_shot_str = f"{zero_shot_str}*"
+                        has_value = True
+                    else:
+                        zero_shot_str = "--"
+                    
+                    # Format few-shot value
+                    if few_shot_value is not None:
+                        few_shot_str = f"{few_shot_value:.2f}"
+                        if pos_count < 5:
+                            few_shot_str = f"{few_shot_str}*"
+                        has_value = True
+                    else:
+                        few_shot_str = "--"
+                    
+                    # Bold the better score
+                    if zero_shot_value is not None and few_shot_value is not None:
+                        if zero_shot_value > few_shot_value:
                             zero_shot_str = f"\\textbf{{{zero_shot_str}}}"
-                        elif few_shot_value is not None:
+                        elif few_shot_value > zero_shot_value:
                             few_shot_str = f"\\textbf{{{few_shot_str}}}"
-                        
-                        row_data.extend([zero_shot_str, few_shot_str])
+                    elif zero_shot_value is not None:
+                        zero_shot_str = f"\\textbf{{{zero_shot_str}}}"
+                    elif few_shot_value is not None:
+                        few_shot_str = f"\\textbf{{{few_shot_str}}}"
                     
+                    row_data.extend([zero_shot_str, few_shot_str])
+                
+                if has_value:
                     latex_table.append(" & ".join(row_data) + " \\\\")
             
             latex_table.append(r"\bottomrule")
             latex_table.append(r"\end{tabular}")
-            latex_table.append(fr"\centering\caption{{Category-wise F1 Scores for {model.upper()} Model}}")
+            latex_table.append(r"\vspace{0.25em}")
+            latex_table.append(r"\footnotesize{* <5 positive examples in soft labels; interpret with caution.}")
+            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for {model.upper()} Model}}")
             latex_table.append(fr"\label{{tab:{model}_category_breakdown}}")
         
         latex_table.append(r"\end{table*}")
@@ -643,7 +690,7 @@ def create_individual_model_tables(all_results):
             
             macro_micro_table.append(r"\bottomrule")
             macro_micro_table.append(r"\end{tabular}")
-            macro_micro_table.append(fr"\centering\caption{{Macro and Micro F1 Scores for BERT Fine-tuned Model}}")
+            macro_micro_table.append(fr"\centering\caption{{Soft-label Macro and Micro F1 Scores for BERT Fine-tuned Model}}")
             macro_micro_table.append(fr"\label{{tab:bert_macro_micro}}")
         else:
             # Other models macro/micro table
@@ -681,7 +728,7 @@ def create_individual_model_tables(all_results):
             
             macro_micro_table.append(r"\bottomrule")
             macro_micro_table.append(r"\end{tabular}")
-            macro_micro_table.append(fr"\centering\caption{{Macro and Micro F1 Scores for {model.upper()} Model}}")
+            macro_micro_table.append(fr"\centering\caption{{Soft-label Macro and Micro F1 Scores for {model.upper()} Model}}")
             macro_micro_table.append(fr"\label{{tab:{model}_macro_micro}}")
         
         macro_micro_table.append(r"\end{table}")

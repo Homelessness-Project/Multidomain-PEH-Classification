@@ -75,6 +75,31 @@ def fmt_percent(value: float | None) -> str:
     return f"{value * 100:.2f}"
 
 
+def load_positive_counts() -> dict[str, dict[str, int]]:
+    counts: dict[str, dict[str, int]] = {s: {} for s in SOURCE_ORDER}
+    for source in SOURCE_ORDER:
+        soft_path = Path("output/annotation/soft_labels") / f"{source}_soft_labels.csv"
+        raw_path = Path("annotation") / f"{source}_raw_scores.csv"
+        if soft_path.exists():
+            df = pd.read_csv(soft_path)
+            for cat in CATEGORY_ORDER:
+                if cat in df.columns:
+                    counts[source][cat] = int((df[cat] >= 0.5).sum())
+                elif cat == "racist" and "Racist" in df.columns:
+                    counts[source][cat] = int((df["Racist"] >= 0.5).sum())
+        elif raw_path.exists():
+            df = pd.read_csv(raw_path)
+            for cat in CATEGORY_ORDER:
+                if cat in df.columns:
+                    counts[source][cat] = int((df[cat] >= 2).sum())
+                elif cat == "racist" and "Racist" in df.columns:
+                    counts[source][cat] = int((df["Racist"] >= 2).sum())
+        else:
+            for cat in CATEGORY_ORDER:
+                counts[source][cat] = 0
+    return counts
+
+
 def filter_summary(
     summary: pd.DataFrame,
     lora_eval_threshold: str,
@@ -214,11 +239,11 @@ def create_detailed_table(
         ("grok", "zero_shot"),
         ("gpt4", "zero_shot"),
         ("bert-base-uncased", "ft_gold"),
-        ("bert-base-uncased", "lora_gpt"),
+        ("bert-base-uncased", "ft_gpt"),
         ("roberta-base", "ft_gold"),
-        ("roberta-base", "lora_gpt"),
+        ("roberta-base", "ft_gpt"),
         ("modernbert-base", "ft_gold"),
-        ("modernbert-base", "lora_gpt"),
+        ("modernbert-base", "ft_gpt"),
     ]
 
     def fetch(source: str, model: str, method: str, metric: str) -> str:
@@ -254,7 +279,7 @@ def create_detailed_table(
         r"\begin{tabular}{lccccccccccccccc}",
         r"\toprule",
         r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & Grok & GPT-4 & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\",
-        r" & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & Zero & Zero & Finetuned& Finetuned& Finetuned& Finetuned& Finetuned&Finetuned\\",
+        r" & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & Zero & Zero & Gold & GPT & Gold & GPT & Gold & GPT\\",
         r"& & (GPT)& & (GPT)& & (GPT)& & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\",
         r"\midrule",
     ]
@@ -272,7 +297,7 @@ def create_detailed_table(
             r"\end{tabular}",
             r"}",
             r"\centering",
-            r"\caption{Macro and Micro F1 Scores for All Models by Data Source}",
+            r"\caption{Validation-optimized Macro and Micro F1 Scores for All Models by Data Source}",
             r"\label{tab:detailed_f1_scores_reordered}",
             r"\end{table*}",
         ]
@@ -294,10 +319,32 @@ def create_macro_micro_tables(
     macro_row = ["Macro F1"]
     micro_row = ["Micro F1"]
     for source in SOURCE_ORDER:
-        for method in [first_method, second_method]:
-            row = lookup.get((source, model, method))
-            macro_row.append(fmt_percent(row["macro_f1"]) if row is not None else "--")
-            micro_row.append(fmt_percent(row["micro_f1"]) if row is not None else "--")
+        row_first = lookup.get((source, model, first_method))
+        row_second = lookup.get((source, model, second_method))
+
+        macro_first = row_first["macro_f1"] if row_first is not None else None
+        macro_second = row_second["macro_f1"] if row_second is not None else None
+        micro_first = row_first["micro_f1"] if row_first is not None else None
+        micro_second = row_second["micro_f1"] if row_second is not None else None
+
+        macro_first_str = fmt_percent(macro_first) if macro_first is not None else "--"
+        macro_second_str = fmt_percent(macro_second) if macro_second is not None else "--"
+        micro_first_str = fmt_percent(micro_first) if micro_first is not None else "--"
+        micro_second_str = fmt_percent(micro_second) if micro_second is not None else "--"
+
+        if macro_first is not None and macro_second is not None:
+            if macro_first > macro_second:
+                macro_first_str = f"\\textbf{{{macro_first_str}}}"
+            elif macro_second > macro_first:
+                macro_second_str = f"\\textbf{{{macro_second_str}}}"
+        if micro_first is not None and micro_second is not None:
+            if micro_first > micro_second:
+                micro_first_str = f"\\textbf{{{micro_first_str}}}"
+            elif micro_second > micro_first:
+                micro_second_str = f"\\textbf{{{micro_second_str}}}"
+
+        macro_row.extend([macro_first_str, macro_second_str])
+        micro_row.extend([micro_first_str, micro_second_str])
 
     lines = [
         r"\begin{table}[htbp]",
@@ -314,7 +361,7 @@ def create_macro_micro_tables(
         " & ".join(micro_row) + r" \\",
         r"\bottomrule",
         r"\end{tabular}",
-        rf"\centering\caption{{Macro and Micro F1 Scores for {model.upper()} Model}}",
+        rf"\centering\caption{{Validation-optimized Macro and Micro F1 Scores for {model.upper()} Model}}",
         rf"\label{{tab:{model}_macro_micro}}",
         r"\end{table}",
     ]
@@ -328,6 +375,7 @@ def create_category_table(
     output_dir: Path,
     model: str,
     method_pair: tuple[str, str],
+    positive_counts: dict[str, dict[str, int]],
 ) -> None:
     df = per_category[(per_category["model"] == model) & (per_category["method"].isin(method_pair))].copy()
     if df.empty:
@@ -354,16 +402,39 @@ def create_category_table(
     lines = []
     for category in CATEGORY_ORDER:
         row = [CATEGORY_DISPLAY.get(category, category.title())]
+        has_value = False
         for source in SOURCE_ORDER:
-            for method in method_pair:
-                value = lookup.get((category, source, method))
-                row.append(fmt_percent(value) if value is not None else "--")
-        lines.append(" & ".join(row) + r" \\")
+            pos_count = positive_counts.get(source, {}).get(category, 0)
+            first_value = lookup.get((category, source, method_pair[0]))
+            second_value = lookup.get((category, source, method_pair[1]))
+
+            first_str = fmt_percent(first_value) if first_value is not None else "--"
+            second_str = fmt_percent(second_value) if second_value is not None else "--"
+
+            if pos_count < 5:
+                if first_value is not None:
+                    first_str = f"{first_str}*"
+                if second_value is not None:
+                    second_str = f"{second_str}*"
+
+            if first_value is not None and second_value is not None:
+                if first_value > second_value:
+                    first_str = f"\\textbf{{{first_str}}}"
+                elif second_value > first_value:
+                    second_str = f"\\textbf{{{second_str}}}"
+
+            row.extend([first_str, second_str])
+            if first_value is not None or second_value is not None:
+                has_value = True
+        if has_value:
+            lines.append(" & ".join(row) + r" \\")
 
     footer = [
         r"\bottomrule",
         r"\end{tabular}",
-        rf"\centering\caption{{Category-wise F1 Scores for {model.upper()} Model}}",
+        r"\vspace{0.25em}",
+        r"\footnotesize{* <5 positive examples in gold labels; interpret with caution.}",
+        rf"\centering\caption{{Validation-optimized Category-wise F1 Scores for {model.upper()} Model}}",
         rf"\label{{tab:{model}_category_breakdown}}",
         r"\end{table*}",
     ]
@@ -435,15 +506,20 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     write_summary_csvs(summary, per_category, output_dir)
     create_detailed_table(summary, output_dir)
+    positive_counts = load_positive_counts()
 
     # Per-model tables
     for model in API_MODELS:
         create_macro_micro_tables(summary, output_dir, model, ("zero_shot", "few_shot"))
-        create_category_table(per_category, output_dir, model, ("zero_shot", "few_shot"))
+        create_category_table(per_category, output_dir, model, ("zero_shot", "few_shot"), positive_counts)
 
     for model in LOCAL_MODELS:
         create_macro_micro_tables(summary, output_dir, model, ("zero_shot", "lora_gpt"))
-        create_category_table(per_category, output_dir, model, ("zero_shot", "lora_gpt"))
+        create_category_table(per_category, output_dir, model, ("zero_shot", "lora_gpt"), positive_counts)
+
+    for model in TRANSFORMER_METRICS.keys():
+        create_macro_micro_tables(summary, output_dir, model, ("ft_gold", "ft_gpt"))
+        create_category_table(per_category, output_dir, model, ("ft_gold", "ft_gpt"), positive_counts)
 
 
 if __name__ == "__main__":

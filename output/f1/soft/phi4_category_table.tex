@@ -5,26 +5,26 @@
 Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
 & Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
 \midrule
-Racist & -- & -- & -- & -- & -- & -- & -- & -- \\
 Ask Genuine Question & 15.87 & \textbf{43.24} & 12.50 & \textbf{22.22} & 25.00 & 25.00 & \textbf{48.98} & 36.36 \\
-Ask Rhetorical Question & -- & -- & -- & -- & -- & -- & -- & -- \\
 Ask Rhetorical Question & \textbf{5.83} & 4.26 & \textbf{13.64} & 9.52 & \textbf{22.22} & 0.00 & 0.00 & 0.00 \\
-Deserving/Undeserving & 5.56 & \textbf{10.91} & 0.00 & \textbf{11.68} & 0.00 & 0.00 & \textbf{50.00} & 0.00 \\
-Express Others Opinions & 0.00 & \textbf{6.90} & 6.90 & \textbf{7.41} & 0.00 & 0.00 & 0.00 & 0.00 \\
-Express Opinion & \textbf{74.58} & 66.67 & 61.87 & \textbf{70.33} & 34.88 & \textbf{45.56} & 50.64 & \textbf{56.50} \\
-Government Critique & \textbf{36.96} & 35.74 & 22.50 & \textbf{37.50} & 24.24 & \textbf{34.86} & 12.77 & \textbf{33.51} \\
-Harmful Generalization & 30.48 & \textbf{38.89} & 25.71 & \textbf{27.45} & 25.00 & 25.00 & 0.00 & \textbf{16.33} \\
-Media Portrayal & \textbf{2.63} & 0.00 & 1.89 & \textbf{7.27} & 2.70 & \textbf{3.33} & 0.00 & 0.00 \\
-Money Aid Allocation & 0.00 & \textbf{9.88} & 14.46 & \textbf{36.84} & \textbf{21.85} & 1.92 & 23.08 & \textbf{25.29} \\
-Not in My Backyard & \textbf{25.00} & 24.20 & 5.08 & \textbf{8.25} & 0.00 & 0.00 & 11.43 & \textbf{15.38} \\
-Personal Interaction & \textbf{12.12} & 10.53 & 0.00 & 0.00 & 33.33 & \textbf{40.00} & 30.00 & \textbf{37.50} \\
 Provide Fact/Claim & 12.34 & \textbf{56.82} & 5.87 & \textbf{46.54} & 34.10 & \textbf{73.85} & 25.81 & \textbf{38.16} \\
 Provide Observation & 1.65 & \textbf{37.16} & 0.00 & \textbf{5.71} & 0.00 & \textbf{12.50} & \textbf{15.38} & 0.00 \\
-Racist & 0.00 & 0.00 & 0.00 & \textbf{40.00} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Express Opinion & \textbf{74.58} & 66.67 & 61.87 & \textbf{70.33} & 34.88 & \textbf{45.56} & 50.64 & \textbf{56.50} \\
+Express Others Opinions & 0.00 & \textbf{6.90} & 6.90 & \textbf{7.41} & 0.00 & 0.00 & 0.00* & 0.00* \\
+Money Aid Allocation & 0.00 & \textbf{9.88} & 14.46 & \textbf{36.84} & \textbf{21.85} & 1.92 & 23.08 & \textbf{25.29} \\
+Government Critique & \textbf{36.96} & 35.74 & 22.50 & \textbf{37.50} & 24.24 & \textbf{34.86} & 12.77 & \textbf{33.51} \\
 Societal Critique & 2.22 & \textbf{31.63} & 0.00 & \textbf{26.28} & \textbf{20.00} & 15.79 & 0.00 & \textbf{8.40} \\
 Solutions/Interventions & \textbf{20.00} & 8.60 & 20.00 & \textbf{68.65} & 30.36 & \textbf{63.43} & 21.89 & \textbf{65.45} \\
+Personal Interaction & \textbf{12.12} & 10.53 & 0.00 & 0.00 & 33.33* & \textbf{40.00*} & 30.00 & \textbf{37.50} \\
+Media Portrayal & \textbf{2.63} & 0.00 & 1.89 & \textbf{7.27} & 2.70* & \textbf{3.33*} & 0.00* & 0.00* \\
+Not in My Backyard & \textbf{25.00} & 24.20 & 5.08 & \textbf{8.25} & 0.00* & 0.00* & 11.43* & \textbf{15.38*} \\
+Harmful Generalization & 30.48 & \textbf{38.89} & 25.71 & \textbf{27.45} & 25.00* & 25.00* & 0.00 & \textbf{16.33} \\
+Deserving/Undeserving & 5.56 & \textbf{10.91} & 0.00 & \textbf{11.68} & 0.00* & 0.00* & \textbf{50.00*} & 0.00* \\
+Racist & 0.00* & 0.00* & 0.00* & \textbf{40.00*} & 0.00* & 0.00* & 0.00* & 0.00* \\
 \bottomrule
 \end{tabular}
-\centering\caption{Category-wise F1 Scores for PHI4 Model}
+\vspace{0.25em}
+\footnotesize{* <5 positive examples in soft labels; interpret with caution.}
+\centering\caption{Soft-label Category-wise F1 Scores for PHI4 Model}
 \label{tab:phi4_category_breakdown}
 \end{table*}

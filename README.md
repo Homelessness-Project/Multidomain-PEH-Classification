@@ -262,6 +262,13 @@ Create LaTeX tables and CSVs under `output/f1/val_opt/` using val-opt LoRA rows 
 python scripts/generate_valopt_f1_tables.py
 ```
 
+### 7.1 One-Command F1 Tables (Soft + Val-Opt)
+Run both the soft-label and validation-optimized table generation in one step:
+
+```bash
+python scripts/run_all_f1_tables.py
+```
+
 ### 8. Research Chart Generation
 Create publication-quality charts for city analysis across all data sources:
 

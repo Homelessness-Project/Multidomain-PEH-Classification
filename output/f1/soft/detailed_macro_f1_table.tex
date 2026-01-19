@@ -1,6 +1,6 @@
 \begin{table*}[htbp]
 \centering
-\centering\caption{Macro and Micro F1 Scores for All Models by Data Source}
+\centering\caption{Soft-label Macro and Micro F1 Scores for All Models by Data Source}
 \label{tab:detailed_f1_scores}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lcccccccccccc}
@@ -8,8 +8,8 @@
 Data Source & \multicolumn{2}{c}{GPT-4} & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{Gemini} & BERT \\
 & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Fine-tuned \\
 \midrule
-Reddit (Macro) & 75.00 & \textbf{76.95} & 64.92 & 59.94 & 66.09 & 70.58 & 60.62 & 63.35 & 60.05 & 61.98 & 60.67 & 63.47 & 37.43 \\
-Reddit (Micro) & 80.62 & \textbf{82.93} & 80.69 & 69.16 & 73.91 & 79.95 & 81.35 & 79.03 & 77.18 & 77.14 & 69.42 & 72.28 & 59.83 \\
+Reddit (Macro) & 75.00 & \textbf{76.95} & 64.92 & 59.94 & 66.09 & 70.58 & 60.62 & 63.35 & 60.05 & 61.98 & 60.67 & 63.47 & 27.69 \\
+Reddit (Micro) & 80.62 & \textbf{82.93} & 80.69 & 69.16 & 73.91 & 79.95 & 81.35 & 79.03 & 77.18 & 77.14 & 69.42 & 72.28 & 33.30 \\
 \addlinespace[0.5em]
 X (Twitter) (Macro) & 65.00 & 65.96 & 64.99 & 59.59 & 60.20 & \textbf{70.98} & 55.98 & 66.73 & 63.67 & 65.02 & 68.34 & 68.21 & 16.31 \\
 X (Twitter) (Micro) & 77.15 & 78.55 & 83.46 & 69.75 & 71.01 & 79.78 & 82.44 & 82.15 & \textbf{83.69} & 81.84 & 79.63 & 79.55 & 58.90 \\
@@ -20,8 +20,8 @@ News (Micro) & 81.04 & 83.02 & 85.45 & 73.61 & 63.38 & 84.62 & 86.88 & \textbf{8
 Meeting Minutes (Macro) & 66.59 & 70.50 & 65.67 & 61.49 & 64.31 & \textbf{74.96} & 60.31 & 63.97 & 66.56 & 70.70 & 70.87 & 73.10 & 21.45 \\
 Meeting Minutes (Micro) & 78.42 & 81.06 & \textbf{84.89} & 74.69 & 73.61 & 83.84 & 84.51 & 80.53 & 84.39 & 84.32 & 80.63 & 82.43 & 75.75 \\
 \addlinespace[0.5em]
-Weighted Avg (Macro) & 73.73 & \textbf{75.78} & 64.96 & 59.95 & 65.43 & 70.95 & 60.33 & 63.73 & 60.83 & 62.88 & 61.96 & 64.56 & 34.79 \\
-Weighted Avg (Micro) & 80.29 & \textbf{82.56} & 81.22 & 69.66 & 73.53 & 80.30 & 81.73 & 79.46 & 78.19 & 78.06 & 70.99 & 73.60 & 60.98 \\
+Weighted Avg (Macro) & 73.73 & \textbf{75.78} & 64.96 & 59.95 & 65.43 & 70.95 & 60.33 & 63.73 & 60.83 & 62.88 & 61.96 & 64.56 & 26.44 \\
+Weighted Avg (Micro) & 80.29 & \textbf{82.56} & 81.22 & 69.66 & 73.53 & 80.30 & 81.73 & 79.46 & 78.19 & 78.06 & 70.99 & 73.60 & 38.24 \\
 \bottomrule
 \end{tabular}
 }

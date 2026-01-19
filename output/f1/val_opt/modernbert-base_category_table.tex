@@ -1,0 +1,30 @@
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt \\
+\midrule
+Ask Genuine Question & 11.76 & \textbf{68.75} & 0.00 & 0.00 & 23.38 & \textbf{73.17} & \textbf{33.33} & 0.00 \\
+Ask Rhetorical Question & 22.00 & \textbf{63.53} & 0.00 & 0.00 & 0.00 & \textbf{22.22} & 16.84 & \textbf{52.83} \\
+Provide Fact/Claim & 74.21 & \textbf{77.33} & 87.30 & \textbf{96.67} & 97.14 & \textbf{98.31} & 93.57 & \textbf{96.57} \\
+Provide Observation & 48.28 & \textbf{62.65} & 4.35 & \textbf{12.77} & 5.41 & \textbf{19.35} & 0.00 & \textbf{10.39} \\
+Express Opinion & 88.62 & \textbf{89.27} & 0.00 & \textbf{44.78} & 75.00 & \textbf{81.45} & 81.25 & \textbf{82.21} \\
+Express Others Opinions & 22.22 & \textbf{35.82} & 20.29 & \textbf{24.14} & 0.00* & 0.00* & \textbf{19.51} & 15.15 \\
+Money Aid Allocation & 32.69 & \textbf{53.33} & 52.94 & \textbf{56.47} & 41.67 & \textbf{71.43} & 25.53 & \textbf{57.14} \\
+Government Critique & 20.51 & \textbf{63.41} & 13.79 & \textbf{42.86} & 20.00 & \textbf{41.46} & 25.45 & \textbf{42.31} \\
+Societal Critique & 25.00 & \textbf{38.97} & 0.00 & \textbf{25.00} & 9.52 & \textbf{19.05} & \textbf{33.96} & 30.77 \\
+Solutions/Interventions & 49.06 & \textbf{69.43} & 64.41 & \textbf{75.38} & 70.00 & \textbf{72.40} & 43.14 & \textbf{65.31} \\
+Personal Interaction & 19.51 & \textbf{60.00} & 0.00* & 0.00* & 6.78 & \textbf{42.86} & 0.00 & \textbf{17.14} \\
+Media Portrayal & \textbf{18.92} & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{36.04} & 0.00 \\
+Not in My Backyard & 36.36 & \textbf{59.46} & 0.00* & 0.00* & \textbf{16.22*} & 0.00* & \textbf{23.26} & 0.00 \\
+Harmful Generalization & 25.53 & \textbf{46.15} & \textbf{10.53*} & 0.00* & 0.00 & 0.00 & 23.81 & \textbf{43.68} \\
+Deserving/Undeserving & \textbf{19.05} & 4.76 & 0.00* & 0.00* & 0.00* & 0.00* & 25.81 & \textbf{28.57} \\
+Racist & 0.00* & 0.00* & \textbf{5.26*} & 0.00* & 0.00* & 0.00* & \textbf{10.53*} & 0.00* \\
+\bottomrule
+\end{tabular}
+\vspace{0.25em}
+\footnotesize{* <5 positive examples in gold labels; interpret with caution.}
+\centering\caption{Validation-optimized Category-wise F1 Scores for MODERNBERT-BASE Model}
+\label{tab:modernbert-base_category_breakdown}
+\end{table*}
