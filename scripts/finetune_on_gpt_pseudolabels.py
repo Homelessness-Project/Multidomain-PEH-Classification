@@ -911,9 +911,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         elif use_lora and not PEFT_AVAILABLE:
             print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
     elif 'modernbert' in model_name.lower():
-        tokenizer = AutoTokenizer.from_pretrained('tdmd/modernbert-base')
+        hf_model_name = 'answerdotai/ModernBERT-base'
+        tokenizer = AutoTokenizer.from_pretrained(hf_model_name)
         model = AutoModelForSequenceClassification.from_pretrained(
-            'tdmd/modernbert-base',
+            hf_model_name,
             num_labels=num_labels,
             problem_type='multi_label_classification'
         )
