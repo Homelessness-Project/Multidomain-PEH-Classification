@@ -8,7 +8,7 @@ This script:
 3. Train set: Only GPT pseudolabels (no gold standard)
 4. Finetunes 6 model options on GPT pseudolabels with GPU support:
    - Transformers: bert-base-uncased, roberta-base, modernbert-base
-   - Local LLMs: llama, qwen, gemma3
+   - Local LLMs: llama, qwen, gemma3, phi4
 
 Usage:
     # Transformers (full fine-tuning)
@@ -20,6 +20,7 @@ Usage:
     python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model llama --use_lora
     python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model qwen --use_lora
     python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model gemma3 --use_lora
+    python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model phi4 --use_lora
     
     # Local LLMs full fine-tuning (slower, more memory)
     python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model llama --batch_size 4
@@ -420,8 +421,8 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     else:
         torch_dtype = torch.float32
     
-    # Check if it's a local LLM (llama, qwen, gemma3)
-    local_llms = ['llama', 'qwen', 'gemma3']
+    # Check if it's a local LLM (llama, qwen, gemma3, phi4)
+    local_llms = ['llama', 'qwen', 'gemma3', 'phi4']
     is_local_llm = any(llm in model_name.lower() for llm in local_llms)
     
     if is_local_llm:
@@ -1853,8 +1854,8 @@ def main():
     parser.add_argument('--source', type=str, required=True, choices=['reddit', 'x', 'news', 'meeting_minutes'],
                        help='Data source')
     parser.add_argument('--model', type=str, default='bert-base-uncased',
-                       choices=['bert-base-uncased', 'roberta-base', 'modernbert-base', 'llama', 'qwen', 'gemma3'],
-                       help='Model to finetune (6 options: bert-base-uncased, roberta-base, modernbert-base, llama, qwen, gemma3)')
+                       choices=['bert-base-uncased', 'roberta-base', 'modernbert-base', 'llama', 'qwen', 'gemma3', 'phi4'],
+                       help='Model to finetune (7 options: bert-base-uncased, roberta-base, modernbert-base, llama, qwen, gemma3, phi4)')
     parser.add_argument('--epochs', type=int, default=5, 
                        help='Number of epochs (default: 5, with early stopping patience=3. For large datasets (100K+), consider 5-10 epochs)')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size (reduce for local LLMs)')
@@ -1863,7 +1864,7 @@ def main():
     parser.add_argument('--test_start', type=int, default=1600, help='Start index for test set')
     parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
     parser.add_argument('--use_lora', action='store_true', 
-                       help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
+                       help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3, phi4)')
     parser.add_argument('--lora_rank', type=int, default=16, 
                        help='LoRA rank (default: 16, optimized for accuracy and stability. rank=16 gives ~0.21%% trainable, achieves 96-98%% of full fine-tuning. Higher ranks (32+) may cause NaN issues)')
     parser.add_argument('--lora_alpha', type=int, default=32, 
@@ -1947,7 +1948,7 @@ def main():
     print("="*80 + "\n")
     
     # Adjust batch size for local LLMs (they're larger)
-    local_llms = ['llama', 'qwen', 'gemma3']
+    local_llms = ['llama', 'qwen', 'gemma3', 'phi4']
     is_local_llm = any(llm in args.model.lower() for llm in local_llms)
 
     # Decide classifier training behavior
