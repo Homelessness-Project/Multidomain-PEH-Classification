@@ -1886,6 +1886,9 @@ def main():
                        help='Fixed threshold for eval when eval_threshold=fixed')
     parser.add_argument('--min_val_positives_for_threshold', type=int, default=5,
                        help='Min positives in val to optimize per-label threshold; otherwise use fixed_threshold')
+    parser.add_argument('--train_on_gold', type=str, default='gpt_only',
+                       choices=['gpt_only', 'gold_only', 'gpt_plus_gold'],
+                       help='Training data source: gpt_only, gold_only, or gpt_plus_gold')
     parser.add_argument('--no_auto_tune', action='store_true',
                        help='Disable auto-tuning of LR/epochs/dropout based on data size')
     
@@ -2456,10 +2459,19 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives ({pos_count/len(gold_eval_labels)*100:.1f}%)")
     
-    # Split gold standard eval set into val and test (50/50 split)
-    val_texts, test_texts, val_labels, test_labels = train_test_split(
-        gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
-    )
+    if args.train_on_gold in ('gold_only', 'gpt_plus_gold'):
+        # 60/20/20 split for gold-only training
+        train_texts_gold, temp_texts, train_labels_gold, temp_labels = train_test_split(
+            gold_eval_texts, gold_eval_labels, test_size=0.4, random_state=42
+        )
+        val_texts, test_texts, val_labels, test_labels = train_test_split(
+            temp_texts, temp_labels, test_size=0.5, random_state=42
+        )
+    else:
+        # Split gold standard eval set into val and test (50/50 split)
+        val_texts, test_texts, val_labels, test_labels = train_test_split(
+            gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
+        )
     
     # Diagnostic: Check label distribution AFTER splitting
     print(f"\n  Validation set label distribution (AFTER split):")
@@ -2482,12 +2494,27 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives")
     
-    # Train set: Only GPT pseudolabels (no gold standard)
-    train_texts = gpt_texts.copy()
-    train_labels = gpt_labels.copy()
+    # Train set selection
+    if args.train_on_gold == 'gold_only':
+        train_texts = train_texts_gold
+        train_labels = train_labels_gold
+        if args.epochs > 3:
+            print(f"  Gold-only training detected; capping epochs {args.epochs} -> 3")
+            args.epochs = 3
+    elif args.train_on_gold == 'gpt_plus_gold':
+        train_texts = gpt_texts.copy() + train_texts_gold
+        train_labels = np.vstack([gpt_labels, train_labels_gold])
+    else:
+        train_texts = gpt_texts.copy()
+        train_labels = gpt_labels.copy()
     
     print(f"\nFinal dataset sizes:")
-    print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
+    if args.train_on_gold == 'gold_only':
+        print(f"  Train (gold only): {len(train_texts):,} samples")
+    elif args.train_on_gold == 'gpt_plus_gold':
+        print(f"  Train (GPT + gold): {len(train_texts):,} samples")
+    else:
+        print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
     print(f"  Val (gold standard split): {len(val_texts)} samples")
     print(f"  Test (gold standard split): {len(test_texts)} samples")
     print(f"  Total eval: {len(val_texts) + len(test_texts)} samples (should be ~{expected_after_exclude})")
@@ -2643,7 +2670,8 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     suffix = '_lora' if args.use_lora else ''
-    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_{eval_tag}_results.json'
+    train_tag = f"_train-{args.train_on_gold}" if args.train_on_gold else ""
+    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}{train_tag}_{eval_tag}_results.json'
     
     # Add training config to results
     results['training_config'] = {
@@ -2659,7 +2687,8 @@ def main():
         'learning_rate': args.learning_rate,
         'max_length': args.max_length,
         'eval_threshold': args.eval_threshold,
-        'fixed_threshold': args.fixed_threshold
+        'fixed_threshold': args.fixed_threshold,
+        'train_on_gold': args.train_on_gold
     }
     if best_val_metrics is not None:
         results['val_metrics'] = best_val_metrics
