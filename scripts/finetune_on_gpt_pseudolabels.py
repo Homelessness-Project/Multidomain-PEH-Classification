@@ -2522,9 +2522,6 @@ def main():
             args.epochs = epochs
 
     # Global guardrails for sparse labels across sources
-    if args.eval_threshold == 'val_opt':
-        print("\nForcing fixed eval threshold for stability across sources")
-        args.eval_threshold = 'fixed'
     if args.fixed_threshold == 0.5:
         print(f"  Using fixed_threshold={args.fixed_threshold:.2f}")
     if args.min_val_positives_for_threshold < 10:

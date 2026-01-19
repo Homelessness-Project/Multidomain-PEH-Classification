@@ -200,11 +200,11 @@ def create_detailed_table(
     lines = [
         r"\begin{table*}[h!]",
         r"\resizebox{\textwidth}{!}{",
-        r"\begin{tabular}{lccccccccccccclclcl}",
+        r"\begin{tabular}{lccccccccccccccc}",
         r"\toprule",
-        r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & & Grok & & GPT-4 & & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\",
-        r" & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & & Zero & & Zero & & Finetuned& Finetuned& Finetuned& Finetuned& Finetuned&Finetuned\\",
-        r"& & (GPT)& & (GPT)& & (GPT)& & & & & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\",
+        r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & Grok & GPT-4 & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\",
+        r" & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & Zero & Zero & Finetuned& Finetuned& Finetuned& Finetuned& Finetuned&Finetuned\\",
+        r"& & (GPT)& & (GPT)& & (GPT)& & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\",
         r"\midrule",
     ]
 
