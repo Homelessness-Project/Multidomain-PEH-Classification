@@ -6,6 +6,7 @@ Outputs a CSV summary with macro/micro F1 and macro kappa.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from pathlib import Path
@@ -147,14 +148,19 @@ def parse_source_model(path: Path) -> tuple[str | None, str | None]:
     return match.group(1), match.group(2)
 
 
-def evaluate_zero_few(path: Path, label_by_text: dict, pred_text_col: str) -> tuple[float, float, float, int, list[float]]:
+def evaluate_zero_few(
+    path: Path,
+    label_by_text: dict,
+    pred_text_col: str,
+    soft_label_threshold: float,
+) -> tuple[float, float, float, int, list[float]]:
     df = pd.read_csv(path)
     df["_norm"] = df[pred_text_col].apply(normalize_text)
     df = df[df["_norm"].isin(label_by_text.keys())].copy()
     if df.empty:
         return float("nan"), float("nan"), float("nan"), 0, [float("nan")] * len(CATEGORIES)
     y_true = np.vstack([label_by_text[t] for t in df["_norm"]])
-    y_true = (y_true >= 0.5).astype(int)
+    y_true = (y_true >= soft_label_threshold).astype(int)
     preds = []
     for cat in CATEGORIES:
         col = FLAG_COLS[cat]
@@ -169,6 +175,14 @@ def evaluate_zero_few(path: Path, label_by_text: dict, pred_text_col: str) -> tu
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Compare zero/few-shot vs LoRA results.")
+    parser.add_argument(
+        "--soft_label_threshold",
+        type=float,
+        default=0.5,
+        help="Threshold for soft labels when computing gold targets (default: 0.5).",
+    )
+    args = parser.parse_args()
     root = Path(".")
     rows = []
     per_category_rows = []
@@ -185,7 +199,12 @@ def main() -> None:
         if source not in SOURCE_CONFIG:
             continue
         label_by_text, _ = load_gold_labels(source)
-        macro, micro, kappa, n, label_f1s = evaluate_zero_few(path, label_by_text, SOURCE_CONFIG[source]["pred_text_col"])
+        macro, micro, kappa, n, label_f1s = evaluate_zero_few(
+            path,
+            label_by_text,
+            SOURCE_CONFIG[source]["pred_text_col"],
+            args.soft_label_threshold,
+        )
         method = "zero_shot" if "_none_flags.csv" in path.name else "few_shot"
         rows.append({
             "source": source,
@@ -195,6 +214,8 @@ def main() -> None:
             "micro_f1": micro,
             "macro_kappa": kappa,
             "n_eval": n,
+            "label_source": "soft_labels",
+            "label_threshold": args.soft_label_threshold,
             "file": str(path),
         })
         for cat, f1 in zip(CATEGORIES, label_f1s):
@@ -205,6 +226,8 @@ def main() -> None:
                 "category": cat,
                 "f1": f1,
                 "n_eval": n,
+                "label_source": "soft_labels",
+                "label_threshold": args.soft_label_threshold,
                 "file": str(path),
             })
 
@@ -213,6 +236,7 @@ def main() -> None:
         with open(path, "r") as f:
             results = json.load(f)
         training = results.get("training_config", {})
+        eval_threshold = training.get("eval_threshold")
         rows.append({
             "source": training.get("source"),
             "model": training.get("model"),
@@ -221,6 +245,9 @@ def main() -> None:
             "micro_f1": results.get("micro_f1"),
             "macro_kappa": results.get("macro_kappa") or results.get("macro_kappa", float("nan")),
             "n_eval": None,
+            "label_source": "gold_labels",
+            "label_threshold": None,
+            "eval_threshold": eval_threshold,
             "file": str(path),
         })
         per_f1 = results.get("per_category_f1", {})
@@ -232,6 +259,9 @@ def main() -> None:
                 "category": cat,
                 "f1": per_f1.get(cat, float("nan")),
                 "n_eval": None,
+                "label_source": "gold_labels",
+                "label_threshold": None,
+                "eval_threshold": eval_threshold,
                 "file": str(path),
             })
 
