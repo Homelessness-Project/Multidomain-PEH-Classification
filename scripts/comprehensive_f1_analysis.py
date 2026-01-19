@@ -687,7 +687,7 @@ def create_individual_model_tables(all_results):
         macro_micro_table.append(r"\end{table}")
         
         # Save the tables
-        output_dir = 'output/f1'
+        output_dir = 'output/f1/soft'
         os.makedirs(output_dir, exist_ok=True)
         
         # Save category table
@@ -705,7 +705,7 @@ def create_individual_model_tables(all_results):
 def main():
     """Main function to run comprehensive F1 analysis and generate LaTeX tables"""
     parser = argparse.ArgumentParser(description='Comprehensive F1 analysis and LaTeX table generation')
-    parser.add_argument('--output_dir', type=str, default='output/f1', help='Output directory for results')
+    parser.add_argument('--output_dir', type=str, default='output/f1/soft', help='Output directory for results')
     args = parser.parse_args()
     
     # Store all results

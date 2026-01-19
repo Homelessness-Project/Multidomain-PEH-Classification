@@ -1,0 +1,25 @@
+\begin{table*}[h!]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccccccccclclcl}
+\toprule
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & & Grok & & GPT-4 & & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\
+ & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & & Zero & & Zero & & Finetuned& Finetuned& Finetuned& Finetuned& Finetuned&Finetuned\\
+& & (GPT)& & (GPT)& & (GPT)& & & & & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\
+\midrule
+Reddit (Macro) & 19.42 & 44.18 & 15.33 &  & 35.62 & 50.13 & 50.90 & 38.51 & 50.57 &  &  &  &  &  &  \\
+Reddit (Micro) & 41.41 & 56.70 & 32.06 &  & 49.80 & 61.66 & 65.18 & 47.94 & 63.13 &  &  &  &  &  &  \\
+News (Macro) & 15.05 &  & 17.11 &  & 22.62 &  & 35.99 & 26.04 & 34.79 &  &  &  &  &  &  \\
+News (Micro) & 36.57 &  & 26.85 &  & 35.31 &  & 65.03 & 51.66 & 61.20 &  &  &  &  &  &  \\
+Meeting Minutes (Macro) & 13.84 & 14.93 & 18.12 &  & 26.82 &  & 38.06 & 29.46 & 37.70 &  &  &  &  &  &  \\
+Meeting Minutes (Micro) & 39.97 & 72.76 & 29.31 &  & 46.09 &  & 66.64 & 48.63 & 61.13 &  &  &  &  &  &  \\
+X (Twitter) (Macro) & 16.57 &  & 11.90 &  & 28.00 &  & 45.06 & 26.57 & 43.21 &  &  &  &  &  &  \\
+X (Twitter) (Micro) & 39.56 &  & 21.84 &  & 39.45 &  & 66.30 & 46.70 & 60.39 &  &  &  &  &  &  \\
+Avg (Macro) & 16.22 & 29.55 & 15.62 &  & 28.27 & 50.13 & 42.50 & 30.14 & 41.57 &  &  &  &  &  &  \\
+Avg (Micro) & 39.38 & 64.73 & 27.52 &  & 42.66 & 61.66 & 65.79 & 48.73 & 61.46 &  &  &  &  &  &  \\
+\bottomrule
+\end{tabular}
+}
+\centering
+\caption{Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_reordered}
+\end{table*}

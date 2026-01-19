@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Data Source & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt \\
+\midrule
+Macro F1 & 19.42 & 44.18 & 15.05 & -- & 13.84 & 14.93 & 16.57 & -- \\
+Micro F1 & 41.41 & 56.70 & 36.57 & -- & 39.97 & 72.76 & 39.56 & -- \\
+\bottomrule
+\end{tabular}
+\centering\caption{Macro and Micro F1 Scores for LLAMA Model}
+\label{tab:llama_macro_micro}
+\end{table}

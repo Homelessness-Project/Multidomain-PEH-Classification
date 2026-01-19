@@ -139,6 +139,19 @@ python scripts/finetune_bert_simple.py --source meeting_minutes --epochs 3 --bat
 python scripts/run_bert_all_sources_simple.py
 ```
 
+### 3. LoRA Fine-tuning on GPT Pseudolabels
+Train local LLMs with LoRA using GPT pseudolabels. Use `val_opt` to optimize per-label thresholds on validation (recommended for publication results).
+
+```bash
+python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model llama --use_lora --eval_threshold val_opt
+python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model qwen --use_lora --eval_threshold val_opt
+python scripts/finetune_on_gpt_pseudolabels.py --source reddit --model phi4 --use_lora --eval_threshold val_opt
+```
+
+Notes:
+- `--eval_threshold val_opt` uses per-label thresholds optimized on validation.
+- `--eval_threshold fixed0p50` forces a global 0.5 threshold for all labels.
+
 ---
 
 ## Run All Models (One Command)
@@ -225,13 +238,31 @@ python scripts/comprehensive_f1_analysis.py
 ```
 
 This script:
-- Loads soft labels and model predictions for all sources
+- Loads soft labels and model predictions for all sources (soft-label evaluation)
 - Calculates macro F1, precision, and recall for each model
 - Generates LaTeX tables for publication
 - Creates detailed comparison tables
-- Outputs results to `output/f1/` directory
+- Outputs results to `output/f1/soft/` directory
 
-### 6. Research Chart Generation
+### 6. Zero/Few/LoRA Comparison (Soft Labels + Gold)
+Generate consolidated CSV summaries for zero-shot, few-shot, and LoRA results:
+
+```bash
+python scripts/compare_zero_few_lora_results.py --soft_label_threshold 0.5
+```
+
+Outputs:
+- `output/summary/zero_few_lora_comparison.csv`
+- `output/summary/zero_few_lora_per_category.csv`
+
+### 7. Val-Opt Tables (Gold + Val-Opt LoRA)
+Create LaTeX tables and CSVs under `output/f1/val_opt/` using val-opt LoRA rows plus zero/few-shot results:
+
+```bash
+python scripts/generate_valopt_f1_tables.py
+```
+
+### 8. Research Chart Generation
 Create publication-quality charts for city analysis across all data sources:
 
 ```bash
@@ -247,7 +278,7 @@ This script:
 - Outputs publication-ready PDFs to `output/charts/gpt_research_analysis/`
 - Creates annotation agreement charts in `output/charts/`
 
-### 7. Soft Label Evaluation
+### 9. Soft Label Evaluation
 Evaluate model performance against soft labels:
 
 ```bash
@@ -256,7 +287,7 @@ python scripts/evaluate_soft_labels.py
 
 This script compares model predictions against the soft label gold standard and generates detailed performance metrics.
 
-### 8. Statistics and Visualization
+### 10. Statistics and Visualization
 All statistics and charts are available in the `output/charts/` directory.
 
 To generate these yourself:
@@ -275,7 +306,8 @@ The project generates extensive outputs organized by:
 - `output/{source}/bert/` - BERT fine-tuning results and metrics
 
 ### Analysis Outputs
-- `output/f1/` - Comprehensive F1 analysis tables and LaTeX files
+- `output/f1/soft/` - Soft-label F1 tables and LaTeX files
+- `output/f1/val_opt/` - Val-opt F1 tables and LaTeX files
 - `output/charts/gpt_research_analysis/` - Publication-quality research charts
 - `output/charts/` - Annotation agreement charts
 - `output/annotation/` - Agreement statistics and soft labels

@@ -1,0 +1,14 @@
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Data Source & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt \\
+\midrule
+Macro F1 & 35.62 & 50.13 & 22.62 & -- & 26.82 & -- & 28.00 & -- \\
+Micro F1 & 49.80 & 61.66 & 35.31 & -- & 46.09 & -- & 39.45 & -- \\
+\bottomrule
+\end{tabular}
+\centering\caption{Macro and Micro F1 Scores for QWEN Model}
+\label{tab:qwen_macro_micro}
+\end{table}
