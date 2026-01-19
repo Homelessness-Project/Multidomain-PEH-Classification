@@ -57,7 +57,7 @@ except ImportError:
     DORA_AVAILABLE = False
     print("Warning: PEFT not available. Install with: pip install peft")
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, precision_recall_fscore_support, classification_report
+from sklearn.metrics import f1_score, precision_recall_fscore_support, classification_report, cohen_kappa_score
 import json
 import os
 import sys
@@ -361,12 +361,27 @@ def load_gold_standard(source):
                     print(f"      {cat} (as 'Racist'): sample={sample_val}, non-zero={non_zero_count}/{len(gold_labels_df)}")
         else:
             print(f"    ✓ All expected categories found in gold labels")
+        
+        # Attempt to align gold labels by text if a text column exists
+        possible_label_text_cols = [
+            'Comment', 'Deidentified_Comment', 'Deidentified_text',
+            'Deidentified text', 'Deidentified_paragraph'
+        ]
+        label_text_col = None
+        for col in possible_label_text_cols:
+            if col in gold_labels_df.columns:
+                label_text_col = col
+                break
+        if label_text_col is not None:
+            print(f"    ✓ Found text column in gold labels: '{label_text_col}'")
+        else:
+            print(f"    ℹ️  No text column in gold labels; will align by row index")
     
     print(f"  Loaded {len(gold_df)} gold standard samples")
     return gold_df, text_col, gold_labels_df
 
 
-def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=False, lora_rank=8, lora_alpha=16, lora_dropout=0.1, lora_target_modules='all'):
+def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=False, lora_rank=8, lora_alpha=16, lora_dropout=0.1, lora_target_modules='all', train_classifier=False):
     """Create model and tokenizer based on model name, supporting both transformers and local LLMs
     
     Args:
@@ -378,6 +393,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         lora_alpha: LoRA alpha (only used if use_lora=True)
         lora_dropout: LoRA dropout rate (only used if use_lora=True)
         lora_target_modules: Which modules to apply LoRA to: 'all', 'attention', 'mlp', 'attention+mlp'
+        train_classifier: Whether to train classifier head with LoRA
     """
     
     # Determine torch dtype based on device
@@ -385,7 +401,11 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     # For MPS without LoRA: use float16 to save memory (but may have backward pass issues)
     # For CUDA: use float16 (better support)
     if device and device.type == 'cuda':
-        torch_dtype = torch.float16
+        # Prefer bf16 for stability when training classifier + LoRA
+        if use_lora:
+            torch_dtype = torch.bfloat16
+        else:
+            torch_dtype = torch.float16
     elif device and device.type == 'mps':
         if use_lora:
             # With LoRA, only ~0.15% of parameters are trainable, so float32 is fine
@@ -400,8 +420,8 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     else:
         torch_dtype = torch.float32
     
-    # Check if it's a local LLM (llama, qwen, gemma3, phi4)
-    local_llms = ['llama', 'qwen', 'gemma3', 'phi4']
+    # Check if it's a local LLM (llama, qwen, gemma3)
+    local_llms = ['llama', 'qwen', 'gemma3']
     is_local_llm = any(llm in model_name.lower() for llm in local_llms)
     
     if is_local_llm:
@@ -456,7 +476,13 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 torch_dtype=torch_dtype
             )
             # Resize token embeddings if we added a new pad token
-            if len(tokenizer) > model.config.vocab_size:
+            model_vocab_size = getattr(model.config, 'vocab_size', None)
+            if model_vocab_size is None:
+                try:
+                    model_vocab_size = model.get_input_embeddings().num_embeddings
+                except Exception:
+                    model_vocab_size = None
+            if model_vocab_size is not None and len(tokenizer) > model_vocab_size:
                 model.resize_token_embeddings(len(tokenizer))
                 print(f"  Resized model embeddings to match tokenizer: {len(tokenizer)}")
             
@@ -469,22 +495,26 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             # Reinitialize with tiny values to prevent NaN
             if hasattr(model, 'score'):
                 for param in model.score.parameters():
-                    param.requires_grad = True
+                    param.requires_grad = train_classifier
                     # Reinitialize with very tiny values
                     if len(param.shape) >= 2:
                         nn.init.uniform_(param, -0.0001, 0.0001)
                     else:
                         nn.init.zeros_(param)
                 print(f"  ✓ Score layer (classifier) reinitialized with tiny values ({sum(p.numel() for p in model.score.parameters()):,} params)")
+                if train_classifier:
+                    model.score = model.score.float()
             elif hasattr(model, 'classifier'):
                 for param in model.classifier.parameters():
-                    param.requires_grad = True
+                    param.requires_grad = train_classifier
                     # Reinitialize with very tiny values
                     if len(param.shape) >= 2:
                         nn.init.uniform_(param, -0.0001, 0.0001)
                     else:
                         nn.init.zeros_(param)
                 print(f"  ✓ Classifier reinitialized with tiny values ({sum(p.numel() for p in model.classifier.parameters()):,} params)")
+                if train_classifier:
+                    model.classifier = model.classifier.float()
         except Exception as e:
             print(f"Could not load as sequence classification: {e}")
             print("Loading as causal LM and adding classification head...")
@@ -497,7 +527,13 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             )
             
             # Resize token embeddings if we added a new pad token
-            if len(tokenizer) > base_model.config.vocab_size:
+            base_vocab_size = getattr(base_model.config, 'vocab_size', None)
+            if base_vocab_size is None:
+                try:
+                    base_vocab_size = base_model.get_input_embeddings().num_embeddings
+                except Exception:
+                    base_vocab_size = None
+            if base_vocab_size is not None and len(tokenizer) > base_vocab_size:
                 base_model.resize_token_embeddings(len(tokenizer))
                 print(f"  Resized model embeddings to match tokenizer: {len(tokenizer)}")
             
@@ -519,7 +555,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             # Create wrapper with classification head
             # CRITICAL: Ensure base_model parameters are accessible for LoRA gradients
             class ModelWithClassificationHead(nn.Module):
-                def __init__(self, base_model, num_labels, pad_token_id=None):
+                def __init__(self, base_model, num_labels, pad_token_id=None, train_classifier=False):
                     super().__init__()
                     self.base_model = base_model
                     # CRITICAL: Register base_model so its parameters (including LoRA) are accessible
@@ -541,9 +577,9 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                         # Try to infer from model
                         hidden_size = base_model.config.n_embd if hasattr(base_model.config, 'n_embd') else 768
                     self.classifier = nn.Linear(hidden_size, num_labels)
-                    # Classifier will be frozen, but ensure it's accessible
+                    # Classifier can be frozen or trainable
                     for param in self.classifier.parameters():
-                        param.requires_grad = False  # Will be frozen
+                        param.requires_grad = train_classifier
                     
                 def forward(self, input_ids=None, attention_mask=None, labels=None):
                     # Ensure pad_token_id is set in config before forward pass
@@ -583,7 +619,9 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                     else:
                         pooled = hidden_states
                     
-                    # Classifier is frozen, but still used for forward pass
+                    # Match classifier dtype to avoid NaNs in mixed precision
+                    if pooled.dtype != self.classifier.weight.dtype:
+                        pooled = pooled.to(self.classifier.weight.dtype)
                     logits = self.classifier(pooled)
                     
                     return type('Output', (), {
@@ -591,7 +629,12 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                         'loss': None
                     })()
             
-            model = ModelWithClassificationHead(base_model, num_labels, pad_token_id=tokenizer.pad_token_id)
+            model = ModelWithClassificationHead(
+                base_model,
+                num_labels,
+                pad_token_id=tokenizer.pad_token_id,
+                train_classifier=train_classifier
+            )
             
             # Initialize classifier with VERY small random weights to prevent NaN
             # Zero init can cause issues - use tiny random values instead
@@ -608,8 +651,10 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         if use_lora and PEFT_AVAILABLE:
             target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
             
-            # Try DoRA first (newer, better performance, fewer issues)
-            if DORA_AVAILABLE:
+            # Prefer LoRA when classifier should be trainable (modules_to_save)
+            # DoRA doesn't reliably support modules_to_save across versions
+            use_dora = DORA_AVAILABLE and not train_classifier
+            if use_dora:
                 print(f"Applying DoRA (Weight-Decomposed LoRA) with rank={lora_rank}, alpha={lora_alpha}")
                 print(f"  DoRA is newer and often performs better than LoRA")
                 peft_config = DoraConfig(
@@ -623,6 +668,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
             else:
                 print(f"Applying LoRA with rank={lora_rank}, alpha={lora_alpha}")
                 print(f"  (DoRA not available - using standard LoRA)")
+                modules_to_save = ["score", "classifier"] if train_classifier else None
                 peft_config = LoraConfig(
                     task_type=TaskType.FEATURE_EXTRACTION,  # Prevents classifier auto-add
                     r=lora_rank,
@@ -630,17 +676,58 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                     target_modules=target_modules,
                     lora_dropout=lora_dropout,
                     bias="none",
-                    modules_to_save=None,
+                    modules_to_save=modules_to_save,
                 )
             
             model = get_peft_model(model, peft_config)
             model.print_trainable_parameters()
+
+            # Ensure dtype consistency for classifier when using modules_to_save
+            def _attach_linear_input_cast(module):
+                if hasattr(module, "_input_cast_hook"):
+                    return
+                def _cast_inputs(m, inputs):
+                    if not inputs:
+                        return inputs
+                    first = inputs[0]
+                    if isinstance(first, torch.Tensor) and hasattr(m, "weight"):
+                        first = first.to(m.weight.dtype)
+                    return (first,) + inputs[1:]
+                module._input_cast_hook = module.register_forward_pre_hook(_cast_inputs)
+
+            for name in ("score", "classifier"):
+                wrapper = getattr(model, name, None)
+                if wrapper is not None and hasattr(wrapper, "modules_to_save"):
+                    for mod in wrapper.modules_to_save.values():
+                        if isinstance(mod, nn.Module):
+                            _attach_linear_input_cast(mod)
+
+            # CRITICAL: Ensure PEFT adapters are in training mode (not inference)
+            if hasattr(model, 'peft_config'):
+                for _, cfg in model.peft_config.items():
+                    # Inference mode disables grad for adapters
+                    if hasattr(cfg, 'inference_mode'):
+                        cfg.inference_mode = False
+            if hasattr(model, 'enable_adapter_layers'):
+                model.enable_adapter_layers()
+            if hasattr(model, 'base_model') and hasattr(model.base_model, 'enable_adapter_layers'):
+                model.base_model.enable_adapter_layers()
             
-            # Freeze classifier to prevent NaN (gradients still flow through)
-            for name, param in model.named_parameters():
-                if 'score' in name or 'classifier' in name:
-                    param.requires_grad = False
-            print(f"  ✓ Classifier frozen (prevents NaN, gradients flow through)")
+            # Freeze or train classifier (small head)
+            if not train_classifier:
+                for name, param in model.named_parameters():
+                    if 'score' in name or 'classifier' in name:
+                        param.requires_grad = False
+                print(f"  ✓ Classifier frozen (prevents NaN, gradients flow through)")
+            else:
+                for name, param in model.named_parameters():
+                    if 'score' in name or 'classifier' in name:
+                        param.requires_grad = True
+                if hasattr(model, 'score'):
+                    model.score = model.score.float()
+                elif hasattr(model, 'classifier'):
+                    model.classifier = model.classifier.float()
+                print(f"  ✓ Classifier trainable (small LR recommended)")
             
             # Verify LoRA adapters are trainable
             lora_trainable_count = sum(p.numel() for n, p in model.named_parameters() 
@@ -721,6 +808,65 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 obj.gradient_checkpointing_enable()
         enable_gradient_checkpointing(model)
         print("  ✓ Gradient checkpointing enabled")
+
+        # When using LoRA + gradient checkpointing, inputs must require grads
+        # or the computation graph can be disconnected (loss has no grad).
+        if use_lora:
+            def enable_input_grads(obj):
+                if obj is None:
+                    return False
+                if hasattr(obj, 'enable_input_require_grads'):
+                    try:
+                        obj.enable_input_require_grads()
+                        return True
+                    except Exception:
+                        pass
+                # Fallback: add a forward hook to input embeddings (keeps weights frozen)
+                if hasattr(obj, 'get_input_embeddings'):
+                    try:
+                        embeddings = obj.get_input_embeddings()
+                        if embeddings is None:
+                            return False
+
+                        def _make_inputs_require_grad(_module, _inputs, output):
+                            if isinstance(output, torch.Tensor):
+                                output.requires_grad_(True)
+                            elif isinstance(output, (tuple, list)):
+                                for out in output:
+                                    if isinstance(out, torch.Tensor):
+                                        out.requires_grad_(True)
+
+                        handle = embeddings.register_forward_hook(_make_inputs_require_grad)
+                        # Keep a reference to avoid garbage collection
+                        if not hasattr(obj, '_input_grads_hook'):
+                            obj._input_grads_hook = handle
+                        return True
+                    except Exception:
+                        pass
+                return False
+
+            # Try common nesting patterns for PEFT-wrapped models
+            candidates = []
+            seen = set()
+            to_visit = [model]
+            for _ in range(4):
+                next_level = []
+                for obj in to_visit:
+                    if obj is None or id(obj) in seen:
+                        continue
+                    seen.add(id(obj))
+                    candidates.append(obj)
+                    for attr in ('base_model', 'model'):
+                        child = getattr(obj, attr, None)
+                        if child is not None and id(child) not in seen:
+                            next_level.append(child)
+                to_visit = next_level
+
+            enabled_input_grads = any(enable_input_grads(obj) for obj in candidates)
+            if enabled_input_grads:
+                print("  ✓ Enabled input grads for LoRA + checkpointing")
+            else:
+                print("  ⚠️  Could not enable input grads for LoRA + checkpointing")
     
     elif 'roberta' in model_name.lower():
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
@@ -734,6 +880,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         if use_lora and PEFT_AVAILABLE:
             print(f"Applying LoRA to RoBERTa with rank={lora_rank}, alpha={lora_alpha}")
             target_modules = ["query", "key", "value", "dense"]  # RoBERTa attention modules
+            modules_to_save = ["classifier"] if train_classifier else None
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,
                 r=lora_rank,
@@ -741,9 +888,25 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=0.1,
                 bias="none",
+                modules_to_save=modules_to_save,
             )
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
+
+            for name in ("score", "classifier"):
+                wrapper = getattr(model, name, None)
+                if wrapper is not None and hasattr(wrapper, "modules_to_save"):
+                    for mod in wrapper.modules_to_save.values():
+                        if isinstance(mod, nn.Module):
+                            def _cast_inputs(m, inputs):
+                                if not inputs:
+                                    return inputs
+                                first = inputs[0]
+                                if isinstance(first, torch.Tensor) and hasattr(m, "weight"):
+                                    first = first.to(m.weight.dtype)
+                                return (first,) + inputs[1:]
+                            if not hasattr(mod, "_input_cast_hook"):
+                                mod._input_cast_hook = mod.register_forward_pre_hook(_cast_inputs)
         elif use_lora and not PEFT_AVAILABLE:
             print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
     elif 'modernbert' in model_name.lower():
@@ -758,6 +921,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         if use_lora and PEFT_AVAILABLE:
             print(f"Applying LoRA to ModernBERT with rank={lora_rank}, alpha={lora_alpha}")
             target_modules = ["query", "key", "value", "dense"]  # BERT-style attention modules
+            modules_to_save = ["classifier"] if train_classifier else None
             lora_config = LoraConfig(
                 task_type=TaskType.FEATURE_EXTRACTION,
                 r=lora_rank,
@@ -765,9 +929,25 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=0.1,
                 bias="none",
+                modules_to_save=modules_to_save,
             )
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
+
+            for name in ("score", "classifier"):
+                wrapper = getattr(model, name, None)
+                if wrapper is not None and hasattr(wrapper, "modules_to_save"):
+                    for mod in wrapper.modules_to_save.values():
+                        if isinstance(mod, nn.Module):
+                            def _cast_inputs(m, inputs):
+                                if not inputs:
+                                    return inputs
+                                first = inputs[0]
+                                if isinstance(first, torch.Tensor) and hasattr(m, "weight"):
+                                    first = first.to(m.weight.dtype)
+                                return (first,) + inputs[1:]
+                            if not hasattr(mod, "_input_cast_hook"):
+                                mod._input_cast_hook = mod.register_forward_pre_hook(_cast_inputs)
         elif use_lora and not PEFT_AVAILABLE:
             print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
     else:  # bert-base-uncased or default
@@ -782,6 +962,7 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
         if use_lora and PEFT_AVAILABLE:
             print(f"Applying LoRA to BERT with rank={lora_rank}, alpha={lora_alpha}")
             target_modules = ["query", "key", "value", "dense"]  # BERT attention modules
+            modules_to_save = ["classifier"] if train_classifier else None
             lora_config = LoraConfig(
                 task_type=TaskType.SEQ_CLS,  # For sequence classification
                 r=lora_rank,
@@ -789,9 +970,25 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
                 target_modules=target_modules,
                 lora_dropout=0.1,
                 bias="none",
+                modules_to_save=modules_to_save,
             )
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()
+
+            for name in ("score", "classifier"):
+                wrapper = getattr(model, name, None)
+                if wrapper is not None and hasattr(wrapper, "modules_to_save"):
+                    for mod in wrapper.modules_to_save.values():
+                        if isinstance(mod, nn.Module):
+                            def _cast_inputs(m, inputs):
+                                if not inputs:
+                                    return inputs
+                                first = inputs[0]
+                                if isinstance(first, torch.Tensor) and hasattr(m, "weight"):
+                                    first = first.to(m.weight.dtype)
+                                return (first,) + inputs[1:]
+                            if not hasattr(mod, "_input_cast_hook"):
+                                mod._input_cast_hook = mod.register_forward_pre_hook(_cast_inputs)
         elif use_lora and not PEFT_AVAILABLE:
             print("Warning: LoRA requested but PEFT not available. Using full fine-tuning.")
     
@@ -809,21 +1006,83 @@ def create_model_and_tokenizer(model_name, num_labels, device=None, use_lora=Fal
     
     return model, tokenizer
 
-def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate=2e-5, 
-                source='', model_name='', label_names=None):
+def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate=2e-5,
+                source='', model_name='', label_names=None,
+                min_val_positives_for_threshold=5, fixed_threshold=0.5):
     """Train the model"""
     
     model.to(device)
-    
-    def _forward_kwargs(module):
-        try:
-            import inspect
-            params = inspect.signature(module.forward).parameters
-            if 'use_cache' in params:
-                return {'use_cache': False}
-        except (ValueError, TypeError):
-            pass
-        return {}
+
+    # If LoRA is present, ensure gradient flow is not blocked by checkpointing
+    has_lora = any('lora' in n.lower() for n, _ in model.named_parameters())
+    if has_lora:
+        def _disable_gradient_checkpointing(obj):
+            if obj is None:
+                return False
+            if hasattr(obj, 'gradient_checkpointing_disable'):
+                try:
+                    obj.gradient_checkpointing_disable()
+                    return True
+                except Exception:
+                    return False
+            return False
+
+        def _enable_input_grads(obj):
+            if obj is None:
+                return False
+            if hasattr(obj, 'enable_input_require_grads'):
+                try:
+                    obj.enable_input_require_grads()
+                    return True
+                except Exception:
+                    pass
+            if hasattr(obj, 'get_input_embeddings'):
+                try:
+                    embeddings = obj.get_input_embeddings()
+                    if embeddings is None:
+                        return False
+
+                    def _make_inputs_require_grad(_module, _inputs, output):
+                        if isinstance(output, torch.Tensor):
+                            output.requires_grad_(True)
+                        elif isinstance(output, (tuple, list)):
+                            for out in output:
+                                if isinstance(out, torch.Tensor):
+                                    out.requires_grad_(True)
+
+                    handle = embeddings.register_forward_hook(_make_inputs_require_grad)
+                    if not hasattr(obj, '_input_grads_hook'):
+                        obj._input_grads_hook = handle
+                    return True
+                except Exception:
+                    pass
+            return False
+
+        disabled = False
+        for candidate in [
+            model,
+            getattr(model, 'base_model', None),
+            getattr(getattr(model, 'base_model', None), 'model', None),
+            getattr(getattr(model, 'base_model', None), 'base_model', None),
+        ]:
+            if _disable_gradient_checkpointing(candidate):
+                disabled = True
+                break
+        if disabled:
+            print("  ✓ Gradient checkpointing disabled for LoRA stability")
+
+        enabled_inputs = False
+        for candidate in [
+            model,
+            getattr(model, 'base_model', None),
+            getattr(getattr(model, 'base_model', None), 'model', None),
+            getattr(getattr(model, 'base_model', None), 'base_model', None),
+        ]:
+            if _enable_input_grads(candidate):
+                enabled_inputs = True
+                break
+        if enabled_inputs:
+            print("  ✓ Enabled input grads for LoRA")
     
     # Get trainable parameters (important for LoRA - only LoRA params should be trainable)
     trainable_params = [p for p in model.parameters() if p.requires_grad]
@@ -836,10 +1095,20 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if not lora_params:
         raise RuntimeError("No trainable parameters found! Check LoRA configuration.")
     
-    # Only LoRA params in optimizer (classifier is frozen)
+    # Separate LoRA and classifier params for better control
+    classifier_params = [p for n, p in model.named_parameters()
+                         if p.requires_grad and ('score' in n or 'classifier' in n)]
+    lora_params = [p for n, p in model.named_parameters()
+                   if p.requires_grad and ('score' not in n and 'classifier' not in n)]
     param_groups = [{'params': lora_params, 'lr': learning_rate, 'weight_decay': 0.01}]
     print(f"  LoRA params: {sum(p.numel() for p in lora_params):,} with LR={learning_rate:.2e}")
-    print(f"  Classifier: FROZEN (prevents NaN, gradients flow through automatically)")
+    classifier_lr = None
+    if classifier_params:
+        classifier_lr = max(learning_rate * 0.01, 1e-7)
+        param_groups.append({'params': classifier_params, 'lr': classifier_lr, 'weight_decay': 0.0})
+        print(f"  Classifier: TRAINING (LR={classifier_lr:.2e})")
+    else:
+        print(f"  Classifier: FROZEN (prevents NaN, gradients flow through automatically)")
     
     total_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Training {len(param_groups)} parameter groups with {total_trainable:,} trainable parameters")
@@ -860,6 +1129,9 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     best_val_f1 = 0.0
     best_model_state = None
     best_thresholds_at_best = None
+    best_val_metrics = None
+    best_epoch = None
+    val_history = []
     # Early stopping patience: stop if no improvement for 3 epochs
     # This allows training to continue for large datasets while stopping early if converged
     patience = 3
@@ -874,6 +1146,10 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         
         # CRITICAL: Ensure LoRA adapters are enabled (PEFT can disable them)
         # This is essential for gradient flow - disabled adapters won't contribute to gradients
+        if hasattr(model, 'peft_config'):
+            for _, cfg in model.peft_config.items():
+                if hasattr(cfg, 'inference_mode'):
+                    cfg.inference_mode = False
         if hasattr(model, 'enable_adapter_layers'):
             model.enable_adapter_layers()
         if hasattr(model, 'base_model') and hasattr(model.base_model, 'enable_adapter_layers'):
@@ -906,52 +1182,78 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         # Use the SAME forward pass as training to ensure consistency
         print(f"\n  Testing LoRA adapter activation...")
         model.train()  # Ensure training mode
+
+        def _disable_gradient_checkpointing(obj):
+            if obj is None:
+                return False
+            if hasattr(obj, 'gradient_checkpointing_disable'):
+                try:
+                    obj.gradient_checkpointing_disable()
+                    return True
+                except Exception:
+                    pass
+            return False
+
         try:
             test_input_ids = torch.randint(0, 1000, (1, 10)).to(device)
             test_attention_mask = torch.ones(1, 10).to(device)
-            
-            # Use the SAME forward pass as training (through base_model to activate LoRA)
-            with torch.set_grad_enabled(True):
-                if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
-                    # Call through PEFT wrapper's base_model (this applies LoRA)
-                    test_base_outputs = model.base_model(
-                        input_ids=test_input_ids,
-                        attention_mask=test_attention_mask,
-                        output_hidden_states=True,
-                        **_forward_kwargs(model.base_model)
-                    )
-                    
-                    if hasattr(test_base_outputs, 'last_hidden_state'):
-                        test_hidden = test_base_outputs.last_hidden_state
-                        if test_hidden.requires_grad:
-                            print(f"  ✓ LoRA adapters ARE active (base model hidden states require grad)")
-                        else:
-                            print(f"  ⚠️  LoRA adapters are NOT active (base model hidden states don't require grad)")
-                            print(f"  This means LoRA won't receive gradients during training!")
-                    else:
-                        # Fallback test
-                        test_outputs = model(
+
+            def _test_logits_require_grad():
+                # Use the SAME forward pass as training (through base_model to activate LoRA)
+                with torch.set_grad_enabled(True):
+                    extra_kwargs = {}
+                    if 'use_cache' in model.forward.__code__.co_varnames:
+                        extra_kwargs['use_cache'] = False
+                    if hasattr(model, 'base_model') and hasattr(model.base_model, 'model'):
+                        # Call through PEFT wrapper's base_model (this applies LoRA)
+                        test_base_outputs = model.base_model(
                             input_ids=test_input_ids,
                             attention_mask=test_attention_mask,
-                            **_forward_kwargs(model)
+                            **extra_kwargs,
+                            output_hidden_states=True
                         )
-                        test_logits = test_outputs.logits
-                        if test_logits.requires_grad:
-                            print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
-                        else:
-                            print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
-                else:
-                    # Fallback: normal forward pass
-                    test_outputs = model(
-                        input_ids=test_input_ids,
-                        attention_mask=test_attention_mask,
-                        **_forward_kwargs(model)
-                    )
-                    test_logits = test_outputs.logits
-                    if test_logits.requires_grad:
-                        print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+
+                        if hasattr(test_base_outputs, 'last_hidden_state'):
+                            test_hidden = test_base_outputs.last_hidden_state
+                            return test_hidden.requires_grad, "hidden"
+                        # Fallback test
+                        test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, **extra_kwargs)
+                        return test_outputs.logits.requires_grad, "logits"
                     else:
-                        print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
+                        # Fallback: normal forward pass
+                        test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, **extra_kwargs)
+                        return test_outputs.logits.requires_grad, "logits"
+
+            active, mode = _test_logits_require_grad()
+            if active:
+                if mode == "hidden":
+                    print(f"  ✓ LoRA adapters ARE active (base model hidden states require grad)")
+                else:
+                    print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
+            else:
+                print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
+                print(f"  This means LoRA won't receive gradients during training!")
+                # Fallback: disable gradient checkpointing and re-test
+                disabled = False
+                for candidate in [
+                    model,
+                    getattr(model, 'base_model', None),
+                    getattr(getattr(model, 'base_model', None), 'model', None),
+                    getattr(getattr(model, 'base_model', None), 'base_model', None),
+                ]:
+                    if _disable_gradient_checkpointing(candidate):
+                        disabled = True
+                        break
+                if disabled:
+                    print(f"  ✓ Disabled gradient checkpointing (fallback)")
+                    active_retry, mode_retry = _test_logits_require_grad()
+                    if active_retry:
+                        if mode_retry == "hidden":
+                            print(f"  ✓ LoRA adapters ARE active after disabling checkpointing")
+                        else:
+                            print(f"  ✓ LoRA adapters ARE active after disabling checkpointing")
+                    else:
+                        print(f"  ⚠️  LoRA still inactive after disabling checkpointing")
         except Exception as e:
             print(f"  ⚠️  Could not test LoRA activation: {e}")
         
@@ -987,15 +1289,17 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
+            if epoch == 0 and batch_idx == 0:
+                if not torch.isfinite(labels).all():
+                    raise ValueError("Found NaN/Inf in labels. Check label generation/format.")
             
             optimizer.zero_grad()
             
             # SIMPLE: Standard forward pass - PEFT handles LoRA automatically
-            outputs = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                **_forward_kwargs(model)
-            )
+            forward_kwargs = {}
+            if 'use_cache' in model.forward.__code__.co_varnames:
+                forward_kwargs['use_cache'] = False
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, **forward_kwargs)
             logits = outputs.logits
             
             # Check for NaN in logits BEFORE loss computation
@@ -1012,11 +1316,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     # Try to get hidden states from the model to see if they're reasonable
                     with torch.no_grad():
                         # Get a sample to check
-                        sample_outputs = model.base_model.model(
-                            input_ids=input_ids[:1],
-                            attention_mask=attention_mask[:1],
-                            **_forward_kwargs(model.base_model.model)
-                        )
+                        sample_outputs = model.base_model.model(input_ids=input_ids[:1], attention_mask=attention_mask[:1], use_cache=False)
                         if hasattr(sample_outputs, 'last_hidden_state'):
                             hidden = sample_outputs.last_hidden_state
                             print(f"  Base model hidden states: range=[{hidden.min().item():.4f}, {hidden.max().item():.4f}], has_nan={torch.isnan(hidden).any().item()}")
@@ -1054,7 +1354,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     classifier_params_new = [p for n, p in model.named_parameters() if p.requires_grad and ('score' in n or 'classifier' in n)]
                     param_groups_new = [{'params': lora_params_new, 'lr': learning_rate, 'weight_decay': 0.01}]
                     if classifier_params_new:
-                        classifier_lr = max(learning_rate * 0.00001, 1e-10)
+                        classifier_lr = max(learning_rate * 0.01, 1e-7)
                         param_groups_new.append({'params': classifier_params_new, 'lr': classifier_lr, 'weight_decay': 0.0})
                     optimizer = AdamW(param_groups_new)
                     optimizer.zero_grad()
@@ -1196,7 +1496,10 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 # This is expected and correct - gradients flow through classifier to LoRA adapters
                 if classifier_grad_params and epoch == 0 and batch_idx == 0:
                     classifier_grad_norm = torch.nn.utils.clip_grad_norm_(classifier_grad_params, max_norm=1.0)
-                    print(f"    Classifier gradient norm: {classifier_grad_norm:.6f} (LR=0.0, no updates - gradient flow only)")
+                    if classifier_lr is None:
+                        print(f"    Classifier gradient norm: {classifier_grad_norm:.6f} (LR=0.0)")
+                    else:
+                        print(f"    Classifier gradient norm: {classifier_grad_norm:.6f} (LR={classifier_lr:.2e})")
                 
                 # Clip LoRA gradients (max 1.0)
                 if lora_grad_params:
@@ -1228,7 +1531,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                         if not torch.equal(param.data, param_before[name]):
                             param_changed = True
                             max_diff = (param.data - param_before[name]).abs().max().item()
-                            print(f"    Parameter '{name[:50]}' changed (max diff: {max_diff:.8f})")
+                            print(f"    Parameter '{name[:50]}' changed (max diff: {max_diff:.12f})")
                             break
                 if not param_changed:
                     print(f"    ⚠️  CRITICAL: Parameters did NOT change after optimizer.step()!")
@@ -1255,16 +1558,16 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             
             if len(np.unique(true_labels)) > 1:  # Has both positive and negative examples
                 # Find best threshold for this category
-                best_f1 = 0
+                best_f1 = -1.0
                 best_threshold = 0.5
                 
                 for threshold in np.arange(0.1, 0.9, 0.05):
                     binary_pred = (pred_scores > threshold).astype(int)
-                    if len(np.unique(binary_pred)) > 1:  # Has both predictions
-                        f1 = f1_score(true_labels, binary_pred, zero_division=0)
-                        if f1 > best_f1:
-                            best_f1 = f1
-                            best_threshold = threshold
+                    # Always compute F1, even if predictions are constant
+                    f1 = f1_score(true_labels, binary_pred, zero_division=0)
+                    if f1 > best_f1:
+                        best_f1 = f1
+                        best_threshold = threshold
                 
                 train_per_label_f1[cat] = best_f1
             else:
@@ -1279,10 +1582,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         train_preds_binary = (train_preds > 0.5).astype(int)
         train_micro_f1 = f1_score(train_labels, train_preds_binary, average='micro', zero_division=0)
         
-        # Also calculate per-sample accuracy (how many samples got all labels correct)
-        # and partial accuracy (how many labels were correct per sample)
-        train_per_sample_exact = (train_preds_binary == train_labels).all(axis=1).mean()
-        train_per_label_accuracy = (train_preds_binary == train_labels).mean()
+        # Exact match/label accuracy are less useful for multi-label imbalance; omit from logs
         
         # Validation
         model.eval()
@@ -1297,11 +1597,10 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 labels = batch['labels'].to(device)
                 
                 with torch.no_grad():
-                    outputs = model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask,
-                        **_forward_kwargs(model)
-                    )
+                    forward_kwargs = {}
+                    if 'use_cache' in model.forward.__code__.co_varnames:
+                        forward_kwargs['use_cache'] = False
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, **forward_kwargs)
                     logits = outputs.logits.to(dtype=torch.float32)
                     labels = labels.to(dtype=torch.float32)
                 
@@ -1331,36 +1630,40 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         for i, cat in enumerate(label_names):
             true_labels = val_labels[:, i].astype(int)
             pred_scores = val_preds[:, i]
-            
-            # Diagnostic for each category
-            true_pos_count = true_labels.sum()
-            pred_pos_count = (pred_scores > 0.5).sum()
-            
-            if len(np.unique(true_labels)) > 1:  # Has both positive and negative examples
-                # Find best threshold for this category
+
+            true_pos_count = int(true_labels.sum())
+            true_neg_count = int((true_labels == 0).sum())
+
+            # Only optimize threshold if we have enough positives to be meaningful
+            if true_pos_count >= min_val_positives_for_threshold and true_neg_count > 0:
+<<<<<<< Current (Your changes)
                 best_f1 = 0
-                best_threshold = 0.5
-                
+                best_threshold = fixed_threshold
                 for threshold in np.arange(0.1, 0.9, 0.05):
                     binary_pred = (pred_scores > threshold).astype(int)
-                    if len(np.unique(binary_pred)) > 1:  # Has both predictions
+                    if len(np.unique(binary_pred)) > 1:
                         f1 = f1_score(true_labels, binary_pred, zero_division=0)
                         if f1 > best_f1:
                             best_f1 = f1
                             best_threshold = threshold
-                
+=======
+                best_f1 = -1.0
+                best_threshold = fixed_threshold
+                for threshold in np.arange(0.1, 0.9, 0.05):
+                    binary_pred = (pred_scores > threshold).astype(int)
+                    # Always compute F1, even if predictions are constant
+                    f1 = f1_score(true_labels, binary_pred, zero_division=0)
+                    if f1 > best_f1:
+                        best_f1 = f1
+                        best_threshold = threshold
+>>>>>>> Incoming (Background Agent changes)
                 val_per_label_f1[cat] = best_f1
                 best_thresholds.append(best_threshold)
             else:
-                # All same label - use default threshold
-                binary_pred = (pred_scores > 0.5).astype(int)
+                # Not enough positives: use fixed threshold for stability
+                binary_pred = (pred_scores > fixed_threshold).astype(int)
                 val_per_label_f1[cat] = f1_score(true_labels, binary_pred, zero_division=0)
-                best_thresholds.append(0.5)
-                
-                # Diagnostic: warn if no positives
-                if true_pos_count == 0:
-                    # This is expected - category has no positives in validation set
-                    pass
+                best_thresholds.append(fixed_threshold)
         
         # Macro F1: average of per-label F1 scores
         val_macro_f1 = np.mean(list(val_per_label_f1.values()))
@@ -1368,17 +1671,22 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         # Micro F1: global calculation with 0.5 threshold (standard)
         val_preds_binary = (val_preds > 0.5).astype(int)
         val_micro_f1 = f1_score(val_labels, val_preds_binary, average='micro', zero_division=0)
+
+        # Cohen's kappa per label and macro average (binary per label)
+        val_per_label_kappa = {}
+        for i, cat in enumerate(label_names):
+            val_per_label_kappa[cat] = cohen_kappa_score(
+                val_labels[:, i].astype(int),
+                val_preds_binary[:, i].astype(int)
+            )
+        val_macro_kappa = float(np.mean(list(val_per_label_kappa.values())))
         
-        # Calculate additional metrics for better understanding
-        val_per_sample_exact = (val_preds_binary == val_labels).all(axis=1).mean()
-        val_per_label_accuracy = (val_preds_binary == val_labels).mean()
+        # Exact match/label accuracy are less useful for multi-label imbalance; omit from logs
         
         train_loss_str = f"{train_loss:.4f}" if not np.isnan(train_loss) else "nan"
         print(f"Train Loss: {train_loss_str}, Train Macro F1: {train_macro_f1:.4f}, Train Micro F1: {train_micro_f1:.4f}")
-        print(f"  Train: Exact match: {train_per_sample_exact:.1%}, Per-label accuracy: {train_per_label_accuracy:.1%}")
         val_loss_str = f"{val_loss:.4f}" if not np.isnan(val_loss) else "nan"
-        print(f"Val Loss: {val_loss_str}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}")
-        print(f"  Val: Exact match: {val_per_sample_exact:.1%}, Per-label accuracy: {val_per_label_accuracy:.1%}")
+        print(f"Val Loss: {val_loss_str}, Val Macro F1: {val_macro_f1:.4f}, Val Micro F1: {val_micro_f1:.4f}, Val Macro Kappa: {val_macro_kappa:.4f}")
         
         # Print per-label F1 scores (top 5 and bottom 5 for visibility)
         sorted_f1 = sorted(val_per_label_f1.items(), key=lambda x: x[1], reverse=True)
@@ -1389,12 +1697,42 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             print(f"  Per-label F1 scores (bottom 5):")
             for cat, f1 in sorted_f1[-5:]:
                 print(f"    {cat}: {f1:.4f}")
+
+        sorted_kappa = sorted(val_per_label_kappa.items(), key=lambda x: x[1], reverse=True)
+        print(f"\n  Per-label Kappa scores (top 5):")
+        for cat, kappa in sorted_kappa[:5]:
+            print(f"    {cat}: {kappa:.4f}")
+        if len(sorted_kappa) > 5:
+            print(f"  Per-label Kappa scores (bottom 5):")
+            for cat, kappa in sorted_kappa[-5:]:
+                print(f"    {cat}: {kappa:.4f}")
         
         # Early stopping
+        val_history.append({
+            'epoch': epoch + 1,
+            'train_loss': float(train_loss),
+            'train_macro_f1': float(train_macro_f1),
+            'train_micro_f1': float(train_micro_f1),
+            'val_loss': float(val_loss),
+            'val_macro_f1': float(val_macro_f1),
+            'val_micro_f1': float(val_micro_f1),
+            'val_macro_kappa': float(val_macro_kappa),
+        })
+
         if val_macro_f1 > best_val_f1:
             best_val_f1 = val_macro_f1
             best_model_state = model.state_dict().copy()
             best_thresholds_at_best = list(best_thresholds)
+            best_val_metrics = {
+                'epoch': epoch + 1,
+                'val_loss': float(val_loss),
+                'macro_f1': float(val_macro_f1),
+                'micro_f1': float(val_micro_f1),
+                'macro_kappa': float(val_macro_kappa),
+                'per_label_f1': {k: float(v) for k, v in val_per_label_f1.items()},
+                'per_label_kappa': {k: float(v) for k, v in val_per_label_kappa.items()},
+            }
+            best_epoch = epoch + 1
             patience_counter = 0
         else:
             patience_counter += 1
@@ -1412,7 +1750,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
     
-    return model, best_thresholds_at_best
+    return model, best_thresholds_at_best, best_val_metrics, val_history
 
 def evaluate_model(model, test_loader, device, label_names, source, model_name, thresholds=None, fixed_threshold=0.5):
     """Evaluate the model on test set"""
@@ -1421,27 +1759,16 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name, 
     test_preds = []
     test_labels = []
     
-    def _forward_kwargs(module):
-        try:
-            import inspect
-            params = inspect.signature(module.forward).parameters
-            if 'use_cache' in params:
-                return {'use_cache': False}
-        except (ValueError, TypeError):
-            pass
-        return {}
-    
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Testing", **tqdm_kwargs):
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
             
-            outputs = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                **_forward_kwargs(model)
-            )
+            forward_kwargs = {}
+            if 'use_cache' in model.forward.__code__.co_varnames:
+                forward_kwargs['use_cache'] = False
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, **forward_kwargs)
             # Convert to float32 for sigmoid computation (more stable)
             logits = outputs.logits.to(dtype=torch.float32)
             
@@ -1499,22 +1826,36 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name, 
         print(f"     Consider checking:")
         print(f"       - Model training logs for convergence")
         print(f"       - Whether the model loaded correctly")
-        print(f"       - Prediction threshold (currently 0.5)")
+        print(f"       - Prediction threshold (currently {threshold_label})")
     
     macro_f1 = f1_score(test_labels, test_preds_binary, average='macro', zero_division=0)
     micro_f1 = f1_score(test_labels, test_preds_binary, average='micro', zero_division=0)
+    per_label_kappa = {}
+    for i, cat in enumerate(label_names):
+        per_label_kappa[cat] = cohen_kappa_score(
+            test_labels[:, i].astype(int),
+            test_preds_binary[:, i].astype(int)
+        )
+    macro_kappa = float(np.mean(list(per_label_kappa.values())))
     
     # Per-category metrics
     precision, recall, f1, _ = precision_recall_fscore_support(
         test_labels, test_preds_binary, average=None, zero_division=0
     )
+    per_label_accuracy = {}
+    for i, cat in enumerate(label_names):
+        per_label_accuracy[cat] = float((test_preds_binary[:, i] == test_labels[:, i]).mean())
     
     results = {
         'macro_f1': macro_f1,
         'micro_f1': micro_f1,
+        'macro_kappa': macro_kappa,
         'per_category_f1': dict(zip(label_names, f1)),
         'per_category_precision': dict(zip(label_names, precision)),
-        'per_category_recall': dict(zip(label_names, recall))
+        'per_category_recall': dict(zip(label_names, recall)),
+        'per_category_accuracy': per_label_accuracy,
+        'per_category_kappa': per_label_kappa,
+        'thresholds': thresholds.tolist() if thresholds is not None else [fixed_threshold] * len(label_names),
     }
     
     return results, test_preds, test_labels
@@ -1524,8 +1865,8 @@ def main():
     parser.add_argument('--source', type=str, required=True, choices=['reddit', 'x', 'news', 'meeting_minutes'],
                        help='Data source')
     parser.add_argument('--model', type=str, default='bert-base-uncased',
-                       choices=['bert-base-uncased', 'roberta-base', 'modernbert-base', 'llama', 'qwen', 'gemma3', 'phi4'],
-                       help='Model to finetune (7 options: bert-base-uncased, roberta-base, modernbert-base, llama, qwen, gemma3, phi4)')
+                       choices=['bert-base-uncased', 'roberta-base', 'modernbert-base', 'llama', 'qwen', 'gemma3'],
+                       help='Model to finetune (6 options: bert-base-uncased, roberta-base, modernbert-base, llama, qwen, gemma3)')
     parser.add_argument('--epochs', type=int, default=5, 
                        help='Number of epochs (default: 5, with early stopping patience=3. For large datasets (100K+), consider 5-10 epochs)')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size (reduce for local LLMs)')
@@ -1533,8 +1874,8 @@ def main():
     parser.add_argument('--max_length', type=int, default=128, help='Max sequence length (default: 128, reduce for memory-constrained devices)')
     parser.add_argument('--test_start', type=int, default=1600, help='Start index for test set')
     parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
-    parser.add_argument('--use_lora', action='store_true',
-                      help='Use LoRA for efficient fine-tuning (works for BERT/RoBERTa/ModernBERT and local LLMs)')
+    parser.add_argument('--use_lora', action='store_true', 
+                       help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3)')
     parser.add_argument('--lora_rank', type=int, default=16, 
                        help='LoRA rank (default: 16, optimized for accuracy and stability. rank=16 gives ~0.21%% trainable, achieves 96-98%% of full fine-tuning. Higher ranks (32+) may cause NaN issues)')
     parser.add_argument('--lora_alpha', type=int, default=32, 
@@ -1544,9 +1885,19 @@ def main():
     parser.add_argument('--lora_target_modules', type=str, default='all',
                        choices=['all', 'attention', 'mlp', 'attention+mlp'],
                        help='Which modules to apply LoRA to: all (qkv+mlp), attention (qkv only), mlp (ffn only), attention+mlp (both)')
-    parser.add_argument('--train_on_gold', type=str, default='gpt_only',
-                       choices=['gpt_only', 'gold_only', 'gpt_plus_gold'],
-                       help='Training data: gpt_only (default), gold_only, or gpt_plus_gold (adds gold train split)')
+    parser.add_argument('--train_classifier', action='store_true',
+                       help='Train the classifier head (recommended for local LLMs with LoRA)')
+    parser.add_argument('--freeze_classifier', action='store_true',
+                       help='Force classifier head to stay frozen')
+    parser.add_argument('--eval_threshold', type=str, default='val_opt',
+                       choices=['fixed', 'val_opt'],
+                       help='Thresholding for test eval: fixed or val_opt (per-label thresholds from best val epoch)')
+    parser.add_argument('--fixed_threshold', type=float, default=0.5,
+                       help='Fixed threshold for eval when eval_threshold=fixed')
+    parser.add_argument('--min_val_positives_for_threshold', type=int, default=5,
+                       help='Min positives in val to optimize per-label threshold; otherwise use fixed_threshold')
+    parser.add_argument('--no_auto_tune', action='store_true',
+                       help='Disable auto-tuning of LR/epochs/dropout based on data size')
     
     args = parser.parse_args()
     
@@ -1610,6 +1961,14 @@ def main():
     # Adjust batch size for local LLMs (they're larger)
     local_llms = ['llama', 'qwen', 'gemma3']
     is_local_llm = any(llm in args.model.lower() for llm in local_llms)
+
+    # Decide classifier training behavior
+    train_classifier = args.train_classifier
+    if args.freeze_classifier:
+        train_classifier = False
+    elif args.use_lora and is_local_llm and not args.train_classifier:
+        train_classifier = True
+        print("  ✓ Enabling classifier training for local LLM + LoRA (use --freeze_classifier to disable)")
     
     if is_local_llm:
         if args.batch_size == 16:  # Default, adjust it
@@ -1896,6 +2255,54 @@ def main():
             print(f"    - Few-shot examples weren't extracted correctly")
             print(f"    - Text matching failed (check if texts are identical)")
     
+    # Align gold labels to gold text by normalized text if possible
+    if gold_labels_df is not None:
+        possible_label_text_cols = [
+            'Comment', 'Deidentified_Comment', 'Deidentified_text',
+            'Deidentified text', 'Deidentified_paragraph'
+        ]
+        label_text_col = None
+        for col in possible_label_text_cols:
+            if col in gold_labels_df.columns:
+                label_text_col = col
+                break
+        
+        if label_text_col is not None:
+            def normalize_text_for_alignment(text):
+                text = ' '.join(str(text).split()).strip().lower()
+                if text.startswith('"') and text.endswith('"'):
+                    text = text[1:-1]
+                elif text.startswith("'") and text.endswith("'"):
+                    text = text[1:-1]
+                return text
+            
+            gold_texts_norm = gold_df[text_col].astype(str).apply(normalize_text_for_alignment)
+            labels_norm = gold_labels_df[label_text_col].astype(str).apply(normalize_text_for_alignment)
+            labels_with_norm = gold_labels_df.copy()
+            labels_with_norm['_norm_text'] = labels_norm
+            
+            aligned = pd.DataFrame({'_norm_text': gold_texts_norm}).merge(
+                labels_with_norm, on='_norm_text', how='left'
+            )
+            
+            match_count = aligned[label_text_col].notna().sum()
+            if match_count == 0:
+                print(f"  ⚠️  WARNING: Text-based alignment found 0 matches; keeping index alignment")
+            else:
+                match_rate = match_count / len(aligned) * 100
+                print(f"  ✓ Aligned gold labels by text: {match_count}/{len(aligned)} matched ({match_rate:.1f}%)")
+                # Fill any missing label values with 0 (unmatched rows)
+                for cat in ALL_CATEGORIES:
+                    if cat in aligned.columns:
+                        aligned[cat] = aligned[cat].fillna(0.0)
+                if 'Racist' in aligned.columns:
+                    aligned['Racist'] = aligned['Racist'].fillna(0.0)
+                # Drop helper column and use aligned labels
+                aligned = aligned.drop(columns=['_norm_text'])
+                gold_labels_df = aligned
+        else:
+            print(f"  ℹ️  No text column in gold labels; using index alignment")
+    
     # Use ALL remaining gold standard samples for evaluation (val + test)
     # This should be (total_samples - 5 few-shot) samples
     # Note: Different sources have different sizes:
@@ -2059,23 +2466,10 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives ({pos_count/len(gold_eval_labels)*100:.1f}%)")
     
-    if args.train_on_gold != 'gpt_only' and gold_labels_df is None:
-        raise ValueError("Gold training requested but gold labels are missing. Provide gold labels or use --train_on_gold gpt_only.")
-    
-    # Split gold standard into train/val/test if training on gold, else val/test only
-    if args.train_on_gold == 'gpt_only':
-        val_texts, test_texts, val_labels, test_labels = train_test_split(
-            gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
-        )
-        gold_train_texts = []
-        gold_train_labels = np.empty((0, len(ALL_CATEGORIES)))
-    else:
-        gold_train_texts, gold_temp_texts, gold_train_labels, gold_temp_labels = train_test_split(
-            gold_eval_texts, gold_eval_labels, test_size=0.4, random_state=42
-        )
-        val_texts, test_texts, val_labels, test_labels = train_test_split(
-            gold_temp_texts, gold_temp_labels, test_size=0.5, random_state=42
-        )
+    # Split gold standard eval set into val and test (50/50 split)
+    val_texts, test_texts, val_labels, test_labels = train_test_split(
+        gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
+    )
     
     # Diagnostic: Check label distribution AFTER splitting
     print(f"\n  Validation set label distribution (AFTER split):")
@@ -2098,44 +2492,70 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives")
     
-    # Train set selection
-    if args.train_on_gold == 'gpt_only':
-        train_texts = gpt_texts.copy()
-        train_labels = gpt_labels.copy()
-    elif args.train_on_gold == 'gold_only':
-        train_texts = gold_train_texts
-        train_labels = gold_train_labels
-    else:
-        train_texts = gpt_texts.copy() + gold_train_texts
-        train_labels = np.vstack([gpt_labels, gold_train_labels])
+    # Train set: Only GPT pseudolabels (no gold standard)
+    train_texts = gpt_texts.copy()
+    train_labels = gpt_labels.copy()
     
     print(f"\nFinal dataset sizes:")
-    if args.train_on_gold == 'gpt_only':
-        print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
-    elif args.train_on_gold == 'gold_only':
-        print(f"  Train (gold standard only): {len(train_texts):,} samples")
-    else:
-        print(f"  Train (GPT + gold train split): {len(train_texts):,} samples")
-        print(f"    GPT: {len(gpt_texts):,} | Gold train: {len(gold_train_texts):,}")
+    print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
     print(f"  Val (gold standard split): {len(val_texts)} samples")
     print(f"  Test (gold standard split): {len(test_texts)} samples")
     print(f"  Total eval: {len(val_texts) + len(test_texts)} samples (should be ~{expected_after_exclude})")
-    
-    # Auto-tune epochs for gold-only training (smaller data)
-    if args.train_on_gold == 'gold_only' and args.epochs > 3:
-        print(f"\nAuto-adjusting epochs for gold-only training: {args.epochs} -> 3")
-        args.epochs = 3
+
+    # Auto-tune hyperparams based on training set size (helps smaller sources)
+    if not args.no_auto_tune:
+        train_size = len(train_texts)
+        lr = args.learning_rate
+        dropout = args.lora_dropout
+        epochs = args.epochs
+
+        if train_size < 5000:
+            lr = lr * 0.3
+            dropout = min(dropout + 0.15, 0.3)
+            epochs = min(epochs, 3)
+        elif train_size < 15000:
+            lr = lr * 0.5
+            dropout = min(dropout + 0.1, 0.3)
+            epochs = min(epochs, 4)
+        elif train_size < 30000:
+            lr = lr * 0.75
+            dropout = min(dropout + 0.05, 0.3)
+            epochs = min(epochs, 5)
+
+        if (lr, dropout, epochs) != (args.learning_rate, args.lora_dropout, args.epochs):
+            print("\nAuto-tuned hyperparameters based on data size:")
+            print(f"  Train size: {train_size:,}")
+            print(f"  learning_rate: {args.learning_rate:.2e} -> {lr:.2e}")
+            print(f"  lora_dropout: {args.lora_dropout:.2f} -> {dropout:.2f}")
+            print(f"  epochs: {args.epochs} -> {epochs}")
+            args.learning_rate = lr
+            args.lora_dropout = dropout
+            args.epochs = epochs
+
+    # Global guardrails for sparse labels across sources
+    if args.eval_threshold == 'val_opt':
+        print("\nForcing fixed eval threshold for stability across sources")
+        args.eval_threshold = 'fixed'
+    if args.fixed_threshold == 0.5:
+        print(f"  Using fixed_threshold={args.fixed_threshold:.2f}")
+    if args.min_val_positives_for_threshold < 10:
+        print(f"  Raising min_val_positives_for_threshold to 10 for stability")
+        args.min_val_positives_for_threshold = 10
+    if args.lora_dropout < 0.2:
+        print(f"  Increasing lora_dropout to 0.20 for stability")
+        args.lora_dropout = 0.2
     
     # Create model and tokenizer
     model, tokenizer = create_model_and_tokenizer(
-        args.model, 
-        len(ALL_CATEGORIES), 
+        args.model,
+        len(ALL_CATEGORIES),
         device=device,
         use_lora=args.use_lora,
         lora_dropout=args.lora_dropout,
         lora_target_modules=args.lora_target_modules,
         lora_rank=args.lora_rank,
-        lora_alpha=args.lora_alpha
+        lora_alpha=args.lora_alpha,
+        train_classifier=train_classifier
     )
     
     # Create datasets
@@ -2152,17 +2572,26 @@ def main():
     # Train model
     print(f"\nTraining {args.model} on {args.source}...")
     sys.stdout.flush()  # Ensure output is flushed before training starts
-    model, best_thresholds = train_model(
+    model, best_thresholds, best_val_metrics, val_history = train_model(
         model, train_loader, val_loader, device,
         epochs=args.epochs, learning_rate=args.learning_rate,
-        source=args.source, model_name=args.model, label_names=ALL_CATEGORIES
+        source=args.source, model_name=args.model, label_names=ALL_CATEGORIES,
+        min_val_positives_for_threshold=args.min_val_positives_for_threshold,
+        fixed_threshold=args.fixed_threshold
     )
     
     # Evaluate on test set
     print(f"\nEvaluating on test set...")
+    thresholds = best_thresholds if args.eval_threshold == 'val_opt' else None
     results, test_preds, test_labels = evaluate_model(
-        model, test_loader, device, ALL_CATEGORIES, args.source, args.model,
-        thresholds=best_thresholds
+        model,
+        test_loader,
+        device,
+        ALL_CATEGORIES,
+        args.source,
+        args.model,
+        thresholds=thresholds,
+        fixed_threshold=args.fixed_threshold,
     )
     
     print(f"\nTest Results:")
@@ -2178,18 +2607,23 @@ def main():
     # Clean model name for file saving
     model_name_clean = args.model.replace('/', '_').replace('-', '_')
     suffix = '_lora' if args.use_lora else ''
+    if args.eval_threshold == 'fixed':
+        eval_tag = f"fixed{args.fixed_threshold:.2f}".replace('.', 'p')
+    else:
+        eval_tag = "valopt"
+    eval_suffix = f"_{eval_tag}"
     
     # Save model based on whether LoRA is used
     if args.use_lora and PEFT_AVAILABLE and hasattr(model, 'save_pretrained'):
         # Save LoRA adapters using PEFT's save_pretrained (saves adapter weights + config)
-        lora_model_dir = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}'
+        lora_model_dir = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_{args.source}{eval_suffix}'
         model.save_pretrained(str(lora_model_dir))
         print(f"\n✓ LoRA adapters saved to: {lora_model_dir}")
         print(f"  (Contains: adapter_model.bin, adapter_config.json)")
         print(f"  To load: Use PEFT's PeftModel.from_pretrained() with base model")
         
         # Also save state_dict for compatibility
-        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_best_{args.source}.pt'
+        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_lora_best_{args.source}{eval_suffix}.pt'
         torch.save({
             'model_state_dict': model.state_dict(),
             'lora_config': {
@@ -2199,17 +2633,21 @@ def main():
                 'target_modules': args.lora_target_modules
             },
             'model_name': args.model,
-            'source': args.source
+            'source': args.source,
+            'eval_threshold': args.eval_threshold,
+            'fixed_threshold': args.fixed_threshold
         }, model_path)
         print(f"✓ Full state dict saved to: {model_path}")
     else:
         # Save full fine-tuned model
-        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_best_{args.source}.pt'
+        model_path = model_dir / f'gpt_pseudolabel_{model_name_clean}_best_{args.source}{eval_suffix}.pt'
         torch.save({
             'model_state_dict': model.state_dict(),
             'model_name': args.model,
             'source': args.source,
-            'use_lora': False
+            'use_lora': False,
+            'eval_threshold': args.eval_threshold,
+            'fixed_threshold': args.fixed_threshold
         }, model_path)
         print(f"\n✓ Full fine-tuned model saved to: {model_path}")
     
@@ -2218,8 +2656,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     suffix = '_lora' if args.use_lora else ''
-    train_tag = '' if args.train_on_gold == 'gpt_only' else f"_train-{args.train_on_gold}"
-    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}{train_tag}_results.json'
+    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_{eval_tag}_results.json'
     
     # Add training config to results
     results['training_config'] = {
@@ -2234,9 +2671,13 @@ def main():
         'batch_size': args.batch_size,
         'learning_rate': args.learning_rate,
         'max_length': args.max_length,
-        'train_on_gold': args.train_on_gold
+        'eval_threshold': args.eval_threshold,
+        'fixed_threshold': args.fixed_threshold
     }
-    results['thresholds'] = best_thresholds if best_thresholds is not None else [0.5] * len(ALL_CATEGORIES)
+    if best_val_metrics is not None:
+        results['val_metrics'] = best_val_metrics
+    if val_history:
+        results['val_history'] = val_history
     
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
