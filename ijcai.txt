@@ -1,0 +1,1023 @@
+%%%% ijcai26.tex
+
+\typeout{Not in My Backyard: LLMs Uncover Online and Offline Social Biases Against Homelessness}
+
+% These are the instructions for authors for IJCAI--ECAI 26.
+
+\documentclass{article}
+\usepackage{enumitem}
+
+\pdfpageheight=11in
+
+% The file ijcai26.sty is a copy from ijcai22.sty
+% The file ijcai22.sty is NOT the same as previous years'
+\usepackage{ijcai26}
+
+% Use the postscript times font!
+\usepackage{times}
+\usepackage{soul}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[small]{caption}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{placeins}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[switch]{lineno}
+\usepackage{natbib}
+\usepackage{tabularx}
+% Comment out this line in the camera-ready submission
+\linenumbers
+
+\urlstyle{same}
+
+% the following package is optional:
+%\usepackage{latexsym}
+
+% See https://www.overleaf.com/learn/latex/theorems_and_proofs
+% for a nice explanation of how to define new theorems, but keep
+% in mind that the amsthm package is already included in this
+% template and that you must *not* alter the styling.
+\newtheorem{example}{Example}
+\newtheorem{theorem}{Theorem}
+
+% Following comment is from ijcai97-submit.tex:
+% The preparation of these files was supported by Schlumberger Palo Alto
+% Research, AT\&T Bell Laboratories, and Morgan Kaufmann Publishers.
+% Shirley Jowell, of Morgan Kaufmann Publishers, and Peter F.
+% Patel-Schneider, of AT\&T Bell Laboratories collaborated on their
+% preparation.
+
+% These instructions can be modified and used in other conferences as long
+% as credit to the authors and supporting agencies is retained, this notice
+% is not changed, and further modification or reuse is not restricted.
+% Neither Shirley Jowell nor Peter F. Patel-Schneider can be listed as
+% contacts for providing assistance without their prior permission.
+
+% To use for other conferences, change references to files and the
+% conference appropriate and use other authors, contacts, publishers, and
+% organizations.
+% Also change the deadline and address for returning papers and the length and
+% page charge instructions.
+% Put where the files are available in the appropriate places.
+
+
+% PDF Info Is REQUIRED.
+
+% Please leave this \pdfinfo block untouched both for the submission and
+% Camera Ready Copy. Do not include Title and Author information in the pdfinfo section
+\pdfinfo{
+/TemplateVersion (IJCAI.2026.0)
+}
+
+\title{``Not in My Backyard": LLMs Uncover Online and Offline Social Biases Against Homelessness}
+
+% Single author syntax
+\author{
+    Blind Submission
+}
+
+% Multiple author syntax (remove the single-author syntax above and the \iffalse ... \fi here)
+\iffalse
+\author{
+First Author$^1$
+\and
+Second Author$^2$\and
+Third Author$^{2,3}$\And
+Fourth Author$^4$\\
+\affiliations
+$^1$First Affiliation\\
+$^2$Second Affiliation\\
+$^3$Third Affiliation\\
+$^4$Fourth Affiliation\\
+\emails
+\{first, second\}@example.com,
+third@other.example.com,
+fourth@example.com
+}
+\fi
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract} Homelessness is a persistent social challenge, impacting millions worldwide. Over 876,000 people experienced homelessness (PEH) in the U.S. in 2025. Social bias is a significant barrier to alleviation, shaping public perception and influencing policymaking. Given that online textual media and offline city council discourse reflect and influence part of public opinion, it provides valuable insights to identify and track social biases against PEH. This research introduces novel methods, building on natural language processing (NLP) and large language models (LLMs), to identify and measure social bias against PEH expressed in both online and offline spaces. We present a new, manually-annotated multi-domain dataset compiled from Reddit, X (formerly Twitter), news articles, and city council meeting minutes across ten U.S. cities. Our label classifications expand upon prior literature, capturing nuanced and previously underexplored forms of homelessness bias. To scale and automate bias detection, we evaluate LLMs as classifiers using zero-shot and in-context learning for local LLMs (Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini) and closed-source API models (GPT-4.1, Gemini 2.5 Pro, and Grok-4). The LLMs consistently outperform traditional transformers (BERT, RoBERTa, and ModernBERT). As GPT achieves the strongest performance, we leverage its in-context learning to generate pseudo-labels and fine-tune local LLMs via LoRA under cross-validation, producing models that have similar scores to GPT. This method opens a path to automate the measurement of social biases expressed through language that negatively impact sustainable development. Our results on PEH bias reveal that the rejection against this vulnerable social group is prevalent both offline and online (especially on Reddit), for the annotation category ``not in my backyard". The results uncover a type of ostracism that has a negative impact on poverty-reduction policymaking. %whereas the association between homelessness bias and racism %is least prevalent across all four data sources. Together, these findings provide insights that highlight hidden biases in public narratives about homelessness.
+\end{abstract}
+
+
+Content Warning: This paper presents textual examples that may be offensive or upsetting.\\
+\href{https://anonymous.4open.science/r/multi-domain-PEH-Classification-D387}{Code: https://anonymous.4open.science/r/multi-domain-PEH-Classification-D387}\\
+\href{https://anonymous.4open.science/r/multi-domain_peh_dataset-B874}{Dataset: \url{https://anonymous.4open.science/r/multi-domain_peh_dataset-B874}}
+\section{Introduction}
+ Homelessness is a persistent social challenge that affects millions of people worldwide. The Organization for Economic Cooperation and Development (OECD) reports that there are 2.2 million people experiencing homelessness (PEH) in the OECD and EU countries \citep{oecd2024homelessness}. The United States is no exception: more than 876,000 people were recorded as experiencing homelessness in 2025, the highest number ever documented \citep{hud2025no25-153}. Specifically, the Point in Time count for PEH in San Francisco alone increased by 52\% between 2005 and 2024 \citep{sf_homeless_population_2024}.  In this context, there is a growing call for a shift from traditional homelessness management (which focuses on providing material resources) to comprehensive support approaches that also address the stigmatization of PEH \citep{EU2024}. 
+
+The marginalization suffered by PEH remains an understudied topic \citep{curto2025tackling}. Biases against PEH contribute to dehumanizing those affected, and make it harder for policymakers to approve and implement social measures that aim to mitigate homelessness \citep{curto2024crime,curto2025tackling}. Further, the public perception of homelessness influences public voting in elections and therefore has an impact on policies aimed at addressing it \citep{clifford2017explaining}.
+
+
+Public opinion expressed through online textual media and offline city council discourse offers valuable insights into the prevalence of social biases \citep{AlanChan2021, Mislove2011}. Leveraging these digital and public records presents an affordable and relatively rapid method to derive preliminary indicators of social biases expressed through language. This study contributes to the nascent field of research on agentic large language models (LLMs) for social impact, where LLMs are used as classifiers to automatically generate new indicators of social biases expressed through language. We present novel methods, building on natural language processing (NLP) and LLMs, to identify and measure bias against PEH expressed in digital spaces. Our work explores the effectiveness of LLMs as classifiers for online and offline data to generate and track new indices of homelessness bias across various U.S. cities. We investigate potential correlations between these indices and explore avenues for tackling homelessness by influencing public opinion.
+To this end, we present the following research questions (RQs): 
+\begin{itemize}
+ \item \textbf{RQ1:}  How well can existing LLMs and transformer models perform multilabel zero-shot text classification to identify and categorize language that expresses negative social biases against PEH?
+  \item \textbf{RQ2:} To what extent does in-context learning and finetuning improve the F1 score for multi-label text classification?
+ \item \textbf{RQ3:} How do English online and offline textual homelessness biases differ across media platforms (social networks, news, and council meeting minutes)?
+\end{itemize}
+
+\noindent To answer these RQs, we accomplish the following tasks.
+    \begin{enumerate}[nosep]
+    \item We collect and publish a dataset of online and offline geolocalized data on homelessness discourse between 2015 and 2025 for 10 US cities from Reddit, X (formerly Twitter), news articles, and city council meeting minutes.
+   \item We anonymize the data using spaCy.
+     \item We create a multi-modal PEH bias classification frame which expands upon previous studies \citep{ranjit2024oath, curto2025tackling} alongside local stakeholder. 
+ \item  We classify biases against PEH in the multi-modal data using Local LLMs (Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini), closed-source API models (GPT 4.1, Gemini 2.5 Pro, and Grok 4), and compare them against human annotators while using transformer models (BERT, RoBERTa, and ModernBERT) as baselines.
+ \item We cross-validate the results by finetuning the local LLMs on the pseudolabels generated from the best model (GPT-4.1)
+ \item  Finally, we compare the identified bias across different cities and data sources using the pseudolabels and highlight the social impact that bias against PEH can potentially have on the actual levels of homelessness.
+\end{enumerate}
+
+Our approach aims to foster greater public awareness, reduce the spread of harmful biases, and inform policy decisions through data-driven analysis of homelessness discourse. This work was conducted in partnership with [Person A] from [ANONYMOUS] and Person B from a non-profit organization in the City of South Bend, Indiana, USA. [Person A] is the founder of a newly established homelessness shelter initiative in the city, while [Person B] works directly with homelessness service providers and municipal stakeholders and brings lived experience related to homelessness. Public online debates surrounding where to locate the new shelter, particularly the emergence of "not in my backyard" narratives, served as a direct catalyst for this research and motivated a systematic investigation of how online and offline language reflects and amplifies social bias against people experiencing homelessness. Through sustained collaboration, including regular monthly meetings with Person B and site visits to local homelessness shelters, this partnership informed the construction of the dataset, the refinement of annotation categories, and the interpretation of results, ensuring that the analyses remain grounded in first-hand observations and real-world policy and service contexts. By connecting these findings to global development priorities, this research directly supports the United Nations Sustainable Development Goals (SDGs), particularly SDG 1 (No Poverty) and SDG 11 (Sustainable Cities and Communities), highlighting how language-based biases can shape public opinion, influence housing policy, and affect local poverty reduction efforts.
+
+\section{Related Work}
+
+Understanding and addressing societal biases, particularly those against vulnerable populations, including PEH, is crucial for informing effective policy and fostering social equity. However, traditional social science methods for gauging public perception are often limited in their ability to process the large quantities of pertinent data available for analysis. Our research overcomes this constraint by leveraging advancements in AI, specifically LLMs and NLP, as powerful tools to systematically identify, measure, and track societal biases expressed in vast amounts of diverse textual data generated by humans. Therefore, we examine how current work (1) Evaluates and Benchmarks LLMs as Classifiers, addresses (2) Societal Impact and Policy-Oriented Data Collection, and uses (3) AI for Detecting and Classifying Societal Bias.
+
+\subsection{Evaluating and Benchmarking LLMs as Classifiers}
+Prior work benchmarks LLM capabilities in various classification tasks, particularly low-resource or novel scenarios like zero-shot and few-shot learning \citep{matarazzo2025survey}. Studies evaluate their accuracy, consistency, and ability to generalize to new data distributions. For instance, benchmarks like GLUE and BIG-Bench, while general-purpose, offer foundational insights into core linguistic capabilities relevant for classification tasks \citep{wang2018glue, srivastava2023beyond}. More holistically, HELM evaluates models across multiple dimensions, including fairness and bias, moving beyond mere accuracy \citep{liang2022holistic}.
+
+While we focus on LLMs to detect human-generated bias, it is crucial to acknowledge the ``inherent biases'' within LLMs themselves (e.g., representational biases, harmful content generation) as these can influence classification outcomes \citep{li2025understanding}. Techniques for auditing LLM outputs for fairness between demographic groups or identifying stereotypical associations within their internal representations \citep{bolukbasi2016man, nadeem2020stereoset, blodgett2020language} are relevant to ensure the integrity of the classification results we obtain. Recent work continues to investigate how LLMs inherit and manifest social biases from their training data, and how these biases can impact downstream applications like bias detection \citep{hartvigsen2022toxigen, chaudhary2024unveiling}. 
+
+\subsection{Societal Impact and Policy-Oriented Data Collection}
+NLP tools are being used to parse political activities, analyze legislation, track public sentiment, and investigate policy effects, transforming how researchers and policymakers engage with textual data \citep{jin2022natural}. LLMs are proving valuable for tasks like coding large datasets, reducing reliance on manual annotation, and extracting meaningful information for policymaking \citep{gilardi2023chatgpt, halterman2024codebook, li2024buildingview}.
+
+Research has also been done in mitigating biases within AI systems themselves \citep{morales2024langbite}. The responsible application of AI in this context, including human-centered design principles, is critical to ensure that tools serve to reduce, rather than exacerbate, social disparities \citep{lu2024responsible, unesco2021ethics}.
+
+\subsection{AI for Detecting and Classifying Societal Bias}
+\label{sec:lexicon}
+
+Previous studies have evaluated the effectiveness of LLMs as classifiers for biases against the poor, often collectively referred to as aporophobia, in online discourse \citep{kiritchenko2023aporophobia,curto2024crime, curto2025tackling}. For instance, international comparative studies have shed light on the criminalization of poverty in online public opinion \citep{curto2024crime}, and comprehensive taxonomies for aporophobia have been proposed \citep{curto2025tackling}.
+
+More specifically concerning PEH, research has demonstrated LLMs' capability to detect shifts in public attitudes linked to socioeconomic factors \citep{ranjit2024oath}. For example, analyses of tweets classified by LLMs have indicated a correlation between a larger unsheltered PEH population and an increase in harmful generalizations \citep{ranjit2024oath}. These pioneering efforts highlight the immense potential of computational methods for analyzing public sentiment and identifying societal biases at scale.
+
+The OATH framework \citep{ranjit2024oath} provides one of the most comprehensive pipelines for homelessness bias classification, categorizing biases into nine frames: `money aid allocation', `government critique', `societal critique',	`solutions/interventions', 'personal interaction', 'media portrayal',	`not in my backyard', `harmful generalization', and `deserving/undeserving'. However, OATH's data collection was limited to a single online platform (X, formerly Twitter) and relied on a single keyword ('homeless'). Our research significantly advances this area by collecting a novel, multi-domain dataset from diverse online sources (Reddit, X, news articles) and incorporating offline data from city council meeting minutes, which offers unique insights into policy-level discourse. Furthermore, we utilize a comprehensive PEH Lexicon containing the words `homeless', `homelessness', `housing crisis', `affordable housing', `unhoused', `houseless', `housing insecurity', `beggar', `squatter', `panhandler', and `soup kitchen' \citep{karr2025homelessness} and expand upon OATH's classification categories to capture a broader and more nuanced spectrum of biases, as detailed in Section \ref{sec:bias_classification}.
+
+\section{Methodology}
+
+\begin{figure*}[ht!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{figures/AAAI_Pipeline.jpg}
+    \caption{We collect online (Reddit, X, news articles), and offline (city council meeting minutes) data on homelessness discourse using the PEH lexicon \citep{karr2025homelessness}. We then anonymize the data and have both LLMs and domain experts classify the data into bias categories to determine the reliability of LLMs as classifiers.}
+    \label{fig:main_figure}
+\end{figure*}
+
+As noted in Figure \ref{fig:main_figure}, we create a multi-domain dataset from Reddit, X, news articles, and meeting minutes by using the PEH lexicon \citep{karr2025homelessness}. 
+Then we anonymize the data with spaCy \citep{HonnibalMontani2020} to remove personally identifiable information (PII). We identify if the data contains bias against PEH and classify the types of biases using our multi-domain PEH bias classification criteria. We work with human annotators, LLMs, and transformer models as PEH bias classifiers. We utilized local LLMs (Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini) as well as closed-source API models (GPT-4.1, Gemini 2.5 Pro, and Grok-4), zero-shot and instruct (few-shot), and evaluated their performance against human annotators, transformers (BERT, RoBERTa, and ModernBERT), and traditional ML models (linear regression, SVM, and random forest).
+
+\subsection{Data Collection}
+To collect the data, we selected 10 U.S. cities, divided into two groups of five. The first group consists of smaller cities with lower levels of homelessness, similar to South Bend, Indiana, which serves as our local case study in collaboration with community experts. The second group includes larger cities comparable to San Francisco, California, which are frequently highlighted in national news coverage of homelessness. We generated the city list using a k-Nearest-Neighbors (kNN) approach (see Appendix \ref{sec:data} for full details), standardizing on factors such as population size, homelessness rate, and GINI index. The corresponding counties (listed in Table \ref{tab:cities}) were selected to match these factors while differing primarily in racial fractionalization. This grouping allows us to compare smaller, locally-relevant cities against larger, media-visible cities and examine how public discourse on homelessness varies across these contexts.
+
+Cities with fewer than 50 Reddit posts referencing people experiencing homelessness (PEH) between January 1, 2015, and January 1, 2025, were excluded to ensure sufficient data for analysis. Collecting offline data  city council meeting minutes, was labor-intensive and required different procedures for each city, including manually obtaining records and, for some municipalities, transcribing audio recordings into text.. By combining online and offline sources we capture a more complete picture of homelessness discourse across multiple contexts. Table \ref{tab:summary_data} summarizes the total number of posts, comments, articles, paragraphs, and meeting records collected for each city. This combined dataset enables analysis of both publicly visible debates and formal policy-level discussions, emphasizing how language expressing social biases against PEH manifests across diverse platforms.
+
+\subsection{Data Anonymization}
+
+Prioritizing the anonymization of our data is essential for research and privacy protection. We leveraged the capabilities of the spaCy NLP library \citep{HonnibalMontani2020}. This technique allowed us to automatically identify and mask PII within the text. The specific categories of entities targeted for anonymization included: person name, geographic locations, organizations, and other identifying information such as street addresses, phone numbers, and emails. We also leveraged the Python module pydeidentify \citep{pydeidentify}, which is based on spaCy, in case we missed any other information to be anonymized.
+
+The result of this multifaceted anonymization strategy is a dataset that respects user privacy while retaining the essential content for bias analysis.
+
+\subsection{multi-domain PEH Classification Categories}
+\label{sec:bias_classification}
+We create categories for a multi-domain PEH classification, 16 total, by expanding upon the nine OATH-Frames \citep{ranjit2024oath}, noted in the Related Work. The OATH frames include important categories. However, they are limiting, since the frames were explicitly designed for Twitter (now X) and do not include categories encompassing claims or questions. Since questions are common on Reddit, we added the categories `ask a genuine question' and `ask a rhetorical question'. Additionally, we created the categories, `provide a fact or claim' and `provide an observation', based on the data we encountered through the annotation exercise with domain experts in the city of South Bend.  We also added the categories `express their opinion' and `express others' opinions', which indicate whether the authors are giving a personal view or expressing the views of others. Finally, [ANONYMOUS] organization in South Bend recommend that we include the category `racist' that categorizes whether a post expresses racism or not, which offers an intersectional perspective of the bias against PEH. The definitions for the classification labels can be found in Appendix \ref{sec:classification_categories}. From these categories, we create a new frame, `Negative Biases', for analysis of how biases differ across platforms and cities. We include the five categories `ask a rhetorical question', `not in my backyard', `deserving/undeserving', `harmful generalization', and `racist'. Although other categories such as `societal critique' can express bias, they have a higher likelihood to also express positive bias or neutrality and, therefore excluded from this frame.
+
+\subsection{Manually Annotated Baseline}
+Three human annotators labeled the whole manually-annotated dataset, using the defined multi-domain PEH bias classification categories. We created a manually annotated baseline \citep{cardoso2014gold} utilizing stratified sampling \citep{liberty2016stratified}. To accomplish this, we annotated 50 comments per city (10 cities) for each of the four data sources. Since not all the cities had 50 entities for each source, a total of 1702 entities form our gold standard. When annotating, we worked in close collaboration with domain experts from [A] and [B] non-profit organizations in the City of South Bend. This led us to have a high agreement rate among the human annotators, averaging 78.38\% per category. However, it is not perfect, since inevitably, people have different opinions about biases based on their personal experiences and backgrounds. Therefore, we construct the gold standard using soft labeling \citep{fornaciari2021beyond}, which averages annotators' responses; if two or more annotators agree, it is classified accordingly. Annotator agreement rates per category can be found in Appendix \ref{sec:annotator_agreement}.
+
+
+\section{Results}
+
+
+\subsection{Model Selection \& Experimental Setup}
+\begin{table*}[h!]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccccccccclclcl}
+\toprule
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & & Grok & & GPT-4 & & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\
+ & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & & Zero & & Zero & & Finetuned& Finetuned& Finetuned& Finetuned& Finetuned&Finetuned\\
+& & (GPT)& & (GPT)& & (GPT)& & & & & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\
+\midrule
+Reddit (Macro) & 64.92 & & 60.62 & & 66.09 & & 60.67 & & 60.05 & & 75.00 & & 25.45  && 27.22  && 32.11  &\\
+Reddit (Micro) & 80.69 & & 81.35 & & 73.91 & & 69.42 & & 77.18 & & 80.62 & & 42.50  && 38.13  && 41.73  &\\
+X (Twitter) (Macro) & 64.99 & & 55.98 & & 60.20 & & 68.34 & & 63.67 & & 65.00 & & 18.07  && 18.17  && 30.75  &\\
+X (Twitter) (Micro) & 83.46 & & 82.44 & & 71.01 & & 79.63 & & \textbf{83.69} & & 77.15 & & 26.14  && 47.44  && 43.82  &\\
+News (Macro) & 64.17 & & 59.81 & & 54.91 & & 69.55 & & 66.96 & & 67.84 & & 1.08  && 14.24  && 16.18  &\\
+News (Micro) & 85.45 & & 86.88 & & 63.38 & & 81.79 & & 85.75 & & 81.04 & & 33.77  && 45.02  && 33.33  &\\
+Meeting Minutes (Macro) & 65.67 & & 60.31 & & 64.31 & & 70.87 & & 66.56 & & 66.59 & & 11.66  && 15.64  && 22.82  &\\
+Meeting Minutes (Micro) & 84.89 & & \textbf{84.51} & & 73.61 & & 80.63 & & 84.39 & & 78.42 & & 37.86  && 39.58  && 48.87  &\\
+Weighted Avg (Macro) & 64.96 & & 60.33 & & 65.43 & & 61.96 & & 60.83 & & 73.73 & & 24.12  && 25.89  && 30.45  &\\
+Weighted Avg (Micro) & 81.22 & & 81.73 & & 73.53 & & 70.99 & & 78.19 & & 80.29 & & 40.89  && 40.89  && 42.78  &\\
+\bottomrule
+\end{tabular}
+}
+\centering
+\caption{Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_reordered}
+\end{table*}
+
+
+To test and improve upon the current state of PEH bias classification, we benchmark a diverse set of models, encompassing established deep learning architectures, transformer models, and state-of-the-art large language models (LLMs), against our human-annotated gold standard dataset. Our selection process was driven by the need to assess performance across different model sizes, architectures, and access modalities (local vs. API-based) to investigate the impact of various prompting strategies.
+
+We test six LLMs, three transformer models, and three traditional machine learning architectures against our gold standard. We choose three local LLMs to evaluate classification performance in low-resource environments: Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini. We also test three closed-source LLMs: GPT-4.1, Gemini 2.5 Pro, and Grok-4. For all six LLMs, we used two types of prompts:
+
+Zero-Shot Learning: This setup evaluates a model's inherent understanding and ability to classify unseen examples without any explicit task-specific examples in the prompt.
+
+In-Context Learning (Few-shot): This strategy involves providing a small number of example input-output pairs directly within the prompt to guide the model's understanding of the task. For our experiments, we used five diverse examples from the human-annotated gold standard dataset for in-context learning. This process is standard in literature \citep{wang2020generalizing}. All prompts are independent calls, which prevents data leakage between prompts. These examples were chosen to represent a variety of sources and classification categories to maximize their utility.
+
+At the beginning of the prompt, we provide definitions of the classification categories and five examples when in-context learning is used. Since this is a multi-label classification problem, the models should output multiple labels when appropriate. The LLM prompt and all in-context prompts can be found in Appendix \ref{sec:llm_prompt}. It is important to note that the five in-context examples are dependent upon the source (five from Reddit, five from X, five from news, and five from meeting minutes).
+
+Here are two examples of in-context prompts that the human annotators agreed on:
+
+Example X: ``Did your Black flunky mayor get the[image][ORGANIZATION]'s memo 2 stick it 2 Rump instead of serving you by refusing 2 deport migrants + give them Black taxpayers'[image] 4 shelter+food while Black citizens go homeless? [ORGANIZATION] mayors did.  Charity starts at [image].[URL]'' \\
+Few-shot classification: `ask a rhetorical question', `provide a fact or claim', `express their opinion', `money aid allocation', `harmful generalization', `deserving/undeserving', and `racist'.
+
+Example Meeting Minutes: ``but they stuck with us, they got all the permissions they needed, and we would not have made the functional end of veteran homelessness in [ORGANIZATION] without them, so thank you. PERSON0? Well, thank you for this honor.'' \\ Few-shot classification:`provide a fact or claim', `express their opinion', and `solutions/interventions'. 
+
+For the three transformer models BERT \citep{devlin2019bert}, RoBERTa \citep{liu2019roberta}, and ModernBERT \citep{warner2024smarter}, we finetune the data using a training, validation, testing split of 70\%, 10\%, 20\%, which is standard for the size of our data. We also set the random state to 42 so that tests can be repeated. Since our data is imbalanced, we add SMOTE \citep{chawla2002smote} to the transformer models to see if it is beneficial. SMOTE is only applied to the training categories  in order to prevent data leakage while targeting 30\% positive per category.
+
+
+%TI will schI will schedule some time for us to connect.ule some time for us to connect.explore the feasibility and performance of deploying models in resource-constrained environments, we selected three distinct local LLMs: Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini. We compare these against state-of-the-art closed-source models: GPT-4.1, Gemini 2.5 Pro, and Grok-4.
+
+To assess model performance, we use macro-F1 score \citep{opitz2019macro}, yet also report the micro-F1 score. This metric is critical for multi-label classification tasks with potential class imbalance, as it calculates the F1 score for each individual class and then averages them, thus equally weighting the performance on both prevalent and rare categories. In our dataset, class imbalance is prevalent. For example, over 70\% of the results in the gold standard are classified as `provide a fact or claim', yet less than 1\% are classified as racist.
+
+We compare all models' overall F1 score on the gold standard for both zero-shot and few-shot. We then choose the best-performing model to test on the entire dataset. When choosing the best model, we pick the best macro-F1 score for the weighted average, where the weighted average is with respect to the number of results in the complete dataset.
+
+\subsection{Results and Analysis}
+
+In Table \ref{tab:detailed_f1_scores}, we see that GPT has the best weighted average (in terms of alignment with the manually annotated gold standard dataset), so we chose it to classify our complete dataset.  When examining Table \ref{tab:gpt4_category_breakdown}, we find that GPT, which achieves the best results as classifier, shows improvement in in-context learning for underrepresented categories. However, zero-shot performance is better for categories where the LLM already performs well. 
+
+
+When analyzing the results, it is important to note that certain LLMs outperform GPT when classifying X, news, and meeting minutes. GPT performs best overall, primarily because of its dominance in classifying Reddit comments. This may be in part because it was explicitly trained on Reddit and other online data \citep{ge2024reddit}. When it comes to classifying X, news, and meeting minutes, other models perform better, as noted in Table \ref{tab:detailed_f1_scores}. Additionally, local LLMs perform comparably or even outperform closed-source models at these tasks. This shows that it may be beneficial to use local LLMs when either cost savings or data security is needed for classification purposes.
+
+
+We also observe that transformers struggle with classifying data with multiple labels, unlike LLMs.  Overall, LLMs perform the best, followed by transformer models, while traditional ML models perform the worst. A full breakdown of model results can be found in Appendix \ref{sec:llm_results} - \ref{sec:ml_results}.
+
+The correlation matrix in Figure \ref{fig:correlation} reveals that there are significant negative correlations between `solutions/interventions' vs. `societal critique', `solutions/interventions' vs. `harmful generalization', and `solutions/interventions' vs. `personal interaction'. There are also significant positive correlations between `societal critique' vs `deserving/undeserving', `express their opinion' vs `deserving/undeserving', and `ask a genuine question' vs `deserving/undeserving'. These findings can potentially help policymakers address homelessness alleviation by acting on public opinion. Our findings illustrate how, when there are harmful generalizations, there is less acceptance of solutions and interventions. Moreover, the positive correlation between ``deserving / undeserving'' and ``ask a genuine question'' could potentially indicate that there is some questioning about shared beliefs that tend to blame PEHs for their fate \citep{Sandel2020a,Desmond2023}. 
+
+\begin{figure*}[!htb]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/combined_comprehensive_source_comparison.pdf}
+    \caption{Data Source Comparison}
+    \label{fig:data_correlation_figure}
+\end{figure*}
+
+In Figure \ref{fig:data_correlation_figure} we see that there are several significant correlations between the multi-domain PEH bias classification categories and the media type.  For example, meeting minutes and news sources discuss solutions/interventions more frequently than social media.  Additionally, social media posts are more likely to express harmful generalizations or opinions about the deservingness of PEH. When determining statistical significance, we applied the Bonferroni correction \citep{weisstein2004bonferroni} since this involves multi-label classification analysis.
+
+
+\section{Conclusion}
+This research introduces a novel multi-modal dataset and demonstrates the effectiveness of Large Language Models (LLMs) in identifying and classifying homelessness bias in online and offline public discourse. Our comprehensive evaluation shows that while models may exhibit inconsistencies in classifying underrepresented categories, yet their performance significantly improves whe in-context learning or SMOTE is applied. This highlights the potential for scalable and accessible social biases detection solutions, which are valuable tools to combat urgent social challenges (such as homelessness) by acting on public opinion. The observed variations in bias prevalence across cities and media platforms underscore the heterogeneous nature of public perception, emphasizing the necessity for context-specific interventions when aiming to alleviate homelessness through acting on the social fabric.
+
+This work aims to foster public awareness, mitigate harmful biases, and inform policy, thereby enhancing the ethical application of generative AI in addressing critical social challenges. The invaluable partnership with the City of [ANONYMOUS] and their non-profit collaborators has been instrumental, guiding our human annotation and ensuring the practical relevance of our findings. By developing new indicators of homelessness bias, we empower cities like [ANONYMOUS] with data-driven tools to counter stigmatization and facilitate more equitable approaches to homelessness alleviation.
+\FloatBarrier
+
+
+
+\section*{Limitations}
+\label{sec:future_work}
+Drawing text content from diverse sources, including Reddit, X, news sources, and city council meeting minutes, provides a robust dataset for analysis. However, it cannot be said that this dataset encompasses all of the available dialogue concerning homelessness. Future research might benefit from including novel data sources in order to capture discourse that is currently underrepresented in our final dataset. Additionally, we do not determine whether the data is coming from an actual human or a bot.
+
+The geographic scope of our data collection is confined to 10 specific U.S. cities. Although these cities were strategically chosen to represent varying demographics and homelessness rates, they do not represent the full spectrum of socio-economic and cultural contexts across the entire United States, let alone globally. Our lexicon is also standardized across all ten cities, and does not pick up on cultural nuances. Furthermore, it is difficult to find significant correlations between cities when only examining ten cities.
+
+Despite our expanded multi-domain PEH bias classification criteria and rigorous human annotation processes, the inherent complexity and subjectivity of identifying and categorizing social bias remain a challenge. Subtle, implicit biases that do not involve overt discriminatory language are difficult for automated systems to fully capture, even with advanced LLMs. 
+
+\section*{Ethical Considerations}
+
+The principle of beneficence, which maximizes benefits while minimizing potential harms \citep{beauchamp2008principle}, is critical to our research. It is also important to promote fairness, especially when dealing with biases towards PEH. These ethical principles are especially important in socially challenging topics such as homelessness alleviation. We have been working in close collaboration with specialized non-profits in the city of [ANONYMOUS] to make guided decisions in the human manual annotation of homelessness biases. 
+
+We make sure that privacy is paramount. All data is anonymized to remove PII using spaCy, adhering to ethical standards for data privacy. The anonymization process ensures that individuals’ identities are protected, while still allowing for valuable insights to be drawn from the data. For this process, we received IRB approval to scrape public data, and we ensure that proper guidelines and ethics are followed when using this data.
+
+In creating the paper, we used LLMs such as ChatGPT and Gemini to help with code and writing editing, though all of the content is our own.
+
+%\newpage
+
+
+\section*{Acknowledgments}
+Hidden for blind revision
+
+
+%% The file named.bst is a bibliography style file for BibTeX 0.99c
+\bibliographystyle{named}
+\bibliography{ijcai26}
+
+\appendix
+\section{Data}
+\label{sec:data}
+
+We selected 10 US cities, grouped into two sets of 5, based on our kNN script. When selecting the cities, we gathered data from their respective counties from the U.S. Census. The counties for these cities were selected to have similar levels of population, homelessness rates, and GINI index, while differing primarily in racial fragmentation. The cities of South Bend, Indiana, and San Francisco, California, were selected as the cities for each group. 
+
+
+\begin{table*}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}cp{6cm}cccccc@{}}
+\toprule
+\textbf{Grouping} & \textbf{County, State (City Within County)} & \textbf{RFI$^\mathbf{\ast}$} & \textbf{Population} & \textbf{RPP$^\mathbf{\dag}$} & \textbf{RPA$^\mathbf{\ddag}$} & \textbf{Homelessness$^\mathbf{\nabla}$} & \textbf{GINI$^\mathbf{\times}$} \\ \midrule \addlinespace[3pt]
+\multicolumn{8}{c}{\textbf{Counties / Cities Comparable to San Francisco County (San Francisco, CA, USA)}} \\ \addlinespace[4pt]
+1 & San Francisco County, California (San Francisco) & 0.75 & 851,036 & 1,032 & 131 & 98 & 0.52 \\
+2 & Multnomah County, Oregon (Portland) & 0.56 & 808,098 & 1,198 & 237 & 91 & 0.47 \\
+3 & Erie County, New York (Buffalo) & 0.47 & 951,232 & 1,342 & 134 & 60 & 0.46 \\
+4 & Baltimore County, Maryland (Baltimore) & 0.63 & 850,737 & 997 & 99 & 7 & 0.46 \\
+5 & El Paso County, Texas (El Paso) & 0.69 & 863,832 & 1,919 & 99 & 11 & 0.47 \\ \midrule \addlinespace[4pt]
+\multicolumn{8}{c}{\textbf{Counties / Cities Comparable to St. Joseph County (South Bend, IN, USA)}} \\ \addlinespace[4pt]
+A & St. Joseph County, Indiana (South Bend) & 0.52 & 272,388 & 1378 & 97 & 8 & 0.47 \\
+B & Winnebago County, Illinois (Rockford) & 0.57 & 284,591 & 1,583 & 134 & 29 & 0.45 \\
+C & Kalamazoo County, Michigan (Kalamazoo) & 0.43 & 261,426 & 1297 & 83 & 25 & 0.46 \\
+D & Lackawanna County, Pennsylvania (Scranton) & 0.38 & 215,672 & 1252 & 238 & 8 & 0.46 \\
+E & Washington County, Arkansas (Fayetteville) & 0.60 & 247,331 & 1,466 & 80 & 32.14 & 0.48 \\ \bottomrule
+\end{tabular}
+}
+{\raggedright
+$^\mathrm{\ast}$RFI: Racial Fractionalization Index \\
+$^\mathrm{\dag}$RPP: Rate of People Below Poverty Line (per 10k) \\
+$^\mathrm{\ddag}$RPA: Rate of People With Public Assistance (per 10k)\\
+$^\mathrm{\nabla}$Homelessness: Homelessness Rate (per 10k) \\
+$^\mathrm{\times}$GINI: Income Inequality (GINI)\\
+}
+\caption{Table of US counties, used in the dataset. Counties are similar to San Francisco County, CA, and St. Joseph County, IN. The counties are similar in the rate of people below the poverty line, the rate of people with public assistance, the homelessness rate, and GINI, yet differ in racial fractionalization.}
+\label{tab:county_table}
+\end{table*}
+
+Our dataset from the ten cities can be seen in Table \ref{tab:summary_data}. The dataset comprises 50,447 total text samples from January 1st, 2025, to January 1st, 2025, with the largest contributions from Reddit comments (34,447) and X (Twitter) posts (16,472). Smaller cities like Scranton and El Paso contribute fewer total data samples than larger cities like San Francisco and Portland. Kalamazoo and Baltimore's city council sites do not make meeting minute data publicly available (thus denoted N/A). Additionally, certain cities have a lower number of meetings since they do not span ten years. For example, the city of San Francisco began publishing the complete text of their meeting minutes in 2023. Prior to that, they just recorded a summary (no full text or audio recordings available). The given distribution reflects both population differences and varying levels of online civic engagement across cities. 
+\begin{table*}[ht]
+  \centering
+  \small 
+  \begin{tabularx}{\textwidth}{l *{9}{>{\centering\arraybackslash}X}}     
+  \toprule
+  City & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} &  \multicolumn{3}{c}{X (Twitter)} &\multicolumn{2}{c}{City Council} \\ 
+  & Posts & Comments & Articles & Paragraphs & Posts & Geolocated & Non-Reposts & Meetings & Comments \\
+    \midrule
+    \textbf{South Bend}& 62 & \textbf{196} & 36 & \textbf{49} & 96 & 6 & \textbf{65}  &86& \textbf{330}\\
+    \textbf{Rockford} & 43 & \textbf{188} & 6 & \textbf{9} & 98 & 0 & \textbf{43}  &344 & \textbf{243} \\
+    \textbf{Kalamazoo} & 209 & \textbf{1846} & 8 & \textbf{11} & 99 & 1 & \textbf{40}  &N/A & N/A \\
+    \textbf{Scranton} & 13 & \textbf{79} & 108 & \textbf{159} & 92 & 2 & \textbf{56}  &431 & \textbf{514} \\
+    \textbf{Fayetteville} & 34 & \textbf{102} & 28 & \textbf{29} & 97 & 3 & \textbf{81}  &233 & \textbf{1043} \\
+    \textbf{San Francisco} & 714 & \textbf{14777} & 1181 & \textbf{1537} & 9168 & 23& \textbf{2330}&25 & \textbf{14} \\
+    \textbf{Portland} & 751 & \textbf{15301}& 322 & \textbf{397}& 5574 & 39& \textbf{1215}&372 & \textbf{6618} \\
+    \textbf{Buffalo} & 151 & \textbf{589} & 176 & \textbf{196}& 685 & 1 & \textbf{115}  &211 & \textbf{135} \\
+    \textbf{Baltimore} & 246 & \textbf{1215} & 142 & \textbf{156}& 464 & 7 & \textbf{244}  &N/A & N/A \\
+    \textbf{El Paso} & 40 & \textbf{154} & 28 & \textbf{31}& 99 & 1 & \textbf{53}  &74 & \textbf{284} \\
+    \midrule
+    \textbf{Grand Total} & 2263 & \textbf{34447} & 2035 & \textbf{2577}& 16472 & 83 & \textbf{4242}&3552 & \textbf{9181} \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Dataset Summary}
+  \label{tab:summary_data}
+\end{table*}
+
+\FloatBarrier
+
+\section{Classification Taxonomy}
+\label{sec:classification_categories}
+
+We expanded upon the nine OATH-Frames \citep{ranjit2024oath} to create 16 classification categories. The additional categories allow us to address new dataset challenges such as distinguishing between genuine and rhetorical questions common on Reddit.
+
+\subsection*{OATH Categories:}
+\begin{description}[style=multiline, leftmargin=3.2cm, font=\bfseries, nolistsep]
+    \item[Critique] \textit{\textbf{Money Aid Allocation \\ 
+                    Government Critique \\ 
+                    Societal Critique}} \\ 
+                    Covers discussions of resources, policy, and systemic norms.
+    
+    \item[Response] \textit{\textbf{Solutions/Interventions}} \\ 
+                    Focuses on specific charitable or policy actions.
+    
+    \item[Perception] \textit{\textbf{Personal Interaction \\ 
+                    Media Portrayal \\ 
+                    Not in My Backyard \\ 
+                    Harmful Generalization \\ 
+                    Deserving/Undeserving}} \\ 
+                    Categorizes how PEH are viewed or treated by the public.
+\end{description}
+
+\subsection*{New Categories:}
+\begin{description}[style=multiline, leftmargin=3.2cm, font=\bfseries, nolistsep]
+    \item[Comment Types] \textit{\textbf{Genuine Question \\ 
+                    Rhetorical Question \\ 
+                    Fact or Claim \\ 
+                    Observation \\ 
+                    Express Own Opinion \\ 
+                    Express Others' Opinions}} \\ 
+                    Captures the functional intent of the Reddit post.
+    
+    \item[Bias] \textit{\textbf{Racist}} \\ 
+                    Identifies explicit or implicit racial bias within the discourse.
+\end{description}
+
+\section{Inter-Annotator Agreement}
+\label{sec:annotator_agreement}
+
+To establish the reliability of our multi-label classification, we conducted an Inter-Annotator Agreement (IAA) study on a gold standard set of 1702 entities using three human annotators. Annotators were trained using a comprehensive coding guide based on our 16 multi-domain PEH bias classification categories ). The gold standard was created via stratified sampling across all ten cities and four data sources (Reddit, X, News, and City Council Minutes) to ensure representation. (50 entries per city per source; not all city-source combinations had 50 as noted in Appendix \ref{sec:data}). For multi-label assignment, we employed a soft labeling mechanism: a category label was included in the final Gold Standard if two or more of the three annotators agreed on its presence. This process resulted in a robust final dataset with an average agreement rate among the human annotators of 78.38\% per category. This high percentage indicates a substantial level of reliability in the classification process, validating the annotated labels used for our model training and evaluation. A detailed table showing the agreement rate for each of the 16 individual categories can be seen in Figure \ref{fig:next}.
+
+\begin{figure*}[ht!]
+    \centering
+    \includegraphics[width=1\textwidth]{figures/annotation_agreement_by_category_detailed.pdf}
+    \caption{Inter-Annotator Agreement - The upper panel displays the distribution of agreement levels (negative agreement, partial negative, partial negative, and positive agreement) for each category, showing considerable variation in consensus across different labels. Positive agreement describes a case in which each annotator agreed that the given label  applied to a piece of sample text, whereas negative agreement describes a case in which none of the annotators identified the given label as applying to a piece of sample text. The lower panel presents the overall annotation agreement rates, with \textit{racist }having the highest agreement\textit{ }rate (97.4\%)\textit{, }followed by \textit{media portrayal  }(93.0\%)\textit{ }and\textit{ deserving/undeserving }(91.6\%)\textit{. }Categories such as \textit{express their opinion} and \textit{solutions/interventions} show lower agreement rates (51.7\% and 42.8\%, respectively), which can be attributed to larger differences in annotators' interpretations of these labels.}
+    \label{fig:next}
+\end{figure*}
+
+\FloatBarrier
+\section{LLM Prompt}
+\label{sec:llm_prompt}
+We pass the following prompt into the LLM when classifying the data. 
+
+{\small
+\ttfamily
+You are an expert in social behavior analysis. Your task is to analyze \{content\_desc\} about homelessness and categorize them according to specific criteria.\\[4pt]
+
+\textbf{DEFINITIONS:}\\
+1. Comment Types (select all that apply):\\
+-- Ask a Genuine Question: The speaker asks a sincere question about homelessness or related issues\\
+-- Ask a Rhetorical Question: The speaker asks a question not intended to be answered, often to make a point\\
+-- Provide a Fact or Claim: The speaker provides a factual statement or claim about homelessness\\
+-- Provide an Observation: The speaker shares an observation about homelessness or related situations\\
+-- Express their Opinion: The speaker expresses their own views or feelings about homelessness\\
+-- Express Others Opinions: The speaker describes or references the views or feelings of others about homelessness\\[4pt]
+
+2. Critique Categories (select all that apply):\\
+-- Money Aid Allocation: Discussion of financial resources, aid distribution, or resource allocation for homelessness\\
+-- Government Critique: Criticism of government policies, laws, or political approaches to homelessness\\
+-- Societal Critique: Criticism of social norms, systems, or societal attitudes toward homelessness\\[4pt]
+
+3. Response Categories (select all that apply):\\
+-- Solutions/Interventions: Discussion of specific solutions, interventions, or charitable actions\\[4pt]
+
+4. Perception Types (select all that apply):\\
+-- Personal Interaction: Direct personal experiences with PEH\\
+-- Media Portrayal: Discussion of PEH as portrayed in media\\
+-- Not in my Backyard: Opposition to local homelessness developments\\
+-- Harmful Generalization: Negative stereotypes about PEH\\
+-- Deserving/Undeserving: Judgments about who deserves help\\[4pt]
+
+5. Racist Classification:\\
+-- Yes: Contains explicit or implicit racial bias\\
+-- No: No racial bias present\\[6pt]
+
+\textbf{INSTRUCTIONS:}\\
+1. Read the comment carefully\\
+2. Analyze it according to the categories above\\
+3. Provide your analysis in the exact format below\\
+4. Include a brief reasoning for your classification\\[4pt]
+
+\textbf{FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:}\\[4pt]
+Comment Type: [ask a genuine question, ask a rhetorical question, provide a fact or claim, provide an observation, express their opinion, express others opinions]\\
+Critique Category: [money aid allocation, government critique, societal critique]\\
+Response Category: [solutions/interventions]\\
+Perception Type: [personal interaction, media portrayal, not in my backyard, harmful generalization, deserving/undeserving]\\
+Racist: [Yes/No]\\
+Reasoning: [brief explanation]
+}
+If it is zero-shot learning, we just pass in the sentence after. If it is in-context learning, we pass in 5 examples that the human annotators have agreed upon.
+
+\textbf{Reddit Comments Examples}
+
+\begin{itemize}[leftmargin=*]
+    \item ``Are you implying that local police beat panhandlers with batons? Because they don't.'
+    \begin{itemize}
+        \item  ask a genuine question; provide a fact or claim; societal critique
+    \end{itemize}
+
+    \item ``Most comments are saying how great it is to homeless (and it usually is) but are ignoring or unaware of the ***type*** of homeless they plan to [STREET] here. *Drug addicts and people with mental issues.* If it were more homes for homeless and/or low income families, I wouldn't think twice about it but I'm very concerned about a facility housing drug addicts and people with mental issues just a couple hundred feet from a school in the middle of a residential neighborhood.''
+    \begin{itemize}
+        \item express their opinion; express others opinions; not in my backyard; harmful generalization; deserving/undeserving
+    \end{itemize}
+
+    \item ``What is up with the pots and pans? What homeless or trafficked person needs those? Oh wait! She needs some. Send her 50 sets. She can keep one and sell the rest! What a piece of [emoji]''\\
+    \begin{itemize}
+        \item ask a rhetorical question; express their opinion; societal critique; not in my backyard; harmful generalization
+    \end{itemize}
+
+    \item ``I live here too [ORGANIZATION][ORGANIZATION][ORGANIZATION] Fuck the homeless''\\
+    \begin{itemize}
+        \item express their opinion; not in my backyard; harmful generalization; deserving/undeserving
+    \end{itemize}
+
+    \item ``I won't support organizations that are homophobic personally. I clearly stated that others can make their own choices. I then brought up a very real issue in [ORGANIZATION]. I'm a Social Worker. I've worked directly with [ORGANIZATION] in the past. They are very religious. It is what it is. You overreacted to my post IMO. I'm not that important. Its just my opinion. But yeah, I'm not okay with discrimination, so personally I would not work for nor support [PERSON]. I know far too many GLBTQIA+ and Trans individuals that have struggled in [ORGANIZATION] because of discrimination from places like this. Trans houseless individuals in particular are often sexually assaulted around here when they start engaging in services. Its a problem. >""Get over it"" **No.**''
+    \begin{itemize}
+        \item provide a fact or claim; provide an observation; express their opinion; societal critique
+    \end{itemize}
+\end{itemize}
+
+\textbf{X (Twitter) Posts Examples}
+
+\begin{itemize}[leftmargin=*]
+    \item ``[PERSON] awarded \$100,000 to [PERSON] (ORG3) to enhance employment and education-related skills for [DATE] and migrant farmworkers. The award was part of a \$300,000 discretionary fund award under the CSBG Program. [PERSON]''\\
+    provide a fact or claim; money aid allocation; solutions/interventions
+
+    \item ``Did your Black flunky mayor get the[emoji][ORGANIZATION]'s memo 2 stick it 2 Rump instead of serving you by refusing 2 deport migrants + give them Black taxpayers'[emoji]4 shelter+food while Black citizens go homeless? [ORGANIZATION] mayors did. Charity starts at [emoji]. [URL]''
+    \begin{itemize}
+        \item ask a rhetorical question; provide a fact or claim; express their opinion; money aid allocation; government critique; harmful generalization; deserving/undeserving; racist: Yes
+    \end{itemize}
+
+    \item ``PERSON0 Instead of peacocking on social media for your next job, how about you concentrate on the gaggles of homeless people in [ORGANIZATION]?''
+    \begin{itemize}
+        \item ask a rhetorical question; provide a fact or claim; express their opinion; societal critique; solutions/interventions
+    \end{itemize}
+
+    \item ``[ORGANIZATION] Just what [ORGANIZATION] needs...another beggar.''
+    \begin{itemize}
+        \item  express their opinion; not in my backyard; harmful generalization; deserving/undeserving
+    \end{itemize}
+
+    \item ``[ORGANIZATION] area in [ORGANIZATION] is facing a housing crisis. 40\% of people in this area live in poverty, and the city lacks 20,000 affordable housing units. Initiatives like [ORGANIZATION] to fix old housing, but progress depends on securing funding. [URL]''
+    \begin{itemize}
+        \item  provide a fact or claim; money aid allocation; solutions/interventions
+    \end{itemize}
+\end{itemize}
+
+\textbf{News Articles Examples}
+
+\begin{itemize}[leftmargin=*]
+    \item ``We applaud this important first step to assure the long-term resolution of homelessness.''
+    \begin{itemize}
+        \item express their opinion; solutions/interventions
+    \end{itemize}
+
+    \item ``60 million for programs to support homeless veterans including 20 million for [ORGANIZATION]. The President proposed to eliminate the program.''
+    \begin{itemize}
+        \item  provide a fact or claim; solutions/interventions
+    \end{itemize}
+
+    \item ``[ORGANIZATION] county commissioners on [ORGANIZATION] weighed options for creating a migrant support services center while city emergency managers opened a busing hub, as dozens of migrants remained in homeless conditions [LOCATION].''
+    \begin{itemize}
+        \item  provide a fact or claim; solutions/interventions
+    \end{itemize}
+
+    \item ``About 1 in 3 people who are homeless in [ORGANIZATION] report having a mental illness or a substance use disorder, and the combination of homelessness and substance use or untreated mental illness has led to very public tragedies.''
+    \begin{itemize}
+        \item  provide a fact or claim; express their opinion
+    \end{itemize}
+
+    \item ``I would imagine she is not being delusional about being unsafe on the streets, [ORGANIZATION], executive director of [ORGANIZATION], told [ORGANIZATION]. [PERSON] specializes in treating mentally ill homeless people. Somewhere in all of this is a hook around the fear she has of being unsafe, especially as a woman who is homeless, and that is not uncommon. There should be a real conversation about that, and it could be very useful for figuring out whats going on with her.''
+    \begin{itemize}
+        \item  provide a fact or claim; provide an observation; express their opinion; solutions/interventions
+    \end{itemize}
+\end{itemize}
+
+\textbf{Meeting Minutes Examples}
+
+\begin{itemize}[leftmargin=*]
+    \item ``Okay. But on that area, one corner is the location that is on dispute right now. And the reason that we are, that I am questioning that is because we got a lot of homeless people there.''
+    \begin{itemize}
+        \item  provide a fact or claim; express their opinion; not in my backyard
+    \end{itemize}
+
+    \item ``but they stuck with us, they got all the permissions they needed, and we would not have made the functional end of veteran homelessness in [ORGANIZATION] without them, so thank you. PERSON0? Well, thank you for this honor.''
+    \begin{itemize}
+        \item  provide a fact or claim; express their opinion; solutions/interventions
+    \end{itemize}
+
+    \item ``I've seen it all, like certain people being removed out of there. And I'm down there [ORGANIZATION]. And all the [ORGANIZATION] and all the residents there, like, I know them all, you know, and I love them because I was dropped off to be homeless [DATE].''
+    \begin{itemize}
+        \item  provide a fact or claim; provide an observation; express their opinion
+    \end{itemize}
+
+    \item ``Yeah. Yeah, I just think that there's a different ROI for chronically homeless folks. And there's a deeper impact, but a more narrow impact.''
+    \begin{itemize}
+        \item  provide a fact or claim; express their opinion; money aid allocation; solutions/interventions; deserving/undeserving
+    \end{itemize}
+
+    \item ``Simple delays, be they [ORGANIZATION] or [LOCATION], have been a feeble solution. Demolitions of up to 370 affordable houses a year valued at \$100 million dwarfs the city's efforts at spending \$20 million to support affordable housing. Can we really achieve affordable housing through demolition?''
+    \begin{itemize}
+        \item  ask a rhetorical question; provide a fact or claim; express their opinion; money aid allocation; government critique; solutions/interventions
+    \end{itemize}
+\end{itemize}
+
+
+
+\section{LLM Classification Results}
+\label{sec:llm_results}
+
+\subsection{Model Selection \& Experimental Setup}
+\begin{table*}[h!]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccccccccccc}
+\toprule
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} & BERT& RoBERTa& ModernBERT\\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Finetuned & Finetuned & Finetuned \\
+\midrule
+Reddit (Macro) & 64.92 & 59.94 & 60.62 & 63.35 & 66.09 & 70.58 & 60.67 & 63.47 & 60.05 & 61.98 & 75.00 & \textbf{76.95} & 25.45 & 27.22 & 32.11 \\
+Reddit (Micro) & 80.69 & 69.16 & 81.35 & 79.03 & 73.91 & 79.95 & 69.42 & 72.28 & 77.18 & 77.14 & 80.62 & \textbf{82.93} & 42.50 & 38.13 & 41.73 \\
+X (Twitter) (Macro) & 64.99 & 59.59 & 55.98 & 66.73 & 60.20 & \textbf{70.98} & 68.34 & 68.21 & 63.67 & 65.02 & 65.00 & 65.96 & 18.07 & 18.17 & 30.75 \\
+X (Twitter) (Micro) & 83.46 & 69.75 & 82.44 & 82.15 & 71.01 & 79.78 & 79.63 & 79.55 & \textbf{83.69} & 81.84 & 77.15 & 78.55 & 26.14 & 47.44 & 43.82 \\
+News (Macro) & 64.17 & 56.11 & 59.81 & 71.39 & 54.91 & \textbf{73.02} & 69.55 & 72.21 & 66.96 & 68.75 & 67.84 & 70.56 & 1.08 & 14.24 & 16.18 \\
+News (Micro) & 85.45 & 73.61 & 86.88 & \textbf{87.06} & 63.38 & 84.62 & 81.79 & 84.29 & 85.75 & 85.96 & 81.04 & 83.02 & 33.77 & 45.02 & 33.33 \\
+Meeting Minutes (Macro) & 65.67 & 61.49 & 60.31 & 63.97 & 64.31 & \textbf{74.96} & 70.87 & 73.10 & 66.56 & 70.70 & 66.59 & 70.50 & 11.66 & 15.64 & 22.82 \\
+Meeting Minutes (Micro) & 84.89 & 74.69 & \textbf{84.51} & 80.53 & 73.61 & 83.84 & 80.63 & 82.43 & 84.39 & 84.32 & 78.42 & 81.06 & 37.86 & 39.58 & 48.87 \\
+Weighted Avg (Macro) & 64.96 & 59.95 & 60.33 & 63.73 & 65.43 & 70.95 & 61.96 & 64.56 & 60.83 & 62.88 & 73.73 & \textbf{75.78} & 24.12 & 25.89 & 30.45 \\
+Weighted Avg (Micro) & 81.22 & 69.66 & 81.73 & 79.46 & 73.53 & 80.30 & 70.99 & 73.60 & 78.19 & 78.06 & 80.29 & \textbf{82.56} & 40.89 & 40.89 & 42.78 \\
+\bottomrule
+\end{tabular}
+}
+\centering
+\caption{Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_reordered}
+\end{table*}
+
+
+To test and improve upon the current state of PEH bias classification, we benchmark a diverse set of models, encompassing established deep learning architectures, transformer models, and state-of-the-art large language models (LLMs), against our human-annotated gold standard dataset. Our selection process was driven by the need to assess performance across different model sizes, architectures, and access modalities (local vs. API-based) to investigate the impact of various prompting strategies.
+
+We test six LLMs, three transformer models, and three traditional machine learning architectures against our gold standard. We choose three local LLMs to evaluate classification performance in low-resource environments: Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini. We also test three closed-source LLMs: GPT-4.1, Gemini 2.5 Pro, and Grok-4. For all six LLMs, we used two types of prompts:
+
+Zero-Shot Learning: This setup evaluates a model's inherent understanding and ability to classify unseen examples without any explicit task-specific examples in the prompt.
+
+In-Context Learning (Few-shot): This strategy involves providing a small number of example input-output pairs directly within the prompt to guide the model's understanding of the task. For our experiments, we used five diverse examples from the human-annotated gold standard dataset for in-context learning. This process is standard in literature \citep{wang2020generalizing}. All prompts are independent calls, which prevents data leakage between prompts. These examples were chosen to represent a variety of sources and classification categories to maximize their utility.
+
+At the beginning of the prompt, we provide definitions of the classification categories and five examples when in-context learning is used. Since this is a multi-label classification problem, the models should output multiple labels when appropriate. The LLM prompt and all in-context prompts can be found in Appendix \ref{sec:llm_prompt}. It is important to note that the five in-context examples are dependent upon the source (five from Reddit, five from X, five from news, and five from meeting minutes).
+
+Here are two examples of in-context prompts that the human annotators agreed on:
+
+Example X: ``Did your Black flunky mayor get the[image][ORGANIZATION]'s memo 2 stick it 2 Rump instead of serving you by refusing 2 deport migrants + give them Black taxpayers'[image] 4 shelter+food while Black citizens go homeless? [ORGANIZATION] mayors did.  Charity starts at [image].[URL]'' \\
+Few-shot classification: `ask a rhetorical question', `provide a fact or claim', `express their opinion', `money aid allocation', `harmful generalization', `deserving/undeserving', and `racist'.
+
+Example Meeting Minutes: ``but they stuck with us, they got all the permissions they needed, and we would not have made the functional end of veteran homelessness in [ORGANIZATION] without them, so thank you. PERSON0? Well, thank you for this honor.'' \\ Few-shot classification:`provide a fact or claim', `express their opinion', and `solutions/interventions'. 
+
+For the three transformer models BERT \citep{devlin2019bert}, RoBERTa \citep{liu2019roberta}, and ModernBERT \citep{warner2024smarter}, we finetune the data using a training, validation, testing split of 70\%, 10\%, 20\%, which is standard for the size of our data. We also set the random state to 42 so that tests can be repeated. Since our data is imbalanced, we add SMOTE \citep{chawla2002smote} to the transformer models to see if it is beneficial. SMOTE is only applied to the training categories  in order to prevent data leakage while targeting 30\% positive per category.
+
+
+%TI will schI will schedule some time for us to connect.ule some time for us to connect.explore the feasibility and performance of deploying models in resource-constrained environments, we selected three distinct local LLMs: Llama 3.2 3B Instruct, Qwen 2.5 7B Instruct, and Phi4 Instruct Mini. We compare these against state-of-the-art closed-source models: GPT-4.1, Gemini 2.5 Pro, and Grok-4.
+
+To assess model performance, we use macro-F1 score \citep{opitz2019macro}, yet also report the micro-F1 score. This metric is critical for multi-label classification tasks with potential class imbalance, as it calculates the F1 score for each individual class and then averages them, thus equally weighting the performance on both prevalent and rare categories. In our dataset, class imbalance is prevalent. For example, over 70\% of the results in the gold standard are classified as `provide a fact or claim', yet less than 1\% are classified as racist.
+
+We compare all models' overall F1 score on the gold standard for both zero-shot and few-shot. We then choose the best-performing model to test on the entire dataset. When choosing the best model, we pick the best macro-F1 score for the weighted average, where the weighted average is with respect to the number of results in the complete dataset.
+
+\subsection{Results and Analysis}
+\begin{table*}[h!]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & \textbf{78.95} & 78.46 & \textbf{12.90} & 9.52 & 15.38 & \textbf{18.18} & \textbf{13.16} & 12.99 \\
+Ask Rhetorical Question & \textbf{73.22} & 63.51 & 17.20 & \textbf{22.50} & 0.00 & \textbf{22.22} & \textbf{28.57} & 0.00 \\
+Deserving/Undeserving & 6.67 & \textbf{10.13} & 4.55 & \textbf{10.13} & 0.00 & \textbf{8.70} & 0.00 & \textbf{3.57} \\
+Express Others Opinions & \textbf{39.34} & 34.85 & 8.00 & \textbf{14.71} & \textbf{19.23} & 15.52 & 0.00 & \textbf{2.74} \\
+Express Opinion & \textbf{91.61} & 91.06 & \textbf{64.57} & 64.17 & 25.64 & \textbf{25.91} & 63.98 & \textbf{65.73} \\
+Government Critique & \textbf{57.00} & 56.22 & \textbf{31.02} & 28.40 & 15.00 & \textbf{26.53} & 16.39 & \textbf{27.20} \\
+Harmful Generalization & 45.07 & \textbf{48.70} & \textbf{25.33} & 23.36 & 0.00 & 0.00 & \textbf{21.62} & 21.43 \\
+Media Portrayal & \textbf{9.30} & 7.14 & 2.15 & \textbf{4.76} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Money Aid Allocation & 59.76 & \textbf{60.44} & \textbf{29.85} & 19.44 & \textbf{35.64} & 35.56 & \textbf{35.29} & 29.14 \\
+Not in My Backyard & 50.53 & \textbf{58.97} & \textbf{13.79} & 0.00 & 0.00 & 0.00 & \textbf{8.70} & 0.00 \\
+Personal Interaction & 54.84 & \textbf{58.23} & \textbf{11.54} & 8.00 & 0.00 & 0.00 & \textbf{11.27} & 9.76 \\
+Provide Fact/Claim & \textbf{80.50} & 79.81 & \textbf{83.18} & 78.65 & \textbf{93.69} & 92.90 & 82.08 & \textbf{89.06} \\
+Provide Observation & 53.81 & \textbf{62.76} & 6.40 & \textbf{9.09} & 3.39 & \textbf{4.23} & \textbf{6.19} & 4.04 \\
+Racist & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Societal Critique & \textbf{39.80} & 38.39 & 19.79 & \textbf{21.35} & 13.33 & \textbf{14.16} & \textbf{8.60} & 6.90 \\
+Solutions/Interventions & 68.75 & \textbf{71.78} & 43.15 & \textbf{47.31} & 52.52 & \textbf{58.31} & 51.43 & \textbf{55.98} \\
+\bottomrule
+\end{tabular}
+\centering\caption{Category-wise F1 Scores for GPT4 Model}
+\label{tab:gpt4_category_breakdown}
+\end{table*}
+
+In Table \ref{tab:detailed_f1_scores}, we see that GPT has the best weighted average (in terms of alignment with the manually annotated gold standard dataset), so we chose it to classify our complete dataset.  When examining Table \ref{tab:gpt4_category_breakdown}, we find that GPT, which achieves the best results as classifier, shows improvement in in-context learning for underrepresented categories. However, zero-shot performance is better for categories where the LLM already performs well. 
+
+
+When analyzing the results, it is important to note that certain LLMs outperform GPT when classifying X, news, and meeting minutes. GPT performs best overall, primarily because of its dominance in classifying Reddit comments. This may be in part because it was explicitly trained on Reddit and other online data \citep{ge2024reddit}. When it comes to classifying X, news, and meeting minutes, other models perform better, as noted in Table \ref{tab:detailed_f1_scores}. Additionally, local LLMs perform comparably or even outperform closed-source models at these tasks. This shows that it may be beneficial to use local LLMs when either cost savings or data security is needed for classification purposes.
+
+
+We also observe that transformers struggle with classifying data with multiple labels, unlike LLMs.  Overall, LLMs perform the best, followed by transformer models, while traditional ML models perform the worst. A full breakdown of model results can be found in Appendix \ref{sec:llm_results} - \ref{sec:ml_results}.
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & 40.22 & \textbf{61.55} & 51.83 & \textbf{72.03} & 61.02 & \textbf{94.40} & \textbf{78.35} & 71.12 \\
+Ask Rhetorical Question & 45.16 & \textbf{79.00} & 84.87 & \textbf{91.09} & 59.20 & \textbf{63.27} & \textbf{65.15} & 62.27 \\
+Provide Fact/Claim & 74.83 & \textbf{84.83} & 49.57 & \textbf{87.55} & 58.68 & \textbf{59.08} & 60.42 & \textbf{62.34} \\
+Provide Observation & 46.36 & \textbf{76.05} & 43.72 & \textbf{90.64} & \textbf{72.32} & 50.92 & 64.02 & \textbf{80.66} \\
+Express Opinion & 43.62 & \textbf{77.71} & \textbf{66.22} & 52.22 & 58.21 & \textbf{91.98} & 86.51 & \textbf{89.33} \\
+Express Others Opinions & 44.73 & \textbf{62.32} & 41.88 & \textbf{71.19} & 86.02 & \textbf{90.34} & 75.39 & \textbf{80.72} \\
+Money Aid Allocation & 44.33 & \textbf{72.74} & \textbf{88.05} & 70.87 & 58.89 & \textbf{65.82} & 64.23 & \textbf{79.06} \\
+Government Critique & 52.38 & \textbf{67.33} & 57.15 & \textbf{65.55} & 56.66 & \textbf{63.68} & \textbf{85.51} & 52.98 \\
+Societal Critique & 54.37 & \textbf{73.14} & \textbf{88.49} & 56.65 & \textbf{89.94} & 75.00 & 59.54 & \textbf{78.87} \\
+Solutions/Interventions & \textbf{83.69} & 62.70 & 79.59 & \textbf{86.45} & \textbf{72.46} & 64.91 & 44.91 & \textbf{60.00} \\
+Personal Interaction & 76.06 & \textbf{77.54} & 46.11 & \textbf{63.57} & 46.58 & \textbf{55.52} & 46.49 & \textbf{59.30} \\
+Media Portrayal & 66.04 & \textbf{91.60} & 77.19 & \textbf{78.09} & \textbf{69.68} & 60.30 & \textbf{76.03} & 61.17 \\
+Not in My Backyard & 55.50 & \textbf{84.86} & \textbf{81.35} & 65.47 & \textbf{68.69} & 67.87 & 80.22 & \textbf{81.12} \\
+Harmful Generalization & 88.01 & \textbf{91.90} & 82.13 & \textbf{90.43} & 56.50 & \textbf{59.20} & 46.68 & \textbf{92.26} \\
+Deserving/Undeserving & \textbf{75.33} & 62.56 & 70.28 & \textbf{93.61} & 68.54 & \textbf{89.77} & \textbf{62.01} & 53.01 \\
+Racist & 55.75 & \textbf{68.97} & 80.75 & \textbf{89.28} & 40.48 & \textbf{89.50} & 78.42 & \textbf{78.96} \\
+\bottomrule
+\end{tabular}
+\caption{Category-wise F1 Scores for GEMINI Model under zero-shot and few-shot conditions. Boldface marks the higher F1 score between zero and few-shot conditions for each combination of category and data source. Results indicate that few-shot learning improves classification performance in many cases, although there is substantial variation by category and data source.  }
+\label{tab:gemini_category_breakdown}
+\end{table*}
+
+
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & \textbf{16.09} & 13.95 & \textbf{10.53} & 9.52 & 0.00 & 0.00 & \textbf{37.29} & 15.87 \\
+Ask Rhetorical Question & \textbf{27.10} & 26.42 & 12.90 & \textbf{23.68} & 0.00 & \textbf{33.33} & 10.53 & \textbf{26.09} \\
+Deserving/Undeserving & \textbf{4.26} & 3.92 & 0.00 & \textbf{7.41} & 0.00 & \textbf{50.00} & \textbf{25.00} & 0.00 \\
+Express Others Opinions & \textbf{21.67} & 15.38 & 5.13 & \textbf{5.56} & \textbf{18.82} & 8.57 & 6.25 & 6.25 \\
+Express Opinion & 55.18 & \textbf{62.89} & 40.12 & \textbf{44.27} & 16.98 & \textbf{26.36} & 45.62 & \textbf{56.10} \\
+Government Critique & \textbf{20.31} & 20.00 & \textbf{19.80} & 19.67 & 9.84 & \textbf{10.34} & 15.15 & \textbf{24.69} \\
+Harmful Generalization & 17.24 & \textbf{20.59} & \textbf{13.56} & 11.90 & 0.00 & 0.00 & 0.00 & \textbf{9.09} \\
+Media Portrayal & 0.00 & 0.00 & 0.00 & \textbf{16.00} & 0.00 & \textbf{20.00} & 0.00 & 0.00 \\
+Money Aid Allocation & 11.11 & \textbf{22.22} & 20.37 & \textbf{25.56} & \textbf{32.05} & 17.27 & 29.63 & \textbf{32.00} \\
+Not in My Backyard & \textbf{23.19} & 7.59 & \textbf{16.67} & 0.00 & 0.00 & 0.00 & 0.00 & \textbf{19.05} \\
+Personal Interaction & 16.49 & \textbf{18.87} & 0.00 & \textbf{7.02} & 14.29 & \textbf{26.67} & \textbf{17.39} & 14.81 \\
+Provide Fact/Claim & 49.16 & \textbf{55.68} & 61.59 & \textbf{71.35} & 69.04 & \textbf{73.59} & 60.24 & \textbf{76.74} \\
+Provide Observation & 28.98 & \textbf{36.91} & \textbf{4.40} & 4.11 & \textbf{6.00} & 3.70 & \textbf{7.23} & 4.55 \\
+Racist & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Societal Critique & \textbf{22.10} & 20.10 & 0.00 & \textbf{20.62} & \textbf{10.00} & 4.76 & 8.00 & \textbf{16.00} \\
+Solutions/Interventions & 27.31 & \textbf{32.51} & 35.47 & \textbf{41.97} & 44.94 & \textbf{53.26} & 43.69 & \textbf{51.38} \\
+\bottomrule
+\end{tabular}
+\centering\caption{Category-wise F1 Scores for GROK Model under zero-shot and few-shot conditions. Boldface marks the higher F1 score between zero and few-shot conditions for each combination of category and data source. Results indicate that few-shot learning produces substantial improvements for some categories (e.g., \textit{Provide Fact/Claim, }\textit{Solutions/Interventions}), while other categories (e.g., \textit{Media Portrayal}) yield low to zero F1 scores, revealing category- and source-specific weaknesses. }
+\label{tab:grok_category_breakdown}
+\end{table*}
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & 12.90 & \textbf{47.37} & 0.00 & \textbf{21.95} & 28.57 & 28.57 & \textbf{44.90} & 37.93 \\
+Ask Rhetorical Question & 2.08 & \textbf{14.68} & 4.76 & \textbf{27.07} & 0.00 & \textbf{22.22} & 0.00 & 0.00 \\
+Deserving/Undeserving & \textbf{5.97} & 4.11 & 4.44 & \textbf{5.68} & \textbf{22.22} & 4.55 & 0.00 & \textbf{3.64} \\
+Express Others Opinions & 20.51 & \textbf{29.93} & 0.00 & \textbf{11.11} & \textbf{10.00} & 9.09 & 0.00 & \textbf{4.55} \\
+Express Opinion & \textbf{86.10} & 66.13 & \textbf{76.19} & 71.78 & \textbf{37.13} & 29.15 & 66.35 & \textbf{75.56} \\
+Government Critique & \textbf{42.86} & 32.00 & \textbf{36.36} & 34.48 & \textbf{23.53} & 16.39 & 7.84 & \textbf{28.57} \\
+Harmful Generalization & \textbf{31.53} & 28.33 & \textbf{35.94} & 19.05 & \textbf{11.43} & 8.60 & \textbf{13.33} & 7.50 \\
+Media Portrayal & 0.00 & \textbf{1.80} & 0.00 & \textbf{4.69} & 0.00 & 0.00 & 0.00 & \textbf{1.77} \\
+Money Aid Allocation & 3.03 & \textbf{17.20} & 5.06 & \textbf{42.01} & 0.00 & \textbf{30.46} & 3.03 & \textbf{50.82} \\
+Not in My Backyard & \textbf{21.77} & 13.33 & \textbf{13.73} & 10.00 & 0.00 & 0.00 & 8.16 & \textbf{26.67} \\
+Personal Interaction & 3.64 & \textbf{15.15} & 0.00 & \textbf{8.82} & 0.00 & 0.00 & 0.00 & \textbf{15.38} \\
+Provide Fact/Claim & 26.11 & \textbf{66.67} & 36.67 & \textbf{62.03} & \textbf{67.27} & 18.09 & \textbf{53.61} & 16.67 \\
+Provide Observation & 14.18 & \textbf{38.68} & \textbf{16.00} & 7.06 & \textbf{15.38} & 8.70 & \textbf{7.41} & 0.00 \\
+Racist & 0.00 & \textbf{1.71} & 0.00 & \textbf{6.25} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Societal Critique & \textbf{38.87} & 35.33 & \textbf{29.49} & 18.38 & \textbf{18.18} & 14.91 & \textbf{15.62} & 10.87 \\
+Solutions/Interventions & 1.12 & \textbf{62.14} & 6.49 & \textbf{57.69} & 7.07 & \textbf{64.57} & 1.16 & \textbf{64.79} \\
+\bottomrule
+\end{tabular}
+\centering\caption{Category-wise F1 Scores for LLAMA Model under zero-shot and few-shot conditions. Boldface marks the higher F1 score between zero and few-shot conditions for each combination of category and data source. Results display considerable label- and domain-specific variation: few-shot learning yields large gains for labels such as \textit{Solutions/Interventions}, while several labels (e.g., \textit{Media Portrayal}) remain near-zero regardless of data source and learning approach. } 
+\label{tab:llama_category_breakdown}
+\end{table*}
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & 15.87 & \textbf{43.24} & 12.50 & \textbf{22.22} & 25.00 & 25.00 & \textbf{48.98} & 36.36 \\
+Ask Rhetorical Question & \textbf{5.83} & 4.26 & \textbf{13.64} & 9.52 & \textbf{22.22} & 0.00 & 0.00 & 0.00 \\
+Deserving/Undeserving & 5.56 & \textbf{10.91} & 0.00 & \textbf{11.68} & 0.00 & 0.00 & \textbf{50.00} & 0.00 \\
+Express Others Opinions & 0.00 & \textbf{6.90} & 6.90 & \textbf{7.41} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Express Opinion & \textbf{74.58} & 66.67 & 61.87 & \textbf{70.33} & 34.88 & \textbf{45.56} & 50.64 & \textbf{56.50} \\
+Government Critique & \textbf{36.96} & 35.74 & 22.50 & \textbf{37.50} & 24.24 & \textbf{34.86} & 12.77 & \textbf{33.51} \\
+Harmful Generalization & 30.48 & \textbf{38.89} & 25.71 & \textbf{27.45} & 25.00 & 25.00 & 0.00 & \textbf{16.33} \\
+Media Portrayal & \textbf{2.63} & 0.00 & 1.89 & \textbf{7.27} & 2.70 & \textbf{3.33} & 0.00 & 0.00 \\
+Money Aid Allocation & 0.00 & \textbf{9.88} & 14.46 & \textbf{36.84} & \textbf{21.85} & 1.92 & 23.08 & \textbf{25.29} \\
+Not in My Backyard & \textbf{25.00} & 24.20 & 5.08 & \textbf{8.25} & 0.00 & 0.00 & 11.43 & \textbf{15.38} \\
+Personal Interaction & \textbf{12.12} & 10.53 & 0.00 & 0.00 & 33.33 & \textbf{40.00} & 30.00 & \textbf{37.50} \\
+Provide Fact/Claim & 12.34 & \textbf{56.82} & 5.87 & \textbf{46.54} & 34.10 & \textbf{73.85} & 25.81 & \textbf{38.16} \\
+Provide Observation & 1.65 & \textbf{37.16} & 0.00 & \textbf{5.71} & 0.00 & \textbf{12.50} & \textbf{15.38} & 0.00 \\
+Racist & 0.00 & 0.00 & 0.00 & \textbf{40.00} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Societal Critique & 2.22 & \textbf{31.63} & 0.00 & \textbf{26.28} & \textbf{20.00} & 15.79 & 0.00 & \textbf{8.40} \\
+Solutions/Interventions & \textbf{20.00} & 8.60 & 20.00 & \textbf{68.65} & 30.36 & \textbf{63.43} & 21.89 & \textbf{65.45} \\
+\bottomrule
+\end{tabular}
+\centering\caption{Category-wise F1 Scores for PHI4 Model under zero-shot and few-shot conditions. Boldface marks the higher F1 score between zero and few-shot conditions for each combination of category and data source. Overall, few-shot prompting tends to improve performance, although gains vary greatly by category and data source. PHI4 best classifies instances of categories like \textit{Provide Fact/Claim}, and performs worst on classifying categories such as \textit{Racist }and \textit{Media Portrayal}.}
+\label{tab:phi4_category_breakdown}
+\end{table*}
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Ask Genuine Question & 57.73 & \textbf{62.14} & 37.21 & \textbf{41.18} & \textbf{40.00} & 36.36 & \textbf{60.00} & 59.15 \\
+Ask Rhetorical Question & \textbf{14.52} & 10.20 & 36.62 & \textbf{50.98} & \textbf{11.76} & 0.00 & 0.00 & \textbf{15.38} \\
+Deserving/Undeserving & 6.58 & \textbf{21.88} & 3.70 & \textbf{8.45} & 1.09 & \textbf{6.25} & 2.60 & \textbf{20.00} \\
+Express Others Opinions & \textbf{25.43} & 9.84 & 12.56 & \textbf{17.02} & \textbf{16.84} & 16.00 & 0.00 & \textbf{4.35} \\
+Express Opinion & \textbf{88.12} & 74.29 & 69.49 & \textbf{75.82} & 35.37 & \textbf{37.84} & 75.69 & \textbf{76.00} \\
+Government Critique & \textbf{43.30} & 42.75 & \textbf{47.46} & 45.45 & 20.09 & \textbf{30.16} & \textbf{43.31} & 38.86 \\
+Harmful Generalization & 30.81 & \textbf{42.86} & 29.81 & \textbf{35.24} & 3.92 & \textbf{6.67} & 8.40 & \textbf{11.32} \\
+Media Portrayal & \textbf{4.00} & 3.28 & \textbf{1.27} & 0.00 & 1.01 & \textbf{3.39} & 2.60 & \textbf{2.90} \\
+Money Aid Allocation & 40.28 & \textbf{43.21} & 41.51 & \textbf{48.94} & 57.03 & \textbf{62.20} & \textbf{59.86} & 51.22 \\
+Not in My Backyard & 17.59 & \textbf{34.85} & 8.38 & \textbf{20.20} & 0.00 & 0.00 & 3.87 & \textbf{10.17} \\
+Personal Interaction & 35.15 & \textbf{35.94} & 9.72 & \textbf{14.18} & 3.47 & \textbf{19.51} & 17.14 & \textbf{23.33} \\
+Provide Fact/Claim & 65.64 & \textbf{71.45} & 59.52 & \textbf{83.66} & 86.33 & \textbf{86.81} & 71.81 & \textbf{80.94} \\
+Provide Observation & 45.48 & \textbf{54.44} & \textbf{6.99} & 5.00 & 3.68 & \textbf{7.84} & \textbf{6.12} & 0.00 \\
+Racist & 0.00 & 0.00 & 0.00 & \textbf{28.57} & 0.00 & 0.00 & 0.00 & 0.00 \\
+Societal Critique & 35.00 & \textbf{38.99} & 22.67 & \textbf{24.49} & 12.90 & \textbf{13.79} & 7.59 & \textbf{19.35} \\
+Solutions/Interventions & 60.37 & \textbf{65.67} & 61.07 & \textbf{67.99} & 68.78 & \textbf{75.39} & 70.09 & \textbf{72.21} \\
+\bottomrule
+\end{tabular}
+\centering\caption{Category-wise F1 Scores for QWEN Model under zero-shot and few-shot conditions. Boldface marks the higher F1 score between zero and few-shot conditions for each combination of category and data source. Few-shot prompting generally improves classification ability, although performance varies substantially by label and data source. For instance, QWEN identifies \textit{Express Opinion} samples better than it does \textit{Racist} samples, although its identification of \textit{Express Opinion} samples is much poorer for Meeting Minutes data than for the other data sources.}
+\label{tab:qwen_category_breakdown}
+\end{table*}
+
+\FloatBarrier
+\section{Transformer Classification Results}
+\label{sec:transformer_results}
+When comparing the transformer models, it typically performs better when SMOTE is incorporated. The models generally perform better than traditional ML models, yet worse than LLMs.
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Orig & SMOTE & Orig & SMOTE & Orig & SMOTE & Orig & SMOTE \\
+\midrule
+Ask A Genuine Question & 27.69 & \textbf{48.00} & 0.00 & \textbf{11.11} & 15.38 & \textbf{20.29} & 18.75 & \textbf{28.00} \\
+Ask A Rhetorical Question & 0.00 & \textbf{41.38} & 0.00 & \textbf{3.70} & 0.00 & \textbf{0.00} & 0.00 & \textbf{34.78} \\
+Deserving/Undeserving & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{14.81} & 21.05 & \textbf{41.18} \\
+Express Others Opinions & 0.00 & \textbf{0.00} & \textbf{17.14} & 16.00 & 0.00 & \textbf{0.00} & \textbf{12.24} & 12.12 \\
+Express Their Opinion & 86.71 & \textbf{89.39} & 0.00 & \textbf{33.33} & 12.00 & \textbf{36.07} & 0.00 & \textbf{78.18} \\
+Government Critique & 12.50 & \textbf{13.79} & 10.26 & \textbf{25.81} & 10.34 & \textbf{15.38} & 20.20 & \textbf{42.42} \\
+Harmful Generalization & 0.00 & \textbf{27.45} & 0.00 & \textbf{3.28} & 0.00 & \textbf{0.00} & 17.39 & \textbf{48.28} \\
+Media Portrayal & 14.12 & \textbf{22.22} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{47.06} \\
+Money Aid Allocation & \textbf{18.60} & 7.14 & 0.00 & \textbf{51.28} & 0.00 & \textbf{31.25} & \textbf{39.02} & 29.63 \\
+Not In My Backyard & 32.76 & \textbf{40.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & \textbf{6.78} & 0.00 \\
+Personal Interaction & \textbf{25.00} & 23.40 & 0.00 & \textbf{0.00} & 5.71 & \textbf{36.36} & 0.00 & \textbf{0.00} \\
+Provide A Fact Or Claim & \textbf{75.16} & 68.70 & 92.09 & \textbf{95.59} & \textbf{84.80} & 76.27 & 69.12 & \textbf{89.70} \\
+Provide An Observation & 53.06 & \textbf{58.46} & \textbf{5.41} & 0.00 & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} \\
+Racist & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & \textbf{13.64} & 0.00 \\
+Societal Critique & \textbf{18.37} & 13.79 & 0.00 & \textbf{16.00} & 0.00 & \textbf{7.89} & \textbf{24.76} & 24.24 \\
+Solutions/Interventions & 43.24 & \textbf{46.02} & 52.43 & \textbf{59.18} & \textbf{58.25} & 52.94 & 46.15 & \textbf{48.28} \\
+\bottomrule
+\end{tabular}
+\caption{BERT Per-Category F1 Scores (Original vs SMOTE) by Data Source}
+\label{tab:bert_base_uncased_per_category}
+\end{table*}
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Orig & SMOTE & Orig & SMOTE & Orig & SMOTE & Orig & SMOTE \\
+\midrule
+Ask A Genuine Question & 21.24 & \textbf{73.33} & 7.41 & \textbf{7.50} & 22.50 & \textbf{28.57} & 28.57 & \textbf{50.00} \\
+Ask A Rhetorical Question & 25.00 & \textbf{50.00} & 0.00 & \textbf{3.28} & 0.00 & \textbf{0.00} & 16.16 & \textbf{58.33} \\
+Deserving/Undeserving & 38.24 & \textbf{41.03} & 0.00 & \textbf{0.00} & \textbf{7.89} & 0.00 & 8.00 & \textbf{30.77} \\
+Express Others Opinions & 20.69 & \textbf{32.65} & 7.14 & \textbf{17.14} & 0.00 & \textbf{0.00} & 0.00 & \textbf{18.18} \\
+Express Their Opinion & 88.51 & \textbf{90.50} & 11.76 & \textbf{38.71} & 45.90 & \textbf{75.79} & \textbf{83.64} & 82.14 \\
+Government Critique & 0.00 & \textbf{48.48} & 0.00 & \textbf{54.55} & 17.39 & \textbf{36.36} & 0.00 & \textbf{50.00} \\
+Harmful Generalization & 18.52 & \textbf{20.83} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 11.27 & \textbf{50.00} \\
+Media Portrayal & 12.96 & \textbf{15.38} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{54.17} \\
+Money Aid Allocation & 29.57 & \textbf{56.25} & 44.00 & \textbf{70.59} & 36.62 & \textbf{38.71} & 0.00 & \textbf{50.00} \\
+Not In My Backyard & 8.70 & \textbf{40.91} & 0.00 & \textbf{0.00} & 12.99 & \textbf{30.00} & 0.00 & \textbf{47.37} \\
+Personal Interaction & 22.22 & \textbf{46.15} & 0.00 & \textbf{0.00} & 0.00 & \textbf{40.00} & 0.00 & \textbf{50.00} \\
+Provide A Fact Or Claim & 74.21 & \textbf{75.68} & \textbf{95.24} & 60.00 & \textbf{96.35} & 67.29 & 97.78 & \textbf{97.78} \\
+Provide An Observation & 47.33 & \textbf{67.74} & 0.00 & \textbf{13.33} & 0.00 & \textbf{5.88} & 0.00 & \textbf{0.00} \\
+Racist & \textbf{5.56} & 0.00 & 0.00 & \textbf{33.33} & 0.00 & \textbf{0.00} & 0.00 & \textbf{22.22} \\
+Societal Critique & 22.73 & \textbf{31.11} & 0.00 & \textbf{6.06} & 0.00 & \textbf{0.00} & 0.00 & \textbf{32.43} \\
+Solutions/Interventions & 0.00 & \textbf{57.83} & 62.22 & \textbf{67.50} & 10.53 & \textbf{72.22} & 45.38 & \textbf{67.69} \\
+\bottomrule
+\end{tabular}
+\caption{RoBERTa Per-Category F1 Scores (Original vs SMOTE) by Data Source}
+\label{tab:roberta_base_per_category}
+\end{table*}
+
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Orig & SMOTE & Orig & SMOTE & Orig & SMOTE & Orig & SMOTE \\
+\midrule
+Ask A Genuine Question & 11.76 & \textbf{43.48} & 0.00 & \textbf{0.00} & \textbf{23.38} & 21.28 & \textbf{33.33} & 25.00 \\
+Ask A Rhetorical Question & 22.00 & \textbf{30.00} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 16.84 & \textbf{62.50} \\
+Deserving/Undeserving & \textbf{19.05} & 12.50 & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 25.81 & \textbf{33.33} \\
+Express Others Opinions & \textbf{22.22} & 19.67 & 20.29 & \textbf{25.81} & 0.00 & \textbf{0.00} & \textbf{19.51} & 13.70 \\
+Express Their Opinion & 88.62 & \textbf{90.59} & 0.00 & \textbf{51.85} & \textbf{75.00} & 74.34 & 81.25 & \textbf{85.25} \\
+Government Critique & 20.51 & \textbf{51.06} & \textbf{13.79} & 13.56 & \textbf{20.00} & 0.00 & 25.45 & \textbf{34.48} \\
+Harmful Generalization & 25.53 & \textbf{31.25} & \textbf{10.53} & 4.35 & 0.00 & \textbf{0.00} & 23.81 & \textbf{32.26} \\
+Media Portrayal & 18.92 & \textbf{45.16} & 0.00 & \textbf{0.00} & 0.00 & \textbf{0.00} & 36.04 & \textbf{42.86} \\
+Money Aid Allocation & 32.69 & \textbf{46.15} & 52.94 & \textbf{68.18} & \textbf{41.67} & 33.33 & 25.53 & \textbf{36.07} \\
+Not In My Backyard & 36.36 & \textbf{45.16} & 0.00 & \textbf{0.00} & 16.22 & \textbf{20.00} & 23.26 & \textbf{30.51} \\
+Personal Interaction & 19.51 & \textbf{29.63} & 0.00 & \textbf{0.00} & 6.78 & \textbf{30.77} & 0.00 & \textbf{0.00} \\
+Provide A Fact Or Claim & \textbf{74.21} & 70.50 & 87.30 & \textbf{94.89} & 97.14 & \textbf{97.87} & 93.57 & \textbf{97.21} \\
+Provide An Observation & 48.28 & \textbf{60.32} & 4.35 & \textbf{6.25} & \textbf{5.41} & 0.00 & 0.00 & \textbf{0.00} \\
+Racist & 0.00 & \textbf{0.00} & \textbf{5.26} & 0.00 & 0.00 & \textbf{0.00} & 10.53 & \textbf{20.00} \\
+Societal Critique & \textbf{25.00} & 19.51 & 0.00 & \textbf{25.00} & \textbf{9.52} & 6.06 & \textbf{33.96} & 29.89 \\
+Solutions/Interventions & 49.06 & \textbf{57.47} & 64.41 & \textbf{67.74} & 70.00 & \textbf{75.00} & 43.14 & \textbf{52.17} \\
+\bottomrule
+\end{tabular}
+\caption{ModernBERT Per-Category F1 Scores (Original vs SMOTE) by Data Source}
+\label{tab:modernbert_base_per_category}
+\end{table*}
+
+\FloatBarrier
+\section{Traditional ML Classification Results}
+\label{sec:ml_results}
+
+In addition to LLM and transformer model classification, we also perform classification for traditional ML models (linear regression, SVM, and random forest). Overall LLM classification performs the best, followed by the transformer models. The traditional ML models perform the worst.
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lcccccccc}
+\toprule
+Model & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Macro & Micro & Macro & Micro & Macro & Micro & Macro & Micro \\
+\midrule
+Logistic Regression & 24.49 & 53.69 & 17.38 & 71.57 & 22.11 & 76.55 & 22.07 & 60.68 \\
+SVM & 13.47 & 53.02 & 14.98 & 71.53 & 15.33 & 72.88 & 14.26 & 59.23 \\
+Random Forest & 11.13 & 46.94 & 13.30 & 69.60 & 12.90 & 66.88 & 12.97 & 56.21 \\
+\bottomrule
+\end{tabular}
+\caption{Traditional ML Models Macro and Micro F1 Scores by Data Source}
+\label{tab:traditional_ml_summary}
+\end{table}
+
+\clearpage
+
+\FloatBarrier
+\section{Model Performance Matrices}
+\label{sec:modelmatrices}
+
+I'll add description here.
+
+\FloatBarrier
+\section{Category Correlations}
+\label{sec:correlations}
+
+The matrix in Figure \ref{fig:correlation} illustrates the relationships and co-occurrence patterns between the 16 expanded categories within our dataset. High correlation values indicate categories that frequently overlap, such as specific critique types.
+
+\begin{figure*}[t] % The asterisk makes it span the full width of both columns
+    \centering
+    \includegraphics[width=0.99\textwidth]{figures/combined_16x16_category_relationship_matrix.pdf}
+    \caption{Correlation Matrix showing co-occurrence relationships between the 16 classification categories.}
+    \label{fig:correlation}
+\end{figure*}
+
+\section{City Classification}
+
+
+Even though there is not a significant difference between the group of cities; we can examine the heatmap by city as shown in Figure \ref{fig:city_heatmap}. The intensity of coloring represents the percentage of content that falls into each category for each city, with darker red indicating higher concentrations of the given label. Some notable insights are that \textit{Racist} content remains consistently low across all cities (<0.3\%), and \textit{Harmful Generalization} and \textit{Deserving}/\textit{Undeserving} samples occur more frequently in data sourced from cities such as Kalamazoo and San Francisco than in cities like Fayetteville and South Bend. Geographic variation in content patterns suggests city-specific discourse characteristics potentially influenced by local political climates, demographics, and platform usage patterns.
+
+
+\begin{figure*}[ht!]
+    \centering
+    \includegraphics[width=1\textwidth]{figures/city_classification_heatmap.pdf}
+    \caption{Heatmap displaying the distribution of classification categories across nine cities, combining data from all sources (Reddit, News, X, and City Council meeting minutes). }
+    \label{fig:city_heatmap}
+\end{figure*}
+
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\linewidth]{figures/combined_city_size_comparison.pdf}
+    \caption{Large vs. Small City Comparison}
+    \label{fig:large_small}
+\end{figure*}
+
+
+Our analysis does not reveal a significant difference between small and large cities in terms of bias against PEH (Figure \ref{fig:large_small}).
+
+
+
+\begin{table*}[h!]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccccccccccc}
+\toprule
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} & \multicolumn{2}{c}{BERT} & \multicolumn{2}{c}{RoBERTa} & \multicolumn{2}{c}{ModernBERT} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Finetuned & SMOTE & Finetuned & SMOTE & Finetuned & SMOTE\\
+\midrule
+Reddit (Macro) & 64.92 & 59.94 & 60.62 & 63.35 & 66.09 & 70.58 & 60.67 & 63.47 & 60.05 & 61.98 & 75.00 & \textbf{76.95} & 25.45 & 31.23 & 27.22 & 46.74 & 32.11 & 40.78 \\
+Reddit (Micro) & 80.69 & 69.16 & 81.35 & 79.03 & 73.91 & 79.95 & 69.42 & 72.28 & 77.18 & 77.14 & 80.62 & \textbf{82.93} & 42.50 & 45.57 & 38.13 & 52.18 & 41.73 & 50.70 \\
+X (Twitter) (Macro) & 64.99 & 59.59 & 55.98 & 66.73 & 60.20 & \textbf{70.98} & 68.34 & 68.21 & 63.67 & 65.02 & 65.00 & 65.96 & 18.07 & 32.74 & 18.17 & 47.57 & 30.75 & 37.20 \\
+X (Twitter) (Micro) & 83.46 & 69.75 & 82.44 & 82.15 & 71.01 & 79.78 & 79.63 & 79.55 & \textbf{83.69} & 81.84 & 77.15 & 78.55 & 26.14 & 52.04 & 47.44 & 66.18 & 43.82 & 54.41 \\
+News (Macro) & 64.17 & 56.11 & 59.81 & 71.39 & 54.91 & \textbf{73.02} & 69.55 & 72.21 & 66.96 & 68.75 & 67.84 & 70.56 & 1.08 & 19.71 & 14.24 & 23.25 & 16.18 & 22.35 \\
+News (Micro) & 85.45 & 73.61 & 86.88 & \textbf{87.06} & 63.38 & 84.62 & 81.79 & 84.29 & 85.75 & 85.96 & 81.04 & 83.02 & 33.77 & 42.00 & 45.02 & 35.13 & 33.33 & 45.42 \\
+Meeting Minutes (Macro) & 65.67 & 61.49 & 60.31 & 63.97 & 64.31 & \textbf{74.96} & 70.87 & 73.10 & 66.56 & 70.70 & 66.59 & 70.50 & 11.66 & 18.20 & 15.64 & 24.68 & 22.82 & 22.42 \\
+Meeting Minutes (Micro) & 84.89 & 74.69 & \textbf{84.51} & 80.53 & 73.61 & 83.84 & 80.63 & 82.43 & 84.39 & 84.32 & 78.42 & 81.06 & 37.86 & 38.13 & 39.58 & 52.04 & 48.87 & 56.99 \\
+Weighted Avg (Macro) & 64.96 & 59.95 & 60.33 & 63.73 & 65.43 & 70.95 & 61.96 & 64.56 & 60.83 & 62.88 & 73.73 & \textbf{75.78} & 24.12 & 30.89 & 25.89 & 40.15 & 30.45 & 36.23 \\
+Weighted Avg (Micro) & 81.22 & 69.66 & 81.73 & 79.46 & 73.53 & 80.30 & 70.99 & 73.60 & 78.19 & 78.06 & 80.29 & \textbf{82.56} & 40.89 & 46.34 & 40.89 & 51.45 & 42.78 & 52.15 \\
+\bottomrule
+\end{tabular}
+}
+\centering
+\caption{Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_reordered}
+\end{table*}
+
+
+
+
+\end{document}
+

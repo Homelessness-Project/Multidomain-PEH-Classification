@@ -9,6 +9,105 @@ import seaborn as sns
 import numpy as np
 from pathlib import Path
 
+BIAS_CATEGORIES = [
+    'Comment_ask a rhetorical question',
+    'Perception_not in my backyard',
+    'Perception_harmful generalization',
+    'Perception_deserving/undeserving',
+    'Racist_Flag'
+]
+
+SOURCE_STYLE = {
+    'twitter': {'color': '#1DA1F2', 'name': 'Twitter'},
+    'x': {'color': '#1DA1F2', 'name': 'X (Twitter)'},
+    'reddit': {'color': '#FF4500', 'name': 'Reddit'},
+    'news': {'color': '#2E7D32', 'name': 'News'},
+    'meeting_minutes': {'color': '#9C27B0', 'name': 'Meeting Minutes'}
+}
+
+def format_bias_category_label(category):
+    if category == 'Racist_Flag':
+        return 'racist'
+    if '_' in category:
+        return category.split('_', 1)[1]
+    return category
+
+def create_bias_category_radar(combined_df, output_dir):
+    """Create radar chart of bias category prevalence by source (weighted by Total_Comments)."""
+    preferred_sources = ['x', 'twitter', 'reddit', 'news', 'meeting_minutes']
+    sources = [s for s in preferred_sources if s in combined_df['Source'].unique()]
+    source_means = []
+    for source in sources:
+        source_data = combined_df[combined_df['Source'] == source]
+        if source_data.empty:
+            source_means.append([np.nan] * len(BIAS_CATEGORIES))
+            continue
+        weights = source_data['Total_Comments']
+        values = []
+        for cat in BIAS_CATEGORIES:
+            if cat in source_data.columns:
+                values.append(np.average(source_data[cat], weights=weights))
+            elif cat == 'Racist_Flag' and 'racist' in source_data.columns:
+                values.append(np.average(source_data['racist'], weights=weights))
+            else:
+                values.append(0.0)
+        source_means.append(values)
+    
+    category_means = pd.DataFrame(
+        source_means,
+        index=sources,
+        columns=BIAS_CATEGORIES
+    )
+    
+    summary_output = Path(output_dir) / 'bias_category_means_by_source.csv'
+    category_means.to_csv(summary_output)
+    print(f"📄 Bias category means saved to: {summary_output}")
+    
+    labels = [format_bias_category_label(cat) for cat in BIAS_CATEGORIES]
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    angles += angles[:1]
+    
+    fig, ax = plt.subplots(figsize=(8.5, 8.5), subplot_kw=dict(polar=True))
+    ax.set_theta_offset(np.pi / 2 + (np.pi / len(labels)))
+    ax.set_theta_direction(-1)
+    ax.set_facecolor('#f9f9fb')
+    
+    max_val = np.nanmax(category_means.values) if not np.isnan(category_means.values).all() else 0.0
+    max_ylim = max(5.0, np.ceil(max_val / 5.0) * 5.0)
+    
+    for source in sources:
+        values = category_means.loc[source].tolist()
+        if all(np.isnan(values)):
+            continue
+        values += values[:1]
+        style = SOURCE_STYLE.get(source, {'color': 'gray', 'name': source.title()})
+        ax.plot(angles, values, color=style['color'], linewidth=2.2, label=style['name'])
+        ax.fill(angles, values, color=style['color'], alpha=0.12)
+    
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels([])
+    label_radius = max_ylim * 1.12
+    for angle, label in zip(angles[:-1], labels):
+        ax.text(angle, label_radius, label, ha='center', va='center',
+                fontsize=11, fontweight='bold', rotation=0)
+    ax.set_ylim(0, max_ylim * 1.12)
+    yticks = np.arange(0, max_ylim + 0.1, 5.0)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{int(t)}%" for t in yticks], fontsize=9, color='#555555')
+    ax.yaxis.grid(True, color='#d0d0d0', alpha=0.7)
+    ax.xaxis.grid(True, color='#d0d0d0', alpha=0.5)
+    ax.spines['polar'].set_color('#bbbbbb')
+    ax.set_title('Average Bias Category Prevalence by Source', fontsize=14, fontweight='bold', pad=32)
+    ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.15), frameon=False, fontsize=10)
+    
+    plt.tight_layout()
+    pdf_output = Path(output_dir) / 'bias_category_radar_by_source.pdf'
+    png_output = Path(output_dir) / 'bias_category_radar_by_source.png'
+    plt.savefig(pdf_output, dpi=300, bbox_inches='tight')
+    plt.savefig(png_output, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"📊 Bias category radar saved to: {pdf_output}")
+
 def load_gpt_data(data_source):
     """Load GPT data for specified source, comparing with research_summary.csv if it exists."""
     file_paths = {
@@ -534,6 +633,9 @@ def create_combined_analysis(results):
                    'Response Category', 'Perception Type', 'racist', 'Reasoning', 'Raw Response']
     flag_columns = [col for col in combined_df.columns if col not in ['City', 'Total_Comments', 'Source', 'City_Size']]
     subcategory_cols = [col for col in flag_columns if col not in exclude_cols]
+    
+    # Bias category radar (weighted by Total_Comments)
+    create_bias_category_radar(combined_df, output_dir)
     
     # Figure 1: Data Source Distribution
     source_counts = combined_df.groupby('Source')['Total_Comments'].sum()

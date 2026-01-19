@@ -113,7 +113,7 @@ SOURCE_FILES = {
 # DATA LOADING
 # ============================================================================
 
-def load_source_data(source_name, source_config):
+def load_source_data(source_name, source_config, filter_zero_category_rows=True):
     """Load data for a single source and merge with categories"""
     print(f"\n{'='*80}")
     print(f"Loading {source_name.upper()} data")
@@ -219,7 +219,8 @@ def load_source_data(source_name, source_config):
     merged['bias_score'] = merged[BIAS_CATEGORIES].sum(axis=1)
     
     # Filter to only rows with at least one category
-    merged = merged[merged[ALL_CATEGORIES].sum(axis=1) > 0]
+    if filter_zero_category_rows:
+        merged = merged[merged[ALL_CATEGORIES].sum(axis=1) > 0]
     
     print(f"  Final dataset: {len(merged)} rows")
     print(f"  Date range: {merged['date_parsed'].min()} to {merged['date_parsed'].max()}")
@@ -228,12 +229,16 @@ def load_source_data(source_name, source_config):
     
     return merged
 
-def load_all_data():
+def load_all_data(filter_zero_category_rows=True):
     """Load data from all sources"""
     all_data = []
     
     for source_name, source_config in SOURCE_FILES.items():
-        df = load_source_data(source_name, source_config)
+        df = load_source_data(
+            source_name,
+            source_config,
+            filter_zero_category_rows=filter_zero_category_rows
+        )
         if df is not None:
             all_data.append(df)
     
@@ -670,7 +675,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Load all data
-    df = load_all_data()
+    df = load_all_data(filter_zero_category_rows=True)
     
     # Create time periods
     df = create_time_periods(df)

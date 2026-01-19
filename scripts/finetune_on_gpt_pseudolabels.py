@@ -815,6 +815,16 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     
     model.to(device)
     
+    def _forward_kwargs(module):
+        try:
+            import inspect
+            params = inspect.signature(module.forward).parameters
+            if 'use_cache' in params:
+                return {'use_cache': False}
+        except (ValueError, TypeError):
+            pass
+        return {}
+    
     # Get trainable parameters (important for LoRA - only LoRA params should be trainable)
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     if len(trainable_params) == 0:
@@ -849,6 +859,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     
     best_val_f1 = 0.0
     best_model_state = None
+    best_thresholds_at_best = None
     # Early stopping patience: stop if no improvement for 3 epochs
     # This allows training to continue for large datasets while stopping early if converged
     patience = 3
@@ -906,8 +917,8 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     test_base_outputs = model.base_model(
                         input_ids=test_input_ids,
                         attention_mask=test_attention_mask,
-                        use_cache=False,
-                        output_hidden_states=True
+                        output_hidden_states=True,
+                        **_forward_kwargs(model.base_model)
                     )
                     
                     if hasattr(test_base_outputs, 'last_hidden_state'):
@@ -919,7 +930,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                             print(f"  This means LoRA won't receive gradients during training!")
                     else:
                         # Fallback test
-                        test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
+                        test_outputs = model(
+                            input_ids=test_input_ids,
+                            attention_mask=test_attention_mask,
+                            **_forward_kwargs(model)
+                        )
                         test_logits = test_outputs.logits
                         if test_logits.requires_grad:
                             print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
@@ -927,7 +942,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                             print(f"  ⚠️  LoRA adapters are NOT active (test logits don't require grad)")
                 else:
                     # Fallback: normal forward pass
-                    test_outputs = model(input_ids=test_input_ids, attention_mask=test_attention_mask, use_cache=False)
+                    test_outputs = model(
+                        input_ids=test_input_ids,
+                        attention_mask=test_attention_mask,
+                        **_forward_kwargs(model)
+                    )
                     test_logits = test_outputs.logits
                     if test_logits.requires_grad:
                         print(f"  ✓ LoRA adapters ARE active (test logits require grad)")
@@ -972,7 +991,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
             optimizer.zero_grad()
             
             # SIMPLE: Standard forward pass - PEFT handles LoRA automatically
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                **_forward_kwargs(model)
+            )
             logits = outputs.logits
             
             # Check for NaN in logits BEFORE loss computation
@@ -989,7 +1012,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     # Try to get hidden states from the model to see if they're reasonable
                     with torch.no_grad():
                         # Get a sample to check
-                        sample_outputs = model.base_model.model(input_ids=input_ids[:1], attention_mask=attention_mask[:1], use_cache=False)
+                        sample_outputs = model.base_model.model(
+                            input_ids=input_ids[:1],
+                            attention_mask=attention_mask[:1],
+                            **_forward_kwargs(model.base_model.model)
+                        )
                         if hasattr(sample_outputs, 'last_hidden_state'):
                             hidden = sample_outputs.last_hidden_state
                             print(f"  Base model hidden states: range=[{hidden.min().item():.4f}, {hidden.max().item():.4f}], has_nan={torch.isnan(hidden).any().item()}")
@@ -1270,7 +1297,11 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                 labels = batch['labels'].to(device)
                 
                 with torch.no_grad():
-                    outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        **_forward_kwargs(model)
+                    )
                     logits = outputs.logits.to(dtype=torch.float32)
                     labels = labels.to(dtype=torch.float32)
                 
@@ -1363,6 +1394,7 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
         if val_macro_f1 > best_val_f1:
             best_val_f1 = val_macro_f1
             best_model_state = model.state_dict().copy()
+            best_thresholds_at_best = list(best_thresholds)
             patience_counter = 0
         else:
             patience_counter += 1
@@ -1380,14 +1412,24 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
     
-    return model
+    return model, best_thresholds_at_best
 
-def evaluate_model(model, test_loader, device, label_names, source, model_name):
+def evaluate_model(model, test_loader, device, label_names, source, model_name, thresholds=None, fixed_threshold=0.5):
     """Evaluate the model on test set"""
     
     model.eval()
     test_preds = []
     test_labels = []
+    
+    def _forward_kwargs(module):
+        try:
+            import inspect
+            params = inspect.signature(module.forward).parameters
+            if 'use_cache' in params:
+                return {'use_cache': False}
+        except (ValueError, TypeError):
+            pass
+        return {}
     
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Testing", **tqdm_kwargs):
@@ -1395,7 +1437,11 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
             
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, use_cache=False)
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                **_forward_kwargs(model)
+            )
             # Convert to float32 for sigmoid computation (more stable)
             logits = outputs.logits.to(dtype=torch.float32)
             
@@ -1421,11 +1467,21 @@ def evaluate_model(model, test_loader, device, label_names, source, model_name):
         pos_count = test_labels[:, i].sum()
         print(f"    {cat}: {pos_count:.0f} ({pos_count/len(test_labels)*100:.1f}%)")
     
-    # Calculate metrics with threshold 0.5
-    test_preds_binary = (test_preds > 0.5).astype(int)
+    # Calculate metrics with thresholds
+    if thresholds is not None:
+        thresholds = np.array(thresholds, dtype=np.float32)
+        if thresholds.shape[0] != len(label_names):
+            print("  ⚠️  Thresholds length mismatch; falling back to fixed threshold.")
+            thresholds = None
+    if thresholds is None:
+        test_preds_binary = (test_preds > fixed_threshold).astype(int)
+        threshold_label = f"{fixed_threshold:.2f}"
+    else:
+        test_preds_binary = (test_preds > thresholds).astype(int)
+        threshold_label = "per-label (val-opt)"
     
     # Diagnostic: check how many positive predictions we have
-    print(f"  Positive predictions per category (threshold=0.5):")
+    print(f"  Positive predictions per category (threshold={threshold_label}):")
     for i, cat in enumerate(label_names):
         pred_pos_count = test_preds_binary[:, i].sum()
         true_pos_count = test_labels[:, i].sum()
@@ -1477,8 +1533,8 @@ def main():
     parser.add_argument('--max_length', type=int, default=128, help='Max sequence length (default: 128, reduce for memory-constrained devices)')
     parser.add_argument('--test_start', type=int, default=1600, help='Start index for test set')
     parser.add_argument('--test_end', type=int, default=1700, help='End index for test set')
-    parser.add_argument('--use_lora', action='store_true', 
-                      help='Use LoRA for efficient fine-tuning (recommended for large models: llama, qwen, gemma3, phi4)')
+    parser.add_argument('--use_lora', action='store_true',
+                      help='Use LoRA for efficient fine-tuning (works for BERT/RoBERTa/ModernBERT and local LLMs)')
     parser.add_argument('--lora_rank', type=int, default=16, 
                        help='LoRA rank (default: 16, optimized for accuracy and stability. rank=16 gives ~0.21%% trainable, achieves 96-98%% of full fine-tuning. Higher ranks (32+) may cause NaN issues)')
     parser.add_argument('--lora_alpha', type=int, default=32, 
@@ -1488,6 +1544,9 @@ def main():
     parser.add_argument('--lora_target_modules', type=str, default='all',
                        choices=['all', 'attention', 'mlp', 'attention+mlp'],
                        help='Which modules to apply LoRA to: all (qkv+mlp), attention (qkv only), mlp (ffn only), attention+mlp (both)')
+    parser.add_argument('--train_on_gold', type=str, default='gpt_only',
+                       choices=['gpt_only', 'gold_only', 'gpt_plus_gold'],
+                       help='Training data: gpt_only (default), gold_only, or gpt_plus_gold (adds gold train split)')
     
     args = parser.parse_args()
     
@@ -2000,10 +2059,23 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives ({pos_count/len(gold_eval_labels)*100:.1f}%)")
     
-    # Split gold standard eval set into val and test (50/50 split)
-    val_texts, test_texts, val_labels, test_labels = train_test_split(
-        gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
-    )
+    if args.train_on_gold != 'gpt_only' and gold_labels_df is None:
+        raise ValueError("Gold training requested but gold labels are missing. Provide gold labels or use --train_on_gold gpt_only.")
+    
+    # Split gold standard into train/val/test if training on gold, else val/test only
+    if args.train_on_gold == 'gpt_only':
+        val_texts, test_texts, val_labels, test_labels = train_test_split(
+            gold_eval_texts, gold_eval_labels, test_size=0.5, random_state=42
+        )
+        gold_train_texts = []
+        gold_train_labels = np.empty((0, len(ALL_CATEGORIES)))
+    else:
+        gold_train_texts, gold_temp_texts, gold_train_labels, gold_temp_labels = train_test_split(
+            gold_eval_texts, gold_eval_labels, test_size=0.4, random_state=42
+        )
+        val_texts, test_texts, val_labels, test_labels = train_test_split(
+            gold_temp_texts, gold_temp_labels, test_size=0.5, random_state=42
+        )
     
     # Diagnostic: Check label distribution AFTER splitting
     print(f"\n  Validation set label distribution (AFTER split):")
@@ -2026,15 +2098,33 @@ def main():
         if pos_count > 0:
             print(f"    {cat}: {pos_count:.0f} positives")
     
-    # Train set: Only GPT pseudolabels (no gold standard)
-    train_texts = gpt_texts.copy()
-    train_labels = gpt_labels.copy()
+    # Train set selection
+    if args.train_on_gold == 'gpt_only':
+        train_texts = gpt_texts.copy()
+        train_labels = gpt_labels.copy()
+    elif args.train_on_gold == 'gold_only':
+        train_texts = gold_train_texts
+        train_labels = gold_train_labels
+    else:
+        train_texts = gpt_texts.copy() + gold_train_texts
+        train_labels = np.vstack([gpt_labels, gold_train_labels])
     
     print(f"\nFinal dataset sizes:")
-    print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
+    if args.train_on_gold == 'gpt_only':
+        print(f"  Train (GPT pseudolabels only): {len(train_texts):,} samples")
+    elif args.train_on_gold == 'gold_only':
+        print(f"  Train (gold standard only): {len(train_texts):,} samples")
+    else:
+        print(f"  Train (GPT + gold train split): {len(train_texts):,} samples")
+        print(f"    GPT: {len(gpt_texts):,} | Gold train: {len(gold_train_texts):,}")
     print(f"  Val (gold standard split): {len(val_texts)} samples")
     print(f"  Test (gold standard split): {len(test_texts)} samples")
     print(f"  Total eval: {len(val_texts) + len(test_texts)} samples (should be ~{expected_after_exclude})")
+    
+    # Auto-tune epochs for gold-only training (smaller data)
+    if args.train_on_gold == 'gold_only' and args.epochs > 3:
+        print(f"\nAuto-adjusting epochs for gold-only training: {args.epochs} -> 3")
+        args.epochs = 3
     
     # Create model and tokenizer
     model, tokenizer = create_model_and_tokenizer(
@@ -2062,7 +2152,7 @@ def main():
     # Train model
     print(f"\nTraining {args.model} on {args.source}...")
     sys.stdout.flush()  # Ensure output is flushed before training starts
-    model = train_model(
+    model, best_thresholds = train_model(
         model, train_loader, val_loader, device,
         epochs=args.epochs, learning_rate=args.learning_rate,
         source=args.source, model_name=args.model, label_names=ALL_CATEGORIES
@@ -2071,7 +2161,8 @@ def main():
     # Evaluate on test set
     print(f"\nEvaluating on test set...")
     results, test_preds, test_labels = evaluate_model(
-        model, test_loader, device, ALL_CATEGORIES, args.source, args.model
+        model, test_loader, device, ALL_CATEGORIES, args.source, args.model,
+        thresholds=best_thresholds
     )
     
     print(f"\nTest Results:")
@@ -2127,7 +2218,8 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     suffix = '_lora' if args.use_lora else ''
-    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}_results.json'
+    train_tag = '' if args.train_on_gold == 'gpt_only' else f"_train-{args.train_on_gold}"
+    results_file = output_dir / f'gpt_pseudolabel_{model_name_clean}{suffix}{train_tag}_results.json'
     
     # Add training config to results
     results['training_config'] = {
@@ -2141,8 +2233,10 @@ def main():
         'epochs': args.epochs,
         'batch_size': args.batch_size,
         'learning_rate': args.learning_rate,
-        'max_length': args.max_length
+        'max_length': args.max_length,
+        'train_on_gold': args.train_on_gold
     }
+    results['thresholds'] = best_thresholds if best_thresholds is not None else [0.5] * len(ALL_CATEGORIES)
     
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
