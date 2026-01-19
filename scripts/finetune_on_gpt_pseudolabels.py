@@ -1636,17 +1636,6 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
 
             # Only optimize threshold if we have enough positives to be meaningful
             if true_pos_count >= min_val_positives_for_threshold and true_neg_count > 0:
-<<<<<<< Current (Your changes)
-                best_f1 = 0
-                best_threshold = fixed_threshold
-                for threshold in np.arange(0.1, 0.9, 0.05):
-                    binary_pred = (pred_scores > threshold).astype(int)
-                    if len(np.unique(binary_pred)) > 1:
-                        f1 = f1_score(true_labels, binary_pred, zero_division=0)
-                        if f1 > best_f1:
-                            best_f1 = f1
-                            best_threshold = threshold
-=======
                 best_f1 = -1.0
                 best_threshold = fixed_threshold
                 for threshold in np.arange(0.1, 0.9, 0.05):
@@ -1656,7 +1645,6 @@ def train_model(model, train_loader, val_loader, device, epochs=3, learning_rate
                     if f1 > best_f1:
                         best_f1 = f1
                         best_threshold = threshold
->>>>>>> Incoming (Background Agent changes)
                 val_per_label_f1[cat] = best_f1
                 best_thresholds.append(best_threshold)
             else:
