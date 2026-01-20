@@ -89,7 +89,7 @@ def create_bias_category_radar(combined_df, output_dir):
     label_radius = max_ylim * 1.12
     for angle, label in zip(angles[:-1], labels):
         ax.text(angle, label_radius, label, ha='center', va='center',
-                fontsize=11, fontweight='bold', rotation=0)
+                fontsize=14, fontweight='bold', rotation=0)
     ax.set_ylim(0, max_ylim * 1.12)
     yticks = np.arange(0, max_ylim + 0.1, 5.0)
     ax.set_yticks(yticks)

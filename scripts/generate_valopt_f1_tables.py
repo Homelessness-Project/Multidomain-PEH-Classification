@@ -22,8 +22,10 @@ SOURCE_DISPLAY = {
     "x": "X (Twitter)",
 }
 
-LOCAL_MODELS = ["llama", "qwen", "phi4", "gemma3"]
-API_MODELS = ["gpt4", "gemini", "grok"]
+# Order matters: it controls the ordering in output/f1/val_opt/main.tex
+# (and which models are included at all).
+LOCAL_MODELS = ["llama", "phi4", "qwen"]  # no Gemma/Gemma3
+API_MODELS = ["gemini", "grok", "gpt4"]
 TRANSFORMER_METRICS = {
     "bert-base-uncased": "bert_base_uncased_original_metrics.json",
     "roberta-base": "roberta_base_original_metrics.json",
@@ -129,6 +131,41 @@ def write_summary_csvs(
     per_category.to_csv(output_dir / "zero_few_lora_per_category.csv", index=False)
 
 
+def write_main_tex(dir_path: Path) -> None:
+    """
+    Write a main.tex that concatenates all .tex tables in this directory (excluding main.tex).
+    This makes it easy to copy/paste many tables at once without any \\input links.
+    """
+    dir_path.mkdir(parents=True, exist_ok=True)
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    # Main table first, then per-model sections in paper order.
+    preferred_names: list[str] = []
+    preferred_names.append("detailed_macro_f1_table.tex")
+    preferred_names.append("llm_zero_few_summary_table.tex")
+
+    # Individual models: details only (category tables).
+    for model in LOCAL_MODELS + API_MODELS:
+        preferred_names.append(f"{model}_category_table.tex")
+
+    # Transformer baselines: details only (no macro/micro summary tables).
+    for model in TRANSFORMER_METRICS.keys():
+        preferred_names.append(f"{model}_category_table.tex")
+
+    lines = ["% Auto-generated. Concatenated tables (no \\input).", ""]
+    # Only include the preferred set (in order). This avoids including
+    # unwanted legacy files (e.g., gemma) and summary tables the paper
+    # does not need (e.g., transformer macro/micro tables).
+    for name in preferred_names:
+        p = dir_path / name
+        if not p.exists():
+            continue
+        lines.append(f"% ===== {p.name} =====")
+        lines.append(p.read_text())
+        lines.append("")
+    (dir_path / "main.tex").write_text("\n".join(lines))
+
+
 def load_transformer_metrics() -> tuple[list[dict], list[dict]]:
     rows = []
     per_category_rows = []
@@ -222,6 +259,26 @@ def load_gpt_pseudolabel_results(lora_eval_threshold: str) -> tuple[list[dict], 
     return rows, per_category_rows
 
 
+def cleanup_legacy_tables(output_dir: Path) -> None:
+    """
+    Remove tables we intentionally no longer generate/include:
+    - Gemma/Gemma3 tables
+    - Transformer macro/micro summary tables (we keep transformer *detail* tables only)
+    """
+    unwanted_names = {
+        "gemma3_macro_micro_table.tex",
+        "gemma3_category_table.tex",
+        # prompt-model macro/micro tables (category tables only requested)
+        *(f"{m}_macro_micro_table.tex" for m in (LOCAL_MODELS + API_MODELS)),
+        # transformer summaries (details only requested)
+        *(f"{m}_macro_micro_table.tex" for m in TRANSFORMER_METRICS.keys()),
+    }
+    for name in unwanted_names:
+        p = output_dir / name
+        if p.exists():
+            p.unlink()
+
+
 def create_detailed_table(
     summary: pd.DataFrame,
     output_dir: Path,
@@ -246,11 +303,27 @@ def create_detailed_table(
         ("modernbert-base", "ft_gpt"),
     ]
 
-    def fetch(source: str, model: str, method: str, metric: str) -> str:
+    def fetch(source: str, model: str, method: str, metric: str) -> tuple[str, float | None]:
         row = lookup.get((source, model, method))
         if not row:
-            return ""
-        return fmt_percent(row.get(metric))
+            return "", None
+        raw = row.get(metric)
+        if raw is None or (isinstance(raw, float) and np.isnan(raw)):
+            return "", None
+        return fmt_percent(raw), float(raw) * 100.0
+
+    def bold_best(cells: list[tuple[str, float | None]]) -> list[str]:
+        values = [v for _, v in cells if v is not None]
+        if not values:
+            return [s for s, _ in cells]
+        best = max(values)
+        out: list[str] = []
+        for s, v in cells:
+            if v is not None and abs(v - best) < 1e-9 and s:
+                out.append(f"\\textbf{{{s}}}")
+            else:
+                out.append(s)
+        return out
 
     rows_macro = {}
     rows_micro = {}
@@ -260,18 +333,22 @@ def create_detailed_table(
 
     avg_macro = []
     avg_micro = []
+    avg_macro_vals: list[float | None] = []
+    avg_micro_vals: list[float | None] = []
     for i in range(len(columns)):
         values_macro = []
         values_micro = []
         for source in SOURCE_ORDER:
-            v_macro = rows_macro[source][i]
-            v_micro = rows_micro[source][i]
-            if v_macro:
-                values_macro.append(float(v_macro))
-            if v_micro:
-                values_micro.append(float(v_micro))
-        avg_macro.append(f"{np.mean(values_macro):.2f}" if values_macro else "")
-        avg_micro.append(f"{np.mean(values_micro):.2f}" if values_micro else "")
+            s_macro, v_macro = rows_macro[source][i]
+            s_micro, v_micro = rows_micro[source][i]
+            if v_macro is not None:
+                values_macro.append(v_macro)
+            if v_micro is not None:
+                values_micro.append(v_micro)
+        avg_macro_vals.append(float(np.mean(values_macro)) if values_macro else None)
+        avg_micro_vals.append(float(np.mean(values_micro)) if values_micro else None)
+        avg_macro.append(f"{avg_macro_vals[-1]:.2f}" if avg_macro_vals[-1] is not None else "")
+        avg_micro.append(f"{avg_micro_vals[-1]:.2f}" if avg_micro_vals[-1] is not None else "")
 
     lines = [
         r"\begin{table*}[h!]",
@@ -285,11 +362,15 @@ def create_detailed_table(
     ]
 
     for source in SOURCE_ORDER:
-        lines.append(f"{SOURCE_DISPLAY[source]} (Macro) & " + " & ".join(rows_macro[source]) + r" \\")
-        lines.append(f"{SOURCE_DISPLAY[source]} (Micro) & " + " & ".join(rows_micro[source]) + r" \\")
+        lines.append(
+            f"{SOURCE_DISPLAY[source]} (Macro) & " + " & ".join(bold_best(rows_macro[source])) + r" \\"
+        )
+        lines.append(
+            f"{SOURCE_DISPLAY[source]} (Micro) & " + " & ".join(bold_best(rows_micro[source])) + r" \\"
+        )
 
-    lines.append("Avg (Macro) & " + " & ".join(avg_macro) + r" \\")
-    lines.append("Avg (Micro) & " + " & ".join(avg_micro) + r" \\")
+    lines.append("Avg (Macro) & " + " & ".join(bold_best(list(zip(avg_macro, avg_macro_vals)))) + r" \\")
+    lines.append("Avg (Micro) & " + " & ".join(bold_best(list(zip(avg_micro, avg_micro_vals)))) + r" \\")
 
     lines.extend(
         [
@@ -305,6 +386,103 @@ def create_detailed_table(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "detailed_macro_f1_table.tex").write_text("\n".join(lines))
+
+
+def create_llm_zero_few_table(summary: pd.DataFrame, output_dir: Path) -> None:
+    """
+    Val-opt macro/micro F1 summary for the 6 LLMs (zero-shot vs few-shot).
+    """
+    lookup = build_lookup(summary)
+
+    llms = ["llama", "phi4", "qwen", "gemini", "grok", "gpt4"]
+    columns: list[tuple[str, str]] = []
+    for m in llms:
+        columns.append((m, "zero_shot"))
+        columns.append((m, "few_shot"))
+
+    def fetch(source: str, model: str, method: str, metric: str) -> tuple[str, float | None]:
+        row = lookup.get((source, model, method))
+        if not row:
+            return "--", None
+        raw = row.get(metric)
+        if raw is None or (isinstance(raw, float) and np.isnan(raw)):
+            return "--", None
+        return fmt_percent(raw), float(raw) * 100.0
+
+    def bold_best(cells: list[tuple[str, float | None]]) -> list[str]:
+        values = [v for _, v in cells if v is not None]
+        if not values:
+            return [s for s, _ in cells]
+        best = max(values)
+        out: list[str] = []
+        for s, v in cells:
+            if v is not None and abs(v - best) < 1e-9 and s not in ("", "--"):
+                out.append(f"\\textbf{{{s}}}")
+            else:
+                out.append(s)
+        return out
+
+    macro_cells_by_source: dict[str, list[tuple[str, float | None]]] = {}
+    micro_cells_by_source: dict[str, list[tuple[str, float | None]]] = {}
+    for source in SOURCE_ORDER:
+        macro_cells_by_source[source] = [fetch(source, m, meth, "macro_f1") for m, meth in columns]
+        micro_cells_by_source[source] = [fetch(source, m, meth, "micro_f1") for m, meth in columns]
+
+    avg_macro: list[tuple[str, float | None]] = []
+    avg_micro: list[tuple[str, float | None]] = []
+    for i in range(len(columns)):
+        vals_macro = [
+            macro_cells_by_source[s][i][1] for s in SOURCE_ORDER if macro_cells_by_source[s][i][1] is not None
+        ]
+        vals_micro = [
+            micro_cells_by_source[s][i][1] for s in SOURCE_ORDER if micro_cells_by_source[s][i][1] is not None
+        ]
+        avg_m = float(np.mean(vals_macro)) if vals_macro else None
+        avg_u = float(np.mean(vals_micro)) if vals_micro else None
+        avg_macro.append((f"{avg_m:.2f}" if avg_m is not None else "--", avg_m))
+        avg_micro.append((f"{avg_u:.2f}" if avg_u is not None else "--", avg_u))
+
+    # Build headers: group by model, each with (Zero, Few)
+    header1 = r"Data Source"
+    header1 += " & " + " & ".join([rf"\multicolumn{{2}}{{c}}{{{m.upper()}}}" for m in llms]) + r" \\"
+    header2 = r""
+    header2 += " & " + " & ".join(["Zero & Few"] * len(llms)) + r" \\"
+
+    lines = [
+        r"\begin{table*}[h!]",
+        r"\centering",
+        r"\setlength{\tabcolsep}{3.5pt}",
+        r"\renewcommand{\arraystretch}{1.15}",
+        r"\resizebox{\textwidth}{!}{",
+        r"\begin{tabular}{l" + ("c" * len(columns)) + r"}",
+        r"\toprule",
+        header1,
+        # underline each model group (2 cols per model)
+        r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}\cmidrule(lr){12-13}",
+        header2,
+        r"\midrule",
+    ]
+
+    for source in SOURCE_ORDER:
+        lines.append(rf"\rowcolor{{gray!10}} {SOURCE_DISPLAY[source]} (Macro) & " + " & ".join(bold_best(macro_cells_by_source[source])) + r" \\")
+        lines.append(f"{SOURCE_DISPLAY[source]} (Micro) & " + " & ".join(bold_best(micro_cells_by_source[source])) + r" \\")
+        lines.append(r"\addlinespace[0.35em]")
+
+    lines.append(r"\midrule")
+    lines.append(rf"\rowcolor{{gray!10}} Avg (Macro) & " + " & ".join(bold_best(avg_macro)) + r" \\")
+    lines.append("Avg (Micro) & " + " & ".join(bold_best(avg_micro)) + r" \\")
+
+    lines += [
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"}",
+        r"\caption{Validation-optimized Macro and Micro F1 Scores for LLMs (Zero-shot vs Few-shot)}",
+        r"\label{tab:llm_zero_few_valopt}",
+        r"\end{table*}",
+    ]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "llm_zero_few_summary_table.tex").write_text("\n".join(lines))
 
 
 def create_macro_micro_tables(
@@ -400,6 +578,7 @@ def create_category_table(
     ]
 
     lines = []
+    star_used = False
     for category in CATEGORY_ORDER:
         row = [CATEGORY_DISPLAY.get(category, category.title())]
         has_value = False
@@ -414,8 +593,10 @@ def create_category_table(
             if pos_count < 5:
                 if first_value is not None:
                     first_str = f"{first_str}*"
+                    star_used = True
                 if second_value is not None:
                     second_str = f"{second_str}*"
+                    star_used = True
 
             if first_value is not None and second_value is not None:
                 if first_value > second_value:
@@ -429,12 +610,17 @@ def create_category_table(
         if has_value:
             lines.append(" & ".join(row) + r" \\")
 
+    caption = rf"\centering\caption{{Validation-optimized Category-wise F1 Scores for {model.upper()} Model}}"
+    if star_used:
+        caption = (
+            rf"\centering\caption{{Validation-optimized Category-wise F1 Scores for {model.upper()} Model "
+            r"(* indicates $<$5 positive examples in gold labels; interpret with caution.)}"
+        )
+
     footer = [
         r"\bottomrule",
         r"\end{tabular}",
-        r"\vspace{0.25em}",
-        r"\footnotesize{* <5 positive examples in gold labels; interpret with caution.}",
-        rf"\centering\caption{{Validation-optimized Category-wise F1 Scores for {model.upper()} Model}}",
+        caption,
         rf"\label{{tab:{model}_category_breakdown}}",
         r"\end{table*}",
     ]
@@ -504,22 +690,25 @@ def main() -> None:
     ]
 
     output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cleanup_legacy_tables(output_dir)
     write_summary_csvs(summary, per_category, output_dir)
     create_detailed_table(summary, output_dir)
+    create_llm_zero_few_table(summary, output_dir)
     positive_counts = load_positive_counts()
 
-    # Per-model tables
-    for model in API_MODELS:
-        create_macro_micro_tables(summary, output_dir, model, ("zero_shot", "few_shot"))
-        create_category_table(per_category, output_dir, model, ("zero_shot", "few_shot"), positive_counts)
-
+    # Per-model tables (ordered for paper).
     for model in LOCAL_MODELS:
-        create_macro_micro_tables(summary, output_dir, model, ("zero_shot", "lora_gpt"))
         create_category_table(per_category, output_dir, model, ("zero_shot", "lora_gpt"), positive_counts)
 
+    for model in API_MODELS:
+        create_category_table(per_category, output_dir, model, ("zero_shot", "few_shot"), positive_counts)
+
+    # Transformer baselines: include details only (no macro/micro summary tables).
     for model in TRANSFORMER_METRICS.keys():
-        create_macro_micro_tables(summary, output_dir, model, ("ft_gold", "ft_gpt"))
         create_category_table(per_category, output_dir, model, ("ft_gold", "ft_gpt"), positive_counts)
+
+    write_main_tex(output_dir)
 
 
 if __name__ == "__main__":

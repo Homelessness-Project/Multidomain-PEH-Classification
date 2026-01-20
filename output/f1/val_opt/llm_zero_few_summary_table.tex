@@ -1,0 +1,24 @@
+\begin{table*}[h!]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccccc}
+\toprule
+Data Source & \multicolumn{2}{c}{LLAMA} & \multicolumn{2}{c}{PHI4} & \multicolumn{2}{c}{QWEN} & \multicolumn{2}{c}{GEMINI} & \multicolumn{2}{c}{GROK} & \multicolumn{2}{c}{GPT4} \\
+ & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+Reddit (Macro) & 19.42 & 29.66 & 15.33 & 24.09 & 35.62 & 38.24 & 50.90 & \textbf{51.52} & 38.51 & 38.61 & 50.57 & 51.28 \\
+Reddit (Micro) & 41.41 & 40.71 & 32.06 & 39.38 & 49.80 & 53.99 & 65.18 & \textbf{66.36} & 47.94 & 50.80 & 63.13 & 65.22 \\
+News (Macro) & 15.05 & 15.94 & 17.11 & 21.30 & 22.62 & 25.12 & 35.99 & \textbf{39.08} & 26.04 & 28.69 & 34.79 & 37.93 \\
+News (Micro) & 36.57 & 28.33 & 26.85 & 50.13 & 35.31 & 55.25 & 65.03 & \textbf{68.81} & 51.66 & 54.10 & 61.20 & 64.26 \\
+Meeting Minutes (Macro) & 13.84 & 21.54 & 18.12 & 20.81 & 26.82 & 30.32 & 38.06 & \textbf{41.38} & 29.46 & 34.46 & 37.70 & 39.96 \\
+Meeting Minutes (Micro) & 39.97 & 38.94 & 29.31 & 39.55 & 46.09 & 60.04 & 66.64 & \textbf{71.12} & 48.63 & 62.39 & 61.13 & 67.89 \\
+X (Twitter) (Macro) & 16.57 & 25.50 & 11.90 & 26.60 & 28.00 & 35.45 & 45.06 & \textbf{45.91} & 26.57 & 35.37 & 43.21 & 44.65 \\
+X (Twitter) (Micro) & 39.56 & 39.32 & 21.84 & 44.07 & 39.45 & 54.99 & 66.30 & \textbf{67.39} & 46.70 & 54.00 & 60.39 & 63.59 \\
+Avg (Macro) & 16.22 & 23.16 & 15.62 & 23.20 & 28.27 & 32.28 & 42.50 & \textbf{44.47} & 30.14 & 34.28 & 41.57 & 43.45 \\
+Avg (Micro) & 39.38 & 36.82 & 27.52 & 43.28 & 42.66 & 56.07 & 65.79 & \textbf{68.42} & 48.73 & 55.32 & 61.46 & 65.24 \\
+\bottomrule
+\end{tabular}
+}
+\caption{Validation-optimized Macro and Micro F1 Scores for LLMs (Zero-shot vs Few-shot)}
+\label{tab:llm_zero_few_valopt}
+\end{table*}

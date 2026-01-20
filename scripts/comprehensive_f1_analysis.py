@@ -2,7 +2,6 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.metrics import f1_score, precision_score, recall_score
 import os
 import json
 from collections import defaultdict
@@ -10,12 +9,88 @@ from typing import Optional
 import argparse
 
 # Configuration
-SOURCES = ['reddit', 'x', 'news', 'meeting_minutes']
-MODELS = ['llama', 'qwen', 'gpt4', 'gemini', 'grok', 'phi4', 'bert']
+SOURCES = ['reddit', 'news', 'meeting_minutes', 'x']
+# Prompt models only (order matters for table output)
+PROMPT_MODELS = ['llama', 'phi4', 'qwen', 'gemini', 'grok', 'gpt4']
 SHOT_TYPES = ['zero_shot', 'few_shot']
 
 # Soft label threshold
 SOFT_LABEL_THRESHOLD = 0.5
+
+
+def write_main_tex_soft(output_dir: str) -> None:
+    """
+    Create output/f1/soft/main.tex concatenating the key soft-label F1 tables.
+    Order: main detailed table first, then per-model category tables (no per-model macro/micro).
+    """
+    preferred = [
+        "detailed_macro_f1_table.tex",
+        "llama_category_table.tex",
+        "phi4_category_table.tex",
+        "qwen_category_table.tex",
+        "gemini_category_table.tex",
+        "grok_category_table.tex",
+        "gpt4_category_table.tex",
+        "bert_category_table.tex",
+    ]
+
+    lines = ["% Auto-generated. Concatenated tables (no \\\\input).", ""]
+    for name in preferred:
+        path = os.path.join(output_dir, name)
+        if not os.path.exists(path):
+            continue
+        lines.append(f"% ===== {name} =====")
+        with open(path, "r") as f:
+            lines.append(f.read())
+        lines.append("")
+
+    with open(os.path.join(output_dir, "main.tex"), "w") as f:
+        f.write("\n".join(lines))
+
+
+def postprocess_soft_category_tables(output_dir: str) -> None:
+    """
+    Post-process already-generated soft-label category tables to match the paper style:
+    - Remove separate vspace/footnote lines
+    - Move the "* indicates $<$5 ..." note into the caption (LaTeX-safe)
+
+    This function does NOT require sklearn and is safe to run even if the metrics
+    cannot be recomputed in the current environment.
+    """
+    note = "(* indicates $<$5 positive examples in soft labels; interpret with caution.)"
+
+    for name in os.listdir(output_dir):
+        if not name.endswith("_category_table.tex"):
+            continue
+        path = os.path.join(output_dir, name)
+        with open(path, "r") as f:
+            text = f.read()
+
+        # Drop legacy standalone note lines if present.
+        lines = []
+        for line in text.splitlines():
+            if line.strip() == r"\vspace{0.25em}":
+                continue
+            if line.strip().startswith(r"\footnotesize{*"):
+                continue
+            lines.append(line)
+        text = "\n".join(lines)
+
+        # Ensure note is embedded in the caption (and uses $<$5).
+        out_lines = []
+        for line in text.splitlines():
+            if r"\centering\caption{" in line and "Category-wise F1 Scores" in line:
+                # If note already present, just normalize any raw "<5" to "$<$5".
+                if "(* indicates" in line:
+                    line = line.replace("<5", "$<$5")
+                else:
+                    # Append note before the closing brace.
+                    if line.rstrip().endswith("}"):
+                        line = line[:-1] + f" {note}" + "}"
+            out_lines.append(line)
+
+        with open(path, "w") as f:
+            f.write("\n".join(out_lines))
 
 def load_soft_labels(source):
     """Load soft labels for a source."""
@@ -99,6 +174,16 @@ def calculate_metrics(predictions, soft_labels, source):
     """Calculate macro F1 and per-category metrics."""
     if predictions is None or soft_labels is None:
         return None
+
+    # Lazy import so the module can be imported without sklearn installed
+    # (e.g., to build main.tex from already-generated tables).
+    try:
+        from sklearn.metrics import f1_score, precision_score, recall_score  # type: ignore
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "scikit-learn is required to compute soft-label F1 metrics. "
+            "Install it (pip install scikit-learn) or run table generation in an environment that has it."
+        ) from e
     
     # Get common categories between predictions and soft labels
     pred_cols = [col for col in predictions.columns if col not in ['Comment', 'City', 'City_original']]
@@ -215,7 +300,7 @@ def create_detailed_latex_table(summary_df):
     latex_table.append(r"\resizebox{\textwidth}{!}{")
     latex_table.append(r"\begin{tabular}{lcccccccccccc}")
     latex_table.append(r"\toprule")
-    latex_table.append(r"Data Source & \multicolumn{2}{c}{GPT-4} & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{Gemini} & BERT \\")
+    latex_table.append(r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} & BERT \\")
     latex_table.append(r"& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Fine-tuned \\")
     latex_table.append(r"\midrule")
     
@@ -246,8 +331,8 @@ def create_detailed_latex_table(summary_df):
     print(f"Total samples across all sources: {total_samples}")
     
     # Store all values for weighted average calculation
-    all_macro_values = {model: {'zero': [], 'few': []} for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']}
-    all_micro_values = {model: {'zero': [], 'few': []} for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']}
+    all_macro_values = {model: {'zero': [], 'few': []} for model in PROMPT_MODELS}
+    all_micro_values = {model: {'zero': [], 'few': []} for model in PROMPT_MODELS}
     bert_macro_values = []
     bert_micro_values = []
     
@@ -267,7 +352,7 @@ def create_detailed_latex_table(summary_df):
         macro_values = []
         
         # Add macro F1 data for each model
-        for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']:
+        for model in PROMPT_MODELS:
             for shot_type in ['zero_shot', 'few_shot']:
                 model_key = f"{model}_{shot_type}"
                 model_data = source_data[source_data['Model'] == model_key]
@@ -314,7 +399,7 @@ def create_detailed_latex_table(summary_df):
         micro_values = []
         
         # Add micro F1 data for each model
-        for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']:
+        for model in PROMPT_MODELS:
             for shot_type in ['zero_shot', 'few_shot']:
                 model_key = f"{model}_{shot_type}"
                 model_data = source_data[source_data['Model'] == model_key]
@@ -375,7 +460,7 @@ def create_detailed_latex_table(summary_df):
     weighted_macro_row = ["Weighted Avg (Macro)"]
     weighted_macro_values = []
     
-    for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']:
+    for model in PROMPT_MODELS:
         for shot_type in ['zero', 'few']:
             weighted_avg = calculate_weighted_average(all_macro_values[model][shot_type])
             weighted_macro_values.append(weighted_avg)
@@ -402,7 +487,7 @@ def create_detailed_latex_table(summary_df):
     weighted_micro_row = ["Weighted Avg (Micro)"]
     weighted_micro_values = []
     
-    for model in ['gpt4', 'llama', 'qwen', 'phi4', 'grok', 'gemini']:
+    for model in PROMPT_MODELS:
         for shot_type in ['zero', 'few']:
             weighted_avg = calculate_weighted_average(all_micro_values[model][shot_type])
             weighted_micro_values.append(weighted_avg)
@@ -511,8 +596,10 @@ def create_individual_model_tables(all_results):
     
     positive_counts = load_soft_label_positive_counts()
 
-    # Create tables for each model
-    for model in MODELS:
+    ordered_models = PROMPT_MODELS + ['bert']
+
+    # Create tables for each model (paper order)
+    for model in ordered_models:
         print(f"Creating table for {model.upper()}...")
         
         # Collect data for this model across all sources
@@ -586,9 +673,7 @@ def create_individual_model_tables(all_results):
             
             latex_table.append(r"\bottomrule")
             latex_table.append(r"\end{tabular}")
-            latex_table.append(r"\vspace{0.25em}")
-            latex_table.append(r"\footnotesize{* <5 positive examples in soft labels; interpret with caution.}")
-            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for BERT Fine-tuned Model}}")
+            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for BERT Fine-tuned Model (* indicates $<$5 positive examples in soft labels; interpret with caution.)}}")
             latex_table.append(fr"\label{{tab:bert_category_breakdown}}")
         else:
             # Other models table format (with zero/few shot distinction)
@@ -660,9 +745,7 @@ def create_individual_model_tables(all_results):
             
             latex_table.append(r"\bottomrule")
             latex_table.append(r"\end{tabular}")
-            latex_table.append(r"\vspace{0.25em}")
-            latex_table.append(r"\footnotesize{* <5 positive examples in soft labels; interpret with caution.}")
-            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for {model.upper()} Model}}")
+            latex_table.append(fr"\centering\caption{{Soft-label Category-wise F1 Scores for {model.upper()} Model (* indicates $<$5 positive examples in soft labels; interpret with caution.)}}")
             latex_table.append(fr"\label{{tab:{model}_category_breakdown}}")
         
         latex_table.append(r"\end{table*}")
@@ -769,8 +852,8 @@ def main():
         if soft_labels is None:
             continue
         
-        # Process each model and shot type
-        for model in MODELS:
+        # Process each prompt model and shot type (soft-label evaluation)
+        for model in PROMPT_MODELS:
             for shot_type in SHOT_TYPES:
                 print(f"\n--- {model} {shot_type} ---")
                 
@@ -788,7 +871,7 @@ def main():
                     all_results[source][f"{model}_{shot_type}"] = metrics
                     print(f"Macro F1: {metrics['macro_f1']:.4f}")
         
-        # Load BERT results
+        # Load BERT results (fine-tuned baseline)
         bert_results = load_bert_results(source)
         if bert_results:
             all_results[source]['bert_finetuned'] = {
@@ -898,6 +981,9 @@ def main():
     
     # Create individual model category tables
     create_individual_model_tables(all_results)
+
+    # Write a single concatenated main.tex for easy copy/paste
+    write_main_tex_soft(output_dir)
     
     # Save detailed results
     with open(f'{output_dir}/detailed_model_comparison.json', 'w') as f:

@@ -1,0 +1,30 @@
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccccccccccccc}
+\toprule
+Category & \multicolumn{5}{c}{Reddit} & \multicolumn{5}{c}{News} & \multicolumn{5}{c}{Meeting Minutes} & \multicolumn{5}{c}{X (Twitter)} \\
+ & Zero-shot & Few-shot & Gold-only & GPT-pseudolabel & LoRA (GPT) & Zero-shot & Few-shot & Gold-only & GPT-pseudolabel & LoRA (GPT) & Zero-shot & Few-shot & Gold-only & GPT-pseudolabel & LoRA (GPT) & Zero-shot & Few-shot & Gold-only & GPT-pseudolabel & LoRA (GPT) \\
+\midrule
+Ask Genuine Question & 0.00 & 0.00 & NaN & NaN & 0.45 & 0.00 & 0.00 & NaN & NaN & 0.00 & -0.01 & -0.01 & NaN & NaN & 0.00 & -0.01 & 0.18 & NaN & NaN & 0.00 \\
+Ask Rhetorical Question & 0.00 & 0.00 & NaN & NaN & 0.50 & NaN & 0.00 & NaN & NaN & 0.00 & NaN & 0.00 & NaN & NaN & 0.00 & 0.04 & 0.17 & NaN & NaN & 0.00 \\
+Provide Fact/Claim & 0.00 & 0.00 & NaN & NaN & 0.37 & 0.01 & -0.01 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.02 & 0.04 & NaN & NaN & 0.00 \\
+Provide Observation & 0.00 & 0.00 & NaN & NaN & 0.46 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.14 & 0.03 & NaN & NaN & 0.00 \\
+Express Opinion & 0.00 & 0.00 & NaN & NaN & 0.33 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.40 & 0.34 & NaN & NaN & 0.00 \\
+Express Others Opinions & 0.00 & 0.00 & NaN & NaN & 0.07 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00* & 0.00* & NaN & NaN & 0.00* & -0.00 & 0.04 & NaN & NaN & 0.00 \\
+Money Aid Allocation & 0.00 & 0.00 & NaN & NaN & 0.40 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.04 & 0.26 & NaN & NaN & 0.00 \\
+Government Critique & 0.00 & 0.00 & NaN & NaN & 0.44 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.30 & 0.15 & NaN & NaN & 0.00 \\
+Societal Critique & 0.00 & 0.00 & NaN & NaN & 0.29 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.18 & 0.05 & NaN & NaN & 0.00 \\
+Solutions/Interventions & 0.00 & 0.00 & NaN & NaN & 0.38 & -0.00 & 0.00 & NaN & NaN & 0.00 & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.04 & 0.24 & NaN & NaN & 0.00 \\
+Personal Interaction & 0.00 & 0.00 & NaN & NaN & 0.51 & NaN & 0.00* & NaN & NaN & 0.00* & 0.00 & 0.00 & NaN & NaN & 0.00 & -0.00 & 0.05 & NaN & NaN & 0.00 \\
+Media Portrayal & 0.00 & 0.00 & NaN & NaN & 0.00 & 0.00* & 0.00* & NaN & NaN & 0.00* & 0.00* & 0.00* & NaN & NaN & NaN & -0.01 & 0.01 & NaN & NaN & 0.00 \\
+Not in My Backyard & 0.00 & 0.00 & NaN & NaN & 0.08 & 0.00* & 0.00* & NaN & NaN & NaN & 0.00* & 0.00* & NaN & NaN & 0.00* & 0.09 & 0.06 & NaN & NaN & 0.00 \\
+Harmful Generalization & 0.00 & 0.00 & NaN & NaN & 0.37 & 0.00* & 0.00* & NaN & NaN & 0.00* & 0.08 & 0.01 & NaN & NaN & 0.00 & 0.27 & 0.07 & NaN & NaN & 0.00 \\
+Deserving/Undeserving & 0.00 & 0.00 & NaN & NaN & 0.13 & 0.00* & 0.00* & NaN & NaN & NaN & 0.00* & 0.00* & NaN & NaN & NaN & 0.01 & 0.01 & NaN & NaN & 0.00 \\
+Racist & NaN & 0.00* & NaN & NaN & 0.00* & NaN & 0.00* & NaN & NaN & NaN & NaN & 0.00* & NaN & NaN & NaN & 0.00* & 0.05* & NaN & NaN & 0.00* \\
+\bottomrule
+\end{tabular}
+}
+\caption{Validation-optimized Cohen's $\kappa$ by category (llama). (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:llama_kappa_valopt}
+\end{table*}

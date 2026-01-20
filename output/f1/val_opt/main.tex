@@ -1,0 +1,332 @@
+% Auto-generated. Concatenated tables (no \input).
+
+% ===== detailed_macro_f1_table.tex =====
+\begin{table*}[h!]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccccccccccc}
+\toprule
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & Gemini & Grok & GPT-4 & \multicolumn{2}{c}{BERT}& \multicolumn{2}{c}{RoBERTa}& \multicolumn{2}{c}{ModernBERT}\\
+ & Zero & Finetuned& Zero & Finetuned& Zero & Finetuned& Zero & Zero & Zero & Gold & GPT & Gold & GPT & Gold & GPT\\
+& & (GPT)& & (GPT)& & (GPT)& & & & (Gold)&(GPT)& (Gold)&(GPT)& (Gold)&(GPT)\\
+\midrule
+Reddit (Macro) & 19.42 & 44.18 & 15.33 & 33.87 & 35.62 & 50.13 & \textbf{50.90} & 38.51 & 50.57 & 25.45 & 28.20 & 27.22 & 24.17 & 32.11 & 49.56 \\
+Reddit (Micro) & 41.41 & 56.70 & 32.06 & 52.51 & 49.80 & 61.66 & \textbf{65.18} & 47.94 & 63.13 & 42.50 & 41.35 & 38.13 & 45.30 & 41.73 & 64.42 \\
+News (Macro) & 15.05 & 15.67 & 17.11 & 15.67 & 22.62 & 15.22 & \textbf{35.99} & 26.04 & 34.79 & 11.08 & 16.50 & 14.24 & 14.27 & 16.18 & 23.63 \\
+News (Micro) & 36.57 & 47.72 & 26.85 & 47.72 & 35.31 & 53.42 & 65.03 & 51.66 & 61.20 & 33.77 & 45.71 & 45.02 & 50.93 & 33.33 & \textbf{69.27} \\
+Meeting Minutes (Macro) & 13.84 & 14.93 & 18.12 & 19.58 & 26.82 & 21.65 & \textbf{38.06} & 29.46 & 37.70 & 11.66 & 19.16 & 15.64 & 18.37 & 22.82 & 33.86 \\
+Meeting Minutes (Micro) & 39.97 & \textbf{72.76} & 29.31 & 57.42 & 46.09 & 67.00 & 66.64 & 48.63 & 61.13 & 37.86 & 57.61 & 39.58 & 43.61 & 48.87 & 72.54 \\
+X (Twitter) (Macro) & 16.57 & 20.99 & 11.90 & 20.99 & 28.00 & 19.98 & \textbf{45.06} & 26.57 & 43.21 & 18.07 & 16.28 & 18.17 & 16.25 & 30.75 & 33.88 \\
+X (Twitter) (Micro) & 39.56 & 42.76 & 21.84 & 42.76 & 39.45 & 48.78 & \textbf{66.30} & 46.70 & 60.39 & 26.14 & 59.45 & 47.44 & 53.74 & 43.82 & 64.39 \\
+Avg (Macro) & 16.22 & 23.94 & 15.62 & 22.53 & 28.27 & 26.75 & \textbf{42.50} & 30.14 & 41.57 & 16.56 & 20.03 & 18.82 & 18.27 & 25.46 & 35.23 \\
+Avg (Micro) & 39.38 & 54.99 & 27.52 & 50.10 & 42.66 & 57.71 & 65.79 & 48.73 & 61.46 & 35.07 & 51.03 & 42.54 & 48.39 & 41.94 & \textbf{67.66} \\
+\bottomrule
+\end{tabular}
+}
+\centering
+\caption{Validation-optimized Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_reordered}
+\end{table*}
+
+% ===== llm_zero_few_summary_table.tex =====
+\begin{table*}[h!]
+\centering
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccccc}
+\toprule
+Data Source & \multicolumn{2}{c}{LLAMA} & \multicolumn{2}{c}{PHI4} & \multicolumn{2}{c}{QWEN} & \multicolumn{2}{c}{GEMINI} & \multicolumn{2}{c}{GROK} & \multicolumn{2}{c}{GPT4} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}\cmidrule(lr){12-13}
+ & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
+\midrule
+\rowcolor{gray!10} Reddit (Macro) & 19.42 & 29.66 & 15.33 & 24.09 & 35.62 & 38.24 & 50.90 & \textbf{51.52} & 38.51 & 38.61 & 50.57 & 51.28 \\
+Reddit (Micro) & 41.41 & 40.71 & 32.06 & 39.38 & 49.80 & 53.99 & 65.18 & \textbf{66.36} & 47.94 & 50.80 & 63.13 & 65.22 \\
+\addlinespace[0.35em]
+\rowcolor{gray!10} News (Macro) & 15.05 & 15.94 & 17.11 & 21.30 & 22.62 & 25.12 & 35.99 & \textbf{39.08} & 26.04 & 28.69 & 34.79 & 37.93 \\
+News (Micro) & 36.57 & 28.33 & 26.85 & 50.13 & 35.31 & 55.25 & 65.03 & \textbf{68.81} & 51.66 & 54.10 & 61.20 & 64.26 \\
+\addlinespace[0.35em]
+\rowcolor{gray!10} Meeting Minutes (Macro) & 13.84 & 21.54 & 18.12 & 20.81 & 26.82 & 30.32 & 38.06 & \textbf{41.38} & 29.46 & 34.46 & 37.70 & 39.96 \\
+Meeting Minutes (Micro) & 39.97 & 38.94 & 29.31 & 39.55 & 46.09 & 60.04 & 66.64 & \textbf{71.12} & 48.63 & 62.39 & 61.13 & 67.89 \\
+\addlinespace[0.35em]
+\rowcolor{gray!10} X (Twitter) (Macro) & 16.57 & 25.50 & 11.90 & 26.60 & 28.00 & 35.45 & 45.06 & \textbf{45.91} & 26.57 & 35.37 & 43.21 & 44.65 \\
+X (Twitter) (Micro) & 39.56 & 39.32 & 21.84 & 44.07 & 39.45 & 54.99 & 66.30 & \textbf{67.39} & 46.70 & 54.00 & 60.39 & 63.59 \\
+\addlinespace[0.35em]
+\midrule
+\rowcolor{gray!10} Avg (Macro) & 16.22 & 23.16 & 15.62 & 23.20 & 28.27 & 32.28 & 42.50 & \textbf{44.47} & 30.14 & 34.28 & 41.57 & 43.45 \\
+Avg (Micro) & 39.38 & 36.82 & 27.52 & 43.28 & 42.66 & 56.07 & 65.79 & \textbf{68.42} & 48.73 & 55.32 & 61.46 & 65.24 \\
+\bottomrule
+\end{tabular}
+}
+\caption{Validation-optimized Macro and Micro F1 Scores for LLMs (Zero-shot vs Few-shot)}
+\label{tab:llm_zero_few_valopt}
+\end{table*}
+
+% ===== llama_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt \\
+\midrule
+Ask Genuine Question & 12.90 & \textbf{52.78} & \textbf{28.57} & 0.00 & \textbf{44.90} & 0.00 & 0.00 & 0.00 \\
+Ask Rhetorical Question & 2.08 & \textbf{61.26} & 0.00 & 0.00 & 0.00 & 0.00 & 4.76 & \textbf{14.75} \\
+Provide Fact/Claim & 26.11 & \textbf{78.05} & 67.27 & \textbf{96.17} & 53.61 & \textbf{98.31} & 36.67 & \textbf{96.57} \\
+Provide Observation & 14.18 & \textbf{58.62} & \textbf{15.38} & 0.00 & \textbf{7.41} & 0.00 & \textbf{16.00} & 0.00 \\
+Express Opinion & 86.10 & \textbf{89.00} & \textbf{37.13} & 29.60 & 66.35 & \textbf{75.86} & \textbf{76.19} & 73.03 \\
+Express Others Opinions & 20.51 & \textbf{24.54} & 10.00 & \textbf{15.53} & 0.00* & 0.00* & 0.00 & \textbf{10.08} \\
+Money Aid Allocation & 3.03 & \textbf{47.76} & 0.00 & \textbf{38.98} & \textbf{3.03} & 0.00 & 5.06 & \textbf{28.79} \\
+Government Critique & 42.86 & \textbf{52.50} & \textbf{23.53} & 0.00 & \textbf{7.84} & 0.00 & \textbf{36.36} & 23.44 \\
+Societal Critique & 38.87 & \textbf{42.11} & \textbf{18.18} & 7.11 & \textbf{15.62} & 0.00 & \textbf{29.49} & 20.63 \\
+Solutions/Interventions & 1.12 & \textbf{67.21} & 7.11 & \textbf{63.31} & 1.16 & \textbf{64.66} & 6.49 & \textbf{49.33} \\
+Personal Interaction & 3.64 & \textbf{56.67} & 0.00* & 0.00* & 0.00 & 0.00 & 0.00 & 0.00 \\
+Media Portrayal & 0.00 & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.00 & 0.00 \\
+Not in My Backyard & \textbf{21.77} & 16.39 & 0.00* & 0.00* & \textbf{8.16*} & 0.00* & \textbf{13.73} & 0.00 \\
+Harmful Generalization & 31.53 & \textbf{45.71} & \textbf{11.43*} & 0.00* & \textbf{13.33} & 0.00 & \textbf{35.94} & 19.20 \\
+Deserving/Undeserving & 5.97 & \textbf{14.29} & \textbf{22.22*} & 0.00* & 0.00* & 0.00* & \textbf{4.44} & 0.00 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for LLAMA Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:llama_category_breakdown}
+\end{table*}
+
+% ===== phi4_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt \\
+\midrule
+Ask Genuine Question & 15.87 & \textbf{44.90} & \textbf{25.00} & 0.00 & \textbf{48.98} & 20.00 & \textbf{12.50} & 0.00 \\
+Ask Rhetorical Question & 5.83 & \textbf{38.18} & \textbf{22.22} & 0.00 & 0.00 & 0.00 & 13.64 & \textbf{14.75} \\
+Provide Fact/Claim & 12.34 & \textbf{75.00} & 34.10 & \textbf{96.17} & 25.81 & \textbf{98.31} & 5.87 & \textbf{96.57} \\
+Provide Observation & 1.65 & \textbf{43.93} & 0.00 & 0.00 & \textbf{15.38} & 0.00 & 0.00 & 0.00 \\
+Express Opinion & 74.58 & \textbf{88.11} & \textbf{34.88} & 29.60 & 50.64 & \textbf{75.86} & 61.87 & \textbf{73.03} \\
+Express Others Opinions & 0.00 & \textbf{24.42} & 0.00 & \textbf{15.53} & 0.00* & 0.00* & 6.90 & \textbf{10.08} \\
+Money Aid Allocation & 0.00 & \textbf{34.19} & 21.85 & \textbf{38.98} & 23.08 & \textbf{31.78} & 14.46 & \textbf{28.79} \\
+Government Critique & \textbf{36.96} & 36.49 & \textbf{24.24} & 0.00 & 12.77 & \textbf{22.66} & 22.50 & \textbf{23.44} \\
+Societal Critique & 2.22 & \textbf{34.48} & \textbf{20.00} & 7.11 & 0.00 & 0.00 & 0.00 & \textbf{20.63} \\
+Solutions/Interventions & 20.00 & \textbf{62.69} & 30.49 & \textbf{63.31} & 21.89 & \textbf{64.66} & 20.00 & \textbf{49.33} \\
+Personal Interaction & 12.12 & \textbf{23.23} & \textbf{33.33*} & 0.00* & \textbf{30.00} & 0.00 & 0.00 & 0.00 \\
+Media Portrayal & \textbf{2.63} & 0.00 & \textbf{2.70*} & 0.00* & 0.00* & 0.00* & \textbf{1.89} & 0.00 \\
+Not in My Backyard & \textbf{25.00} & 10.71 & 0.00* & 0.00* & \textbf{11.43*} & 0.00* & \textbf{5.08} & 0.00 \\
+Harmful Generalization & \textbf{30.48} & 20.41 & \textbf{25.00*} & 0.00* & 0.00 & 0.00 & \textbf{25.71} & 19.20 \\
+Deserving/Undeserving & \textbf{5.56} & 5.13 & 0.00* & 0.00* & \textbf{50.00*} & 0.00* & 0.00 & 0.00 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for PHI4 Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:phi4_category_breakdown}
+\end{table*}
+
+% ===== qwen_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt & Zero Shot & Lora Gpt \\
+\midrule
+Ask Genuine Question & 57.73 & \textbf{74.07} & \textbf{40.00} & 0.00 & \textbf{60.00} & 33.68 & \textbf{37.21} & 0.00 \\
+Ask Rhetorical Question & 14.52 & \textbf{55.24} & \textbf{11.76} & 0.00 & 0.00 & 0.00 & \textbf{36.62} & 0.00 \\
+Provide Fact/Claim & 65.64 & \textbf{78.55} & 86.33 & \textbf{96.17} & 71.81 & \textbf{98.31} & 59.52 & \textbf{96.57} \\
+Provide Observation & 45.48 & \textbf{66.09} & \textbf{3.68} & 0.00 & \textbf{6.12} & 0.00 & \textbf{6.99} & 0.00 \\
+Express Opinion & 88.12 & \textbf{90.65} & \textbf{35.37} & 29.60 & 75.69 & \textbf{75.86} & 69.49 & \textbf{73.16} \\
+Express Others Opinions & 25.43 & \textbf{39.22} & \textbf{16.84} & 15.53 & 0.00* & 0.00* & \textbf{12.56} & 10.08 \\
+Money Aid Allocation & 40.28 & \textbf{53.33} & \textbf{57.03} & 38.98 & \textbf{59.86} & 34.57 & \textbf{41.51} & 7.41 \\
+Government Critique & 43.30 & \textbf{59.52} & \textbf{20.09} & 0.00 & \textbf{43.31} & 37.74 & \textbf{47.46} & 23.44 \\
+Societal Critique & 35.00 & \textbf{39.05} & \textbf{12.90} & 0.00 & \textbf{7.59} & 0.00 & 22.67 & \textbf{32.62} \\
+Solutions/Interventions & 60.37 & \textbf{75.25} & \textbf{68.44} & 63.31 & \textbf{70.09} & 66.29 & \textbf{61.07} & 57.14 \\
+Personal Interaction & 35.15 & \textbf{50.00} & \textbf{3.47*} & 0.00* & \textbf{17.14} & 0.00 & \textbf{9.72} & 0.00 \\
+Media Portrayal & \textbf{4.00} & 0.00 & \textbf{1.01*} & 0.00* & \textbf{2.60*} & 0.00* & \textbf{1.27} & 0.00 \\
+Not in My Backyard & 17.59 & \textbf{45.45} & 0.00* & 0.00* & \textbf{3.87*} & 0.00* & \textbf{8.38} & 0.00 \\
+Harmful Generalization & 30.81 & \textbf{39.29} & \textbf{3.92*} & 0.00* & \textbf{8.40} & 0.00 & \textbf{29.81} & 19.20 \\
+Deserving/Undeserving & 6.58 & \textbf{36.36} & \textbf{1.09*} & 0.00* & \textbf{2.60*} & 0.00* & \textbf{3.70} & 0.00 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for QWEN Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:qwen_category_breakdown}
+\end{table*}
+
+% ===== gemini_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot \\
+\midrule
+Ask Genuine Question & 64.76 & \textbf{65.42} & \textbf{54.55} & 50.00 & \textbf{71.05} & 63.01 & 48.00 & \textbf{59.26} \\
+Ask Rhetorical Question & 82.41 & \textbf{84.73} & 52.63 & \textbf{63.16} & 43.24 & \textbf{51.43} & \textbf{77.42} & 76.09 \\
+Provide Fact/Claim & 79.23 & \textbf{81.27} & 96.22 & \textbf{96.34} & 92.40 & \textbf{95.13} & 89.62 & \textbf{90.73} \\
+Provide Observation & 59.95 & \textbf{62.54} & 14.74 & \textbf{17.39} & 15.38 & \textbf{19.15} & \textbf{18.80} & 18.49 \\
+Express Opinion & 91.96 & \textbf{92.44} & 53.59 & \textbf{59.52} & 83.04 & \textbf{85.90} & 84.44 & \textbf{85.54} \\
+Express Others Opinions & 42.77 & \textbf{42.94} & 27.81 & \textbf{33.93} & 11.32* & \textbf{13.79*} & \textbf{37.68} & 33.80 \\
+Money Aid Allocation & 48.31 & \textbf{51.96} & \textbf{70.87} & 68.90 & 57.69 & \textbf{63.16} & 60.19 & \textbf{69.15} \\
+Government Critique & 41.99 & \textbf{44.11} & 35.29 & \textbf{38.02} & \textbf{46.24} & 45.98 & 51.28 & \textbf{53.10} \\
+Societal Critique & \textbf{42.68} & 42.64 & 32.99 & \textbf{34.15} & 10.96 & \textbf{19.35} & \textbf{34.07} & 33.77 \\
+Solutions/Interventions & \textbf{70.53} & 69.74 & 73.83 & \textbf{74.07} & 71.00 & \textbf{72.43} & 69.09 & \textbf{70.59} \\
+Personal Interaction & 60.23 & \textbf{63.23} & 25.00* & \textbf{33.33*} & 33.85 & \textbf{41.67} & 25.00 & \textbf{28.21} \\
+Media Portrayal & \textbf{23.08} & 16.00 & 5.13* & \textbf{8.70*} & 0.00* & 0.00* & \textbf{28.00} & 21.62 \\
+Not in My Backyard & 46.46 & \textbf{47.31} & 0.00* & 0.00* & 32.00* & \textbf{36.36*} & \textbf{21.62} & 19.51 \\
+Harmful Generalization & \textbf{49.29} & 47.06 & 21.05* & \textbf{24.24*} & 35.29 & \textbf{41.38} & \textbf{53.24} & 52.48 \\
+Deserving/Undeserving & 10.69 & \textbf{13.01} & 12.12* & \textbf{23.53*} & 5.56* & \textbf{13.33*} & \textbf{22.54} & 22.22 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for GEMINI Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:gemini_category_breakdown}
+\end{table*}
+
+% ===== grok_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot \\
+\midrule
+Ask Genuine Question & \textbf{52.87} & 51.16 & \textbf{57.14} & 33.33 & 50.85 & \textbf{63.49} & 31.58 & \textbf{38.10} \\
+Ask Rhetorical Question & 59.35 & \textbf{64.15} & 36.36 & \textbf{50.00} & 42.11 & \textbf{43.48} & 54.84 & \textbf{63.16} \\
+Provide Fact/Claim & 59.24 & \textbf{64.02} & 70.82 & \textbf{75.30} & 60.63 & \textbf{77.43} & 62.22 & \textbf{72.51} \\
+Provide Observation & 38.16 & \textbf{40.94} & \textbf{4.00} & 3.70 & 9.64 & \textbf{13.64} & \textbf{10.99} & 8.22 \\
+Express Opinion & 59.53 & \textbf{66.98} & 35.85 & \textbf{51.16} & 52.50 & \textbf{71.69} & 50.58 & \textbf{61.98} \\
+Express Others Opinions & \textbf{38.33} & 32.69 & \textbf{25.88} & 17.14 & 6.25* & \textbf{12.50*} & 20.51 & \textbf{22.22} \\
+Money Aid Allocation & 44.44 & \textbf{49.21} & \textbf{56.41} & 30.22 & 51.85 & \textbf{57.60} & 38.89 & \textbf{55.64} \\
+Government Critique & \textbf{37.50} & 37.14 & 26.23 & \textbf{27.59} & 33.33 & \textbf{44.44} & 27.72 & \textbf{36.07} \\
+Societal Critique & \textbf{32.04} & 30.62 & \textbf{30.00} & 19.05 & 16.00 & 16.00 & 11.43 & \textbf{24.74} \\
+Solutions/Interventions & 46.49 & \textbf{51.59} & 59.68 & \textbf{66.49} & 49.83 & \textbf{65.19} & 58.11 & \textbf{66.23} \\
+Personal Interaction & 43.30 & \textbf{47.17} & 14.29* & \textbf{40.00*} & 17.39 & \textbf{29.63} & 12.90 & \textbf{17.54} \\
+Media Portrayal & 28.57 & 28.57 & 0.00* & \textbf{20.00*} & 0.00* & 0.00* & 0.00 & \textbf{32.00} \\
+Not in My Backyard & \textbf{37.68} & 17.72 & 0.00* & 0.00* & 14.29* & \textbf{19.05*} & \textbf{25.00} & 16.67 \\
+Harmful Generalization & 25.86 & \textbf{27.94} & 0.00* & 0.00* & 16.67 & \textbf{18.18} & 20.34 & \textbf{28.57} \\
+Deserving/Undeserving & \textbf{12.77} & 7.84 & 0.00* & \textbf{25.00*} & \textbf{50.00*} & 19.05* & 0.00 & \textbf{22.22} \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for GROK Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:grok_category_breakdown}
+\end{table*}
+
+% ===== gpt4_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot & Zero Shot & Few Shot \\
+\midrule
+Ask Genuine Question & \textbf{78.95} & 78.46 & 61.54 & \textbf{72.73} & 65.79 & \textbf{70.13} & \textbf{64.52} & 61.90 \\
+Ask Rhetorical Question & \textbf{73.22} & 63.51 & 42.86 & \textbf{66.67} & \textbf{50.00} & 47.62 & \textbf{70.97} & 70.00 \\
+Provide Fact/Claim & \textbf{80.50} & 79.81 & \textbf{95.37} & 95.17 & 83.39 & \textbf{89.68} & \textbf{85.27} & 81.89 \\
+Provide Observation & 53.81 & \textbf{62.76} & 6.78 & \textbf{8.45} & 8.85 & \textbf{16.16} & 8.00 & \textbf{12.50} \\
+Express Opinion & \textbf{91.61} & 91.06 & \textbf{52.56} & 49.74 & \textbf{82.77} & 82.26 & \textbf{85.04} & 82.55 \\
+Express Others Opinions & \textbf{39.34} & 34.85 & \textbf{38.46} & 31.03 & \textbf{8.89*} & 5.48* & 29.33 & \textbf{35.29} \\
+Money Aid Allocation & 59.76 & \textbf{60.44} & \textbf{67.33} & 60.00 & 69.28 & \textbf{75.50} & 65.67 & \textbf{72.22} \\
+Government Critique & \textbf{57.00} & 56.22 & 40.00 & \textbf{44.90} & \textbf{52.46} & 51.20 & 63.10 & \textbf{66.27} \\
+Societal Critique & \textbf{39.80} & 38.39 & 26.67 & \textbf{28.32} & 17.20 & \textbf{18.39} & 29.17 & \textbf{33.71} \\
+Solutions/Interventions & 68.75 & \textbf{71.78} & 76.06 & \textbf{76.71} & 70.29 & \textbf{72.26} & 73.29 & \textbf{74.25} \\
+Personal Interaction & 54.84 & \textbf{58.23} & 23.08* & \textbf{26.09*} & 30.99 & \textbf{39.02} & 21.15 & \textbf{22.00} \\
+Media Portrayal & \textbf{9.30} & 7.14 & 0.00* & 0.00* & 8.33* & \textbf{11.11*} & 2.15 & \textbf{4.76} \\
+Not in My Backyard & 50.53 & \textbf{58.97} & 0.00* & 0.00* & \textbf{34.78*} & 32.00* & \textbf{27.59} & 24.24 \\
+Harmful Generalization & 45.07 & \textbf{48.70} & 20.00* & \textbf{29.63*} & 16.22 & \textbf{21.43} & 48.00 & \textbf{52.55} \\
+Deserving/Undeserving & 6.67 & \textbf{10.13} & 5.97* & \textbf{17.39*} & 4.00* & \textbf{7.14*} & 18.18 & \textbf{20.25} \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for GPT4 Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:gpt4_category_breakdown}
+\end{table*}
+
+% ===== bert-base-uncased_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt \\
+\midrule
+Ask Genuine Question & \textbf{27.69} & 19.61 & 0.00 & \textbf{5.00} & \textbf{15.38} & 0.00 & \textbf{18.75} & 0.00 \\
+Ask Rhetorical Question & 0.00 & \textbf{39.18} & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Provide Fact/Claim & \textbf{75.16} & 73.47 & 92.09 & \textbf{97.30} & 84.80 & \textbf{99.30} & 69.12 & \textbf{96.00} \\
+Provide Observation & \textbf{53.06} & 46.51 & \textbf{5.41} & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Express Opinion & 86.71 & \textbf{88.62} & 0.00 & \textbf{28.95} & 12.00 & \textbf{81.82} & 0.00 & \textbf{76.26} \\
+Express Others Opinions & 0.00 & 0.00 & \textbf{17.14} & 15.69 & 0.00* & 0.00* & \textbf{12.24} & 0.00 \\
+Money Aid Allocation & \textbf{18.60} & 7.41 & 0.00 & \textbf{38.30} & 0.00 & \textbf{34.48} & \textbf{39.02} & 27.18 \\
+Government Critique & 12.50 & \textbf{17.14} & 10.26 & \textbf{18.18} & 10.34 & \textbf{17.72} & \textbf{20.20} & 0.00 \\
+Societal Critique & 18.37 & \textbf{45.57} & 0.00 & 0.00 & 0.00 & \textbf{2.94} & \textbf{24.76} & 15.38 \\
+Solutions/Interventions & 43.24 & \textbf{57.60} & 52.43 & \textbf{60.55} & 58.25 & \textbf{70.27} & \textbf{46.15} & 45.65 \\
+Personal Interaction & \textbf{25.00} & 17.65 & 0.00* & 0.00* & \textbf{5.71} & 0.00 & 0.00 & 0.00 \\
+Media Portrayal & \textbf{14.12} & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.00 & 0.00 \\
+Not in My Backyard & \textbf{32.76} & 15.38 & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{6.78} & 0.00 \\
+Harmful Generalization & 0.00 & \textbf{20.78} & 0.00* & 0.00* & 0.00 & 0.00 & \textbf{17.39} & 0.00 \\
+Deserving/Undeserving & 0.00 & \textbf{2.25} & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{21.05} & 0.00 \\
+Racist & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{13.64*} & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for BERT-BASE-UNCASED Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:bert-base-uncased_category_breakdown}
+\end{table*}
+
+% ===== roberta-base_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt \\
+\midrule
+Ask Genuine Question & \textbf{21.24} & 18.35 & \textbf{7.41} & 0.00 & \textbf{22.50} & 0.00 & \textbf{28.57} & 0.00 \\
+Ask Rhetorical Question & 25.00 & \textbf{33.61} & 0.00 & 0.00 & 0.00 & \textbf{2.74} & \textbf{16.16} & 0.00 \\
+Provide Fact/Claim & \textbf{74.21} & 70.59 & 95.24 & \textbf{97.30} & 96.35 & \textbf{99.30} & \textbf{97.78} & 96.00 \\
+Provide Observation & \textbf{47.33} & 40.32 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Express Opinion & 88.51 & \textbf{91.80} & 11.76 & \textbf{29.21} & 45.90 & \textbf{78.95} & \textbf{83.64} & 74.48 \\
+Express Others Opinions & \textbf{20.69} & 0.00 & \textbf{7.14} & 0.00 & 0.00* & \textbf{2.74*} & 0.00 & 0.00 \\
+Money Aid Allocation & \textbf{29.57} & 21.62 & \textbf{44.00} & 38.30 & \textbf{36.62} & 34.48 & 0.00 & \textbf{26.67} \\
+Government Critique & 0.00 & \textbf{20.00} & 0.00 & 0.00 & \textbf{17.39} & 0.00 & 0.00 & 0.00 \\
+Societal Critique & 22.73 & \textbf{35.00} & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & \textbf{19.80} \\
+Solutions/Interventions & 0.00 & \textbf{55.47} & \textbf{62.22} & 60.55 & 10.53 & \textbf{70.27} & \textbf{45.38} & 43.10 \\
+Personal Interaction & \textbf{22.22} & 0.00 & 0.00* & 0.00* & 0.00 & 0.00 & 0.00 & 0.00 \\
+Media Portrayal & \textbf{12.96} & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.00 & 0.00 \\
+Not in My Backyard & \textbf{8.70} & 0.00 & 0.00* & 0.00* & \textbf{12.99*} & 5.41* & 0.00 & 0.00 \\
+Harmful Generalization & \textbf{18.52} & 0.00 & 0.00* & \textbf{3.03*} & 0.00 & 0.00 & \textbf{11.27} & 0.00 \\
+Deserving/Undeserving & \textbf{38.24} & 0.00 & 0.00* & 0.00* & \textbf{7.89*} & 0.00* & \textbf{8.00} & 0.00 \\
+Racist & \textbf{5.56*} & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for ROBERTA-BASE Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:roberta-base_category_breakdown}
+\end{table*}
+
+% ===== modernbert-base_category_table.tex =====
+\begin{table*}[htbp]
+\centering
+\begin{tabular}{l *{8}{c}}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+& Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt & Ft Gold & Ft Gpt \\
+\midrule
+Ask Genuine Question & 11.76 & \textbf{68.75} & 0.00 & 0.00 & 23.38 & \textbf{73.17} & \textbf{33.33} & 0.00 \\
+Ask Rhetorical Question & 22.00 & \textbf{63.53} & 0.00 & 0.00 & 0.00 & \textbf{22.22} & 16.84 & \textbf{52.83} \\
+Provide Fact/Claim & 74.21 & \textbf{77.33} & 87.30 & \textbf{96.67} & 97.14 & \textbf{98.31} & 93.57 & \textbf{96.57} \\
+Provide Observation & 48.28 & \textbf{62.65} & 4.35 & \textbf{12.77} & 5.41 & \textbf{19.35} & 0.00 & \textbf{10.39} \\
+Express Opinion & 88.62 & \textbf{89.27} & 0.00 & \textbf{44.78} & 75.00 & \textbf{81.45} & 81.25 & \textbf{82.21} \\
+Express Others Opinions & 22.22 & \textbf{35.82} & 20.29 & \textbf{24.14} & 0.00* & 0.00* & \textbf{19.51} & 15.15 \\
+Money Aid Allocation & 32.69 & \textbf{53.33} & 52.94 & \textbf{56.47} & 41.67 & \textbf{71.43} & 25.53 & \textbf{57.14} \\
+Government Critique & 20.51 & \textbf{63.41} & 13.79 & \textbf{42.86} & 20.00 & \textbf{41.46} & 25.45 & \textbf{42.31} \\
+Societal Critique & 25.00 & \textbf{38.97} & 0.00 & \textbf{25.00} & 9.52 & \textbf{19.05} & \textbf{33.96} & 30.77 \\
+Solutions/Interventions & 49.06 & \textbf{69.43} & 64.41 & \textbf{75.38} & 70.00 & \textbf{72.40} & 43.14 & \textbf{65.31} \\
+Personal Interaction & 19.51 & \textbf{60.00} & 0.00* & 0.00* & 6.78 & \textbf{42.86} & 0.00 & \textbf{17.14} \\
+Media Portrayal & \textbf{18.92} & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & \textbf{36.04} & 0.00 \\
+Not in My Backyard & 36.36 & \textbf{59.46} & 0.00* & 0.00* & \textbf{16.22*} & 0.00* & \textbf{23.26} & 0.00 \\
+Harmful Generalization & 25.53 & \textbf{46.15} & \textbf{10.53*} & 0.00* & 0.00 & 0.00 & 23.81 & \textbf{43.68} \\
+Deserving/Undeserving & \textbf{19.05} & 4.76 & 0.00* & 0.00* & 0.00* & 0.00* & 25.81 & \textbf{28.57} \\
+Racist & 0.00* & 0.00* & \textbf{5.26*} & 0.00* & 0.00* & 0.00* & \textbf{10.53*} & 0.00* \\
+\bottomrule
+\end{tabular}
+\centering\caption{Validation-optimized Category-wise F1 Scores for MODERNBERT-BASE Model (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:modernbert-base_category_breakdown}
+\end{table*}

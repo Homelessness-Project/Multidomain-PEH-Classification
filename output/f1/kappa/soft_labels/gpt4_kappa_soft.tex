@@ -1,0 +1,30 @@
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+Category & \multicolumn{2}{c}{Reddit} & \multicolumn{2}{c}{News} & \multicolumn{2}{c}{Meeting Minutes} & \multicolumn{2}{c}{X (Twitter)} \\
+ & Zero-shot & Few-shot & Zero-shot & Few-shot & Zero-shot & Few-shot & Zero-shot & Few-shot \\
+\midrule
+Ask Genuine Question & 0.00 & 0.00 & 0.00 & 0.00 & -0.01 & -0.01 & 0.63 & 0.60 \\
+Ask Rhetorical Question & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.68 & 0.67 \\
+Provide Fact/Claim & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.14 & 0.14 \\
+Provide Observation & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.04 & 0.08 \\
+Express Opinion & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.66 & 0.60 \\
+Express Others Opinions & 0.00 & 0.00 & 0.00 & 0.00 & 0.00* & 0.00* & 0.22 & 0.29 \\
+Money Aid Allocation & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.60 & 0.67 \\
+Government Critique & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.55 & 0.59 \\
+Societal Critique & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.17 & 0.23 \\
+Solutions/Interventions & 0.00 & 0.00 & 0.01 & 0.00 & 0.00 & 0.00 & 0.61 & 0.60 \\
+Personal Interaction & 0.00 & 0.00 & 0.00* & 0.00* & 0.00 & 0.00 & 0.18 & 0.19 \\
+Media Portrayal & 0.00 & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & -0.00 & 0.03 \\
+Not in My Backyard & 0.00 & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.25 & 0.22 \\
+Harmful Generalization & 0.00 & 0.00 & 0.00* & 0.00* & -0.01 & -0.01 & 0.40 & 0.46 \\
+Deserving/Undeserving & 0.00 & 0.00 & 0.00* & 0.00* & 0.00* & 0.00* & 0.15 & 0.17 \\
+Racist & NaN & NaN & NaN & NaN & NaN & NaN & 0.00* & 0.00* \\
+\bottomrule
+\end{tabular}
+}
+\caption{Soft-label Cohen's $\kappa$ by category (gpt4). (* indicates $<$5 positive examples in gold labels; interpret with caution.)}
+\label{tab:gpt4_kappa_soft}
+\end{table*}
