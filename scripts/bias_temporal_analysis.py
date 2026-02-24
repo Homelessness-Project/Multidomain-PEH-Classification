@@ -304,7 +304,7 @@ def calculate_bias_by_period_city(df, period_col='year'):
 
 # Define distinct colors and markers for each source
 SOURCE_STYLE = {
-    'twitter': {'color': '#1DA1F2', 'marker': 'o', 'name': 'Twitter'},  # Twitter blue, circle
+    'twitter': {'color': '#1DA1F2', 'marker': 'o', 'name': 'X(Twitter)'},  # Twitter blue, circle
     'reddit': {'color': '#FF4500', 'marker': '^', 'name': 'Reddit'},    # Reddit orange, triangle
     'news': {'color': '#2E7D32', 'marker': 's', 'name': 'News'},         # Green, square
     'meeting_minutes': {'color': '#9C27B0', 'marker': 'D', 'name': 'Meeting Minutes'}  # Purple, diamond
@@ -616,13 +616,13 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
                    f'n={count_s}', ha='center', va='bottom', fontsize=8, fontstyle='italic')
     
     ax.set_xlabel('Source', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Average Bias Score', fontsize=12, fontweight='bold')
-    ax.set_title('Average Bias Score: San Francisco Cluster vs South Bend Cluster by Source', 
+    ax.set_ylabel('Negative Bias Frame Score', fontsize=12, fontweight='bold')
+    ax.set_title('Negative Bias Frame Score: San Francisco Cluster vs South Bend Cluster by Source', 
                  fontsize=14, fontweight='bold', pad=20)
     
     # Add subtitle with bias categories
-    bias_categories_text = ('Bias Score (0-5) Category Classification: Rhetorical question, '
-                           'Not in my backyard, Harmful generalization, Deserving/undeserving, Racist Flag')
+    bias_categories_text = ('Average Bias Score (0-5) Category Classification: Rhetorical question, '
+                           'Not in my backyard, Harmful generalization, Deserving/undeserving, Racist')
     ax.text(0.5, 1.02, bias_categories_text, 
            transform=ax.transAxes, fontsize=10, ha='center', 
            style='italic', color='gray')
