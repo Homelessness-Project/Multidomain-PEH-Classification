@@ -1,4 +1,4 @@
-Category,Full_Category,Count,Percentage,Mean_Engagement,Median_Engagement
+Category,Full_Category,Count,Percentage,Mean_Like_Rate,Median_Like_Rate
 express their opinion,Comment_express their opinion,2937,81.69680111265647,0.017822537714657742,0.0
 provide a fact or claim,Comment_provide a fact or claim,2345,65.22948539638386,0.015546363692989494,0.0
 societal critique,Critique_societal critique,1721,47.872044506258696,0.017504397860654282,0.0

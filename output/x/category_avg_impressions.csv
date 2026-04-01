@@ -1,17 +1,16 @@
-Category,Full_Category,Count,Mean_Impressions,Median_Impressions,SE_Impressions,P_Value,P_Value_Corrected,Significant
-ask a rhetorical question,Comment_ask a rhetorical question,413,10877.6803874092,32.0,9514.209497909853,0.017900183208192644,0.2864029313310823,False
-money aid allocation,Critique_money aid allocation,608,8648.649671052632,38.5,6479.197852568112,0.03767871052683325,0.602859368429332,False
-government critique,Critique_government critique,1180,4540.448305084746,34.0,3325.5412723070217,0.3988352773060453,1.0,False
-societal critique,Critique_societal critique,1721,4216.895990703079,37.0,2349.5112403119265,0.4102976248809733,1.0,False
-provide a fact or claim,Comment_provide a fact or claim,2345,3450.0200426439233,43.0,1707.5755251308171,0.6746250401696021,1.0,False
-personal interaction,Perception_personal interaction,712,3406.703651685393,45.0,1417.969238848076,0.8302190929771003,1.0,False
-ask a genuine question,Comment_ask a genuine question,222,3229.4774774774774,31.0,2860.9525990388224,0.9353001805273464,1.0,False
-provide an observation,Comment_provide an observation,1475,2709.504406779661,44.0,797.5101195898704,0.934896065489343,1.0,False
-express their opinion,Comment_express their opinion,2937,2620.5675859720805,35.0,1362.2954457918663,0.8527978221817121,1.0,False
-deserving/undeserving,Perception_deserving/undeserving,649,2412.2064714946073,31.0,1192.83077061789,0.869287246098446,1.0,False
-express others opinions,Comment_express others opinions,433,1819.5819861431871,46.0,676.5791094723897,0.7534584703726959,1.0,False
-media portrayal,Perception_media portrayal,348,1813.2040229885058,47.5,760.9544944513726,0.7769735109354707,1.0,False
-harmful generalization,Perception_harmful generalization,1414,1407.0381895332391,34.0,506.3250270451563,0.427250144271377,1.0,False
-solutions/interventions,Response_solutions/interventions,792,1387.7121212121212,64.0,390.4281649198471,0.54716916032696,1.0,False
-not in my backyard,Perception_not in my backyard,263,538.1216730038022,34.0,151.6790912333035,0.5841858126252104,1.0,False
-racist,Racist_Flag,6,53.833333333333336,44.5,19.710262414398354,0.9241832850221392,1.0,False
+Category,Full_Category,N_Category,Mean_Impressions,Median_Impressions,Q25_Impressions,Q75_Impressions,Overall_Median_Impressions,Overall_Q25_Impressions,Overall_Q75_Impressions,Difference,P_Value,P_Value_Corrected,Significant,Direction
+deserving/undeserving,Perception_deserving/undeserving,273,5683.274725274725,71.0,32.0,247.0,142.0,43.0,628.0,-71.0,1.3202529544303246e-07,2.1124047270885194e-06,True,LOWER
+harmful generalization,Perception_harmful generalization,644,3042.7903726708073,91.5,35.75,417.0,142.0,43.0,628.0,-50.5,3.562981290194621e-09,5.7007700643113935e-08,True,LOWER
+ask a genuine question,Comment_ask a genuine question,93,7668.817204301075,94.0,41.0,308.0,142.0,43.0,628.0,-48.0,0.09514681406924665,1.0,False,NS
+societal critique,Critique_societal critique,802,9001.350374064838,104.5,39.0,442.75,142.0,43.0,628.0,-37.5,4.109265434349323e-06,6.574824694958916e-05,True,LOWER
+express their opinion,Comment_express their opinion,1358,5615.610456553755,109.0,37.0,448.5,142.0,43.0,628.0,-33.0,7.417582472487662e-21,1.186813195598026e-19,True,LOWER
+government critique,Critique_government critique,540,9858.035185185185,111.5,35.0,547.0,142.0,43.0,628.0,-30.5,0.007313882784174351,0.11702212454678962,False,NS
+not in my backyard,Perception_not in my backyard,114,1198.4122807017543,121.0,39.0,444.75,142.0,43.0,628.0,-21.0,0.19262116663871853,1.0,False,NS
+ask a rhetorical question,Comment_ask a rhetorical question,170,26366.623529411765,122.5,37.25,572.5,142.0,43.0,628.0,-19.5,0.28098664415671526,1.0,False,NS
+money aid allocation,Critique_money aid allocation,280,18696.85357142857,127.5,36.75,902.0,142.0,43.0,628.0,-14.5,0.6693123355408584,1.0,False,NS
+provide an observation,Comment_provide an observation,742,5323.526954177898,138.0,40.25,590.5,142.0,43.0,628.0,-4.0,0.5669220179728505,1.0,False,NS
+provide a fact or claim,Comment_provide a fact or claim,1108,7219.4034296028885,153.5,44.0,843.5,142.0,43.0,628.0,11.5,0.004078616299403698,0.06525786079045917,False,NS
+personal interaction,Perception_personal interaction,370,6510.721621621622,161.0,44.0,590.75,142.0,43.0,628.0,19.0,0.7430238946576244,1.0,False,NS
+media portrayal,Perception_media portrayal,182,3409.434065934066,173.5,53.25,965.75,142.0,43.0,628.0,31.5,0.254360171364133,1.0,False,NS
+express others opinions,Comment_express others opinions,224,3461.7901785714284,182.0,44.75,724.5,142.0,43.0,628.0,40.0,0.14927975931354398,1.0,False,NS
+solutions/interventions,Response_solutions/interventions,386,2741.4326424870465,249.5,70.25,1141.25,142.0,43.0,628.0,107.5,2.8378739671168213e-08,4.540598347386914e-07,True,HIGHER

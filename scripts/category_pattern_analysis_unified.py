@@ -144,6 +144,17 @@ def calculate_standard_errors(df, category, metric_col, total_posts):
     
     return se_prevalence, se_mean_engagement
 
+def median_iqr(values):
+    """Return (median, q25, q75) ignoring NaNs."""
+    v = np.asarray(values, dtype=float)
+    v = v[~np.isnan(v)]
+    if v.size == 0:
+        return 0.0, 0.0, 0.0
+    med = float(np.median(v))
+    q25 = float(np.quantile(v, 0.25))
+    q75 = float(np.quantile(v, 0.75))
+    return med, q25, q75
+
 def setup_plotting_style():
     """Setup matplotlib and seaborn styles"""
     try:
@@ -202,7 +213,8 @@ def load_reddit_data():
     return merged_df
 
 def load_twitter_data():
-    """Load X (formerly Twitter) data with engagement metrics and GPT4 category classifications"""
+    """Load X data with GPT4 categories. Keeps posts with impressions > 0 and like_count >= 1 so
+    like-rate and impression-weighted prevalence/importance exclude zero-like posts."""
     print("="*80)
     print("LOADING X DATA")
     print("="*80)
@@ -238,6 +250,10 @@ def load_twitter_data():
     # Remove rows with no impressions
     merged_df = merged_df[merged_df['impression_count'] > 0]
     merged_df = merged_df[merged_df['Like_Rate'].notna()]
+    # Like rate and impression-weighted stats: only posts with ≥1 like (avoids zero-inflated medians)
+    _n = len(merged_df)
+    merged_df = merged_df[merged_df['like_count'] >= 1]
+    print(f"  Filtered to ≥1 like: {len(merged_df):,} posts (excluded {_n - len(merged_df):,} with 0 likes)")
     
     # Convert categories and add city size
     merged_df = convert_categories_to_binary(merged_df)
@@ -393,57 +409,69 @@ def analyze_category_importance(df, source_name):
     return importance_df
 
 def analyze_engagement_differences(df, source_name):
-    """Analyze engagement metric differences by category (comparing to overall average)"""
+    """Analyze engagement metric differences by category (robust + nonparametric).
+
+    Uses median differences (category - overall) and Mann–Whitney U test against the
+    complement set (category==1 vs category==0). This avoids normality assumptions.
+    """
     print("\n" + "="*80)
     print(f"ANALYSIS 3: ENGAGEMENT DIFFERENCES BY CATEGORY ({source_name.upper()})")
     print("="*80)
-    print("Comparing each category's mean to the overall average (one-sample test)")
+    print("Comparing each category's distribution to all others (Mann–Whitney U; robust to non-normality)")
     
     results = []
     metric_col = 'Engagement_Metric'
     metric_name = df['Metric_Name'].iloc[0]
     all_metrics = df[metric_col].values
-    overall_mean = np.mean(all_metrics)
-    overall_std = np.std(all_metrics, ddof=1)
+    overall_median, overall_q25, overall_q75 = median_iqr(all_metrics)
     
-    print(f"\nOverall average {metric_name}: {overall_mean:.6f}")
-    print(f"Overall std: {overall_std:.6f}")
+    print(f"\nOverall median {metric_name}: {overall_median:.6f} (IQR: {overall_q25:.6f}–{overall_q75:.6f})")
     
     for category in ALL_CATEGORIES:
         category_metrics = df[df[category] == 1][metric_col].values
+        other_metrics = df[df[category] == 0][metric_col].values
         n_category = len(category_metrics)
         
         if n_category == 0:
             continue
         
-        mean_category = np.mean(category_metrics)
-        median_category = np.median(category_metrics)
+        median_category, q25_category, q75_category = median_iqr(category_metrics)
         
-        # One-sample test: compare category mean to overall mean
-        p_value = one_sample_test(category_metrics, overall_mean, overall_std)
+        # Two-sample nonparametric test: category vs others
+        if len(other_metrics) > 0:
+            try:
+                _, p_value = stats.mannwhitneyu(category_metrics, other_metrics, alternative='two-sided')
+            except Exception:
+                p_value = 1.0
+        else:
+            p_value = 1.0
         
         # Bonferroni correction
         p_value_corrected = min(p_value * N_COMPARISONS, 1.0)
         is_significant = p_value_corrected < 0.05
         
         if is_significant:
-            direction = "HIGHER" if mean_category > overall_mean else "LOWER"
+            direction = "HIGHER" if median_category > overall_median else "LOWER"
         else:
             direction = "NS"
         
-        # Cohen's d (effect size)
-        cohens_d = (mean_category - overall_mean) / overall_std if overall_std > 0 else 0.0
+        # Cohen's d is mean/SD based; keep for backward compatibility but set to NaN (not appropriate here)
+        cohens_d = np.nan
         
         category_name = clean_category_name(category)
+        diff_point = median_category - overall_median
         
         results.append({
             'Category': category_name,
             'Full_Category': category,
             'N_Category': n_category,
-            'Mean_Category': mean_category,
-            'Overall_Mean': overall_mean,
+            'Mean_Category': float(np.mean(category_metrics)) if len(category_metrics) else 0.0,
+            'Overall_Mean': float(np.mean(all_metrics)) if len(all_metrics) else 0.0,
             'Median_Category': median_category,
-            'Difference': mean_category - overall_mean,
+            'Q25_Category': q25_category,
+            'Q75_Category': q75_category,
+            'Overall_Median': overall_median,
+            'Difference': diff_point,
             'P_Value': p_value,
             'P_Value_Corrected': p_value_corrected,
             'Significant': is_significant,
@@ -453,11 +481,11 @@ def analyze_engagement_differences(df, source_name):
         
         print(f"\n{category_name}:")
         print(f"  N (category): {n_category:,}")
-        print(f"  Mean (category): {mean_category:.8f}, Overall mean: {overall_mean:.8f}")
-        print(f"  Difference from overall: {mean_category - overall_mean:+.8f}")
+        print(f"  Median (category): {median_category:.8f} (IQR: {q25_category:.8f}–{q75_category:.8f})")
+        print(f"  Overall median: {overall_median:.8f}")
+        print(f"  Difference from overall median: {median_category - overall_median:+.8f}")
         print(f"  P-value (Bonferroni corrected): {p_value_corrected:.6f}")
         print(f"  Significant: {'YES' if is_significant else 'NO'} ({direction})")
-        print(f"  Effect size (Cohen's d): {cohens_d:+.3f}")
     
     results_df = pd.DataFrame(results)
     return results_df
@@ -710,117 +738,140 @@ def create_importance_chart(df, importance_df, display_name, output_dir, metric_
     return importance_errors_df
 
 def create_avg_impressions_chart(df, display_name, output_dir, file_source):
-    """Create average impressions per category chart for X/Twitter
-    
-    Args:
-        display_name: Name for titles (e.g., "X")
-        file_source: Name for file paths (e.g., "x")
+    """Median impressions vs overall + Mann–Whitney (same framework as engagement differences).
+
+    Skewed impression counts: use medians; compare each category to its complement with
+    Mann–Whitney U and Bonferroni correction. Plot median difference (category − overall median),
+    no error bars.
     """
     if 'impression_count' not in df.columns:
         return None  # Only for Twitter/X
     
-    results = []
-    overall_mean_impressions = df['impression_count'].mean()
-    overall_std = df['impression_count'].std(ddof=1)
+    metric_col = 'impression_count'
+    all_vals = df[metric_col].values
+    overall_median, overall_q25, overall_q75 = median_iqr(all_vals)
     
+    results = []
     for category in ALL_CATEGORIES:
         category_name = clean_category_name(category)
         category_mask = (df[category] == 1)
-        category_impressions = df[category_mask]['impression_count'].values
+        category_impressions = df[category_mask][metric_col].values
+        other_impressions = df[df[category] == 0][metric_col].values
+        n_category = len(category_impressions)
         
-        if len(category_impressions) == 0:
+        if n_category == 0:
             continue
         
-        mean_impressions = np.mean(category_impressions)
-        median_impressions = np.median(category_impressions)
-        se_impressions = stats.sem(category_impressions) if len(category_impressions) > 1 else 0
+        med_cat, q25_c, q75_c = median_iqr(category_impressions)
+        mean_impressions = float(np.mean(category_impressions))
         
-        # Statistical test: compare category mean to overall mean
-        p_value = one_sample_test(category_impressions, overall_mean_impressions, overall_std)
+        if len(other_impressions) > 0:
+            try:
+                _, p_value = stats.mannwhitneyu(category_impressions, other_impressions, alternative='two-sided')
+            except Exception:
+                p_value = 1.0
+        else:
+            p_value = 1.0
+        
         p_value_corrected = min(p_value * N_COMPARISONS, 1.0)
         is_significant = p_value_corrected < 0.05
+        diff = med_cat - overall_median
+        if is_significant:
+            direction = "HIGHER" if med_cat > overall_median else "LOWER"
+        else:
+            direction = "NS"
         
         results.append({
             'Category': category_name,
             'Full_Category': category,
-            'Count': category_mask.sum(),
+            'N_Category': n_category,
             'Mean_Impressions': mean_impressions,
-            'Median_Impressions': median_impressions,
-            'SE_Impressions': se_impressions,
+            'Median_Impressions': med_cat,
+            'Q25_Impressions': q25_c,
+            'Q75_Impressions': q75_c,
+            'Overall_Median_Impressions': overall_median,
+            'Overall_Q25_Impressions': overall_q25,
+            'Overall_Q75_Impressions': overall_q75,
+            'Difference': diff,
             'P_Value': p_value,
             'P_Value_Corrected': p_value_corrected,
-            'Significant': is_significant
+            'Significant': is_significant,
+            'Direction': direction,
         })
     
     if len(results) == 0:
         return None
     
-    results_df = pd.DataFrame(results).sort_values('Mean_Impressions', ascending=False)
+    results_df = pd.DataFrame(results).sort_values('Difference', ascending=True)
     
-    # Create chart
+    # Horizontal bar chart (aligned with engagement-differences chart)
     fig, ax = plt.subplots(figsize=(14, 8))
     
     categories = results_df['Category'].values
-    mean_impressions = results_df['Mean_Impressions'].values
-    se_impressions = results_df['SE_Impressions'].values
+    differences = results_df['Difference'].values
     is_significant = results_df['Significant'].values
     
-    colors = ['#2ecc71' if sig else '#95a5a6' for sig in is_significant]
+    colors = []
+    for sig, diff in zip(is_significant, differences):
+        if sig:
+            colors.append('green' if diff > 0 else 'red')
+        else:
+            colors.append('gray')
     
-    ax.bar(range(len(categories)), mean_impressions, yerr=se_impressions,
-           color=colors, alpha=0.7, edgecolor='black', linewidth=0.5,
-           capsize=5, error_kw={'elinewidth': 1.5, 'capthick': 1.5})
+    ax.barh(range(len(categories)), differences,
+            color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
     
-    # Add reference line for overall mean
-    ax.axhline(y=overall_mean_impressions, color='black', linestyle='--', linewidth=2, 
-               label=f'Overall Average: {overall_mean_impressions:,.0f}')
-    
-    # Add significance markers
-    for i, (sig, score, error) in enumerate(zip(is_significant, mean_impressions, se_impressions)):
+    for i, (sig, diff) in enumerate(zip(is_significant, differences)):
         if sig:
             p_val = results_df.iloc[i]['P_Value_Corrected']
             marker = '***' if p_val < 0.001 else '**' if p_val < 0.01 else '*'
-            ax.text(i, score + error + max(mean_impressions) * 0.02, marker, 
-                   ha='center', va='bottom', fontsize=12, fontweight='bold', color='red')
+            ad = np.abs(differences)
+            offset = abs(diff) * 0.1 if diff != 0 else (float(np.max(ad)) * 0.02 if ad.size else 1.0)
+            ax.text(diff + offset if diff > 0 else diff - offset, i, marker,
+                    ha='left' if diff > 0 else 'right', va='center',
+                    fontsize=12, fontweight='bold')
     
-    ax.set_xticks(range(len(categories)))
-    ax.set_xticklabels(categories, rotation=45, ha='right', fontsize=9)
+    ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
+    ax.set_yticks(range(len(categories)))
+    ax.set_yticklabels(categories, fontsize=10)
     
-    # Format y-axis in thousands or millions depending on scale
     from matplotlib.ticker import FuncFormatter
-    max_val = max(mean_impressions)
-    if max_val >= 1e6:
-        def formatter(x, p):
-            return f'{x/1e6:.1f}M'
-        ax.yaxis.set_major_formatter(FuncFormatter(formatter))
-        ylabel = 'Average Impressions per Tweet (in millions)'
-    elif max_val >= 1e3:
-        def formatter(x, p):
-            return f'{x/1e3:.0f}K'
-        ax.yaxis.set_major_formatter(FuncFormatter(formatter))
-        ylabel = 'Average Impressions per Tweet (in thousands)'
-    else:
-        ylabel = 'Average Impressions per Tweet'
     
-    ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
-    ax.set_title(f'Average Impressions per Tweet by Category on {display_name}\n' + 
-                'Error bars = Standard Error, * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
-                fontsize=14, fontweight='bold')
-    ax.grid(axis='y', alpha=0.3)
+    def _fmt_impr(x, _p):
+        ax_abs = abs(x)
+        if ax_abs >= 1e6:
+            return f'{x/1e6:.2f}M'
+        if ax_abs >= 1e3:
+            return f'{x/1e3:.0f}K'
+        return f'{x:,.0f}'
+    
+    ax.xaxis.set_major_formatter(FuncFormatter(_fmt_impr))
+    ax.set_xlabel(
+        'Median impressions difference (category − overall median)',
+        fontsize=12, fontweight='bold',
+    )
+    ax.set_title(
+        f'Impressions by category on {display_name} (median-based)\n'
+        'Comparing each category to all others (Mann–Whitney U)\n'
+        '* p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
+        fontsize=14, fontweight='bold',
+    )
+    ax.grid(axis='x', alpha=0.3)
     
     from matplotlib.patches import Patch
     legend_elements = [
-        Patch(facecolor='#2ecc71', alpha=0.7, label='Significantly Different (Bonferroni corrected)'),
-        Patch(facecolor='#95a5a6', alpha=0.7, label='Not Significant')
+        Patch(facecolor='green', alpha=0.7, label='Significantly Higher'),
+        Patch(facecolor='red', alpha=0.7, label='Significantly Lower'),
+        Patch(facecolor='gray', alpha=0.7, label='Not Significant'),
     ]
-    ax.legend(handles=legend_elements, loc='upper right')
+    ax.legend(handles=legend_elements, loc='lower right')
     
     plt.tight_layout()
     filename = f'{file_source.lower()}_category_avg_impressions'
     plt.savefig(output_dir / f'{filename}.pdf', dpi=300, bbox_inches='tight')
     plt.savefig(output_dir / f'{filename}.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("  ✓ Saved average impressions per tweet chart")
+    print("  ✓ Saved average impressions per tweet chart (median difference, Mann–Whitney, Bonferroni)")
     
     return results_df
 
@@ -835,14 +886,6 @@ def create_engagement_differences_chart(df, engagement_diff_df, display_name, ou
         return
     
     engagement_diff_sorted = engagement_diff_df.sort_values('Difference', ascending=True)
-    metric_col = 'Engagement_Metric'
-    
-    # Calculate standard errors
-    se_differences = []
-    for _, row in engagement_diff_sorted.iterrows():
-        category_metrics = df[df[row['Full_Category']] == 1][metric_col].values
-        se_category = stats.sem(category_metrics) if len(category_metrics) > 1 else 0
-        se_differences.append(se_category)
     
     fig, ax = plt.subplots(figsize=(14, 8))
     
@@ -858,9 +901,8 @@ def create_engagement_differences_chart(df, engagement_diff_df, display_name, ou
         else:
             colors.append('gray')  # Gray for not significant
     
-    ax.barh(range(len(categories)), differences, xerr=se_differences,
-            color=colors, alpha=0.7, edgecolor='black', linewidth=0.5,
-            capsize=3, error_kw={'elinewidth': 1.5, 'capthick': 1.5})
+    ax.barh(range(len(categories)), differences,
+            color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
     
     # Add significance markers
     for i, (sig, diff) in enumerate(zip(is_significant, differences)):
@@ -875,11 +917,11 @@ def create_engagement_differences_chart(df, engagement_diff_df, display_name, ou
     ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
     ax.set_yticks(range(len(categories)))
     ax.set_yticklabels(categories, fontsize=10)
-    ax.set_xlabel(f'Mean {metric_name} Difference (Category - Overall Average)', 
+    ax.set_xlabel(f'Median {metric_name} Difference (Category - Overall Median)', 
                   fontsize=12, fontweight='bold')
     ax.set_title(f'{metric_name} Differences by Category on {display_name}\n' + 
-                'Comparing each category to overall average\n' +
-                'Error bars = Standard Error, * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)', 
+                'Comparing each category to all others (Mann–Whitney U)\n' +
+                '* p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)', 
                 fontsize=14, fontweight='bold')
     ax.grid(axis='x', alpha=0.3)
     

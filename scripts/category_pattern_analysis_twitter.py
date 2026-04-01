@@ -28,6 +28,18 @@ except:
     plt.style.use('ggplot')
 sns.set_palette("husl")
 
+# Robust summaries for heavy-tailed engagement (no normality assumption)
+def median_iqr(values):
+    """Return (median, q25, q75) for numeric array-like, ignoring NaNs."""
+    v = np.asarray(values, dtype=float)
+    v = v[~np.isnan(v)]
+    if v.size == 0:
+        return 0.0, 0.0, 0.0
+    med = float(np.median(v))
+    q25 = float(np.quantile(v, 0.25))
+    q75 = float(np.quantile(v, 0.75))
+    return med, q25, q75
+
 # Define all 16 categories (matching GPT4 output format)
 ALL_CATEGORIES = [
     'Comment_ask a genuine question',
@@ -106,6 +118,9 @@ def load_and_prepare_data():
     # Remove rows with no impressions (can't calculate rate)
     merged_df = merged_df[merged_df['impression_count'] > 0]
     merged_df = merged_df[merged_df['Like_Rate'].notna()]
+    _n = len(merged_df)
+    merged_df = merged_df[merged_df['like_count'] >= 1]
+    print(f"  Filtered to ≥1 like: {len(merged_df):,} posts (excluded {_n - len(merged_df):,} with 0 likes)")
     
     # Convert category columns to binary (0/1)
     for cat in ALL_CATEGORIES:
@@ -536,7 +551,7 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 0. Prevalence and Mean Like Rate Comparison (Before combined importance chart)
-    overall_mean_rate = df['Like_Rate'].mean()
+    overall_median_rate, _, _ = median_iqr(df['Like_Rate'].values)
     overall_prevalence = 100.0
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
@@ -546,11 +561,12 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     
     categories = importance_sorted['Category'].values
     prevalences = importance_sorted['Prevalence_Percent'].values
-    mean_rates = importance_sorted['Mean_Like_Rate'].values
+    median_rates = importance_sorted['Median_Like_Rate'].values
     
-    # Calculate standard errors
+    # Calculate standard errors for prevalence and robust spread for rates (IQR)
     se_prevalences = []
-    se_mean_rates = []
+    rate_err_low = []
+    rate_err_high = []
     for idx, row in importance_sorted.iterrows():
         category = row['Full_Category']
         category_mask = (df[category] == 1)
@@ -563,12 +579,10 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
         se_prevalence = np.sqrt((prevalence / 100) * (1 - prevalence / 100) / total_posts) * 100
         se_prevalences.append(se_prevalence)
         
-        # SE for mean rate
-        if len(category_rates) > 1:
-            se_mean_rate = stats.sem(category_rates)
-        else:
-            se_mean_rate = 0
-        se_mean_rates.append(se_mean_rate)
+        # Robust spread for like rate: IQR around median
+        med, q25, q75 = median_iqr(category_rates)
+        rate_err_low.append(max(0.0, med - q25))
+        rate_err_high.append(max(0.0, q75 - med))
     
     # Plot 1: Prevalence
     colors_prevalence = ['#3498db' if p > overall_prevalence else '#e74c3c' for p in prevalences]
@@ -584,20 +598,21 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     ax1.legend(loc='upper right')
     ax1.set_ylim([0, max(prevalences) * 1.15])
     
-    # Plot 2: Mean Like Rate
-    colors_rate = ['#2ecc71' if s > overall_mean_rate else '#e74c3c' for s in mean_rates]
-    bars2 = ax2.bar(range(len(categories)), mean_rates, yerr=se_mean_rates,
+    # Plot 2: Median Like Rate (robust) with IQR error bars
+    colors_rate = ['#2ecc71' if s > overall_median_rate else '#e74c3c' for s in median_rates]
+    yerr = np.vstack([rate_err_low, rate_err_high])
+    bars2 = ax2.bar(range(len(categories)), median_rates, yerr=yerr,
                     color=colors_rate, alpha=0.7, edgecolor='black', linewidth=0.5,
                     capsize=3, error_kw={'elinewidth': 1.5, 'capthick': 1.5})
-    ax2.axhline(y=overall_mean_rate, color='black', linestyle='--', linewidth=2, 
-                label=f'Overall Average ({overall_mean_rate:.6f})')
+    ax2.axhline(y=overall_median_rate, color='black', linestyle='--', linewidth=2,
+                label=f'Overall Median ({overall_median_rate:.6f})')
     ax2.set_xticks(range(len(categories)))
     ax2.set_xticklabels(categories, rotation=45, ha='right', fontsize=9)
-    ax2.set_ylabel('Mean Like Rate (Likes / Impressions)', fontsize=12, fontweight='bold')
-    ax2.set_title('Mean Like Rate by Category\n(All 16 Categories)', fontsize=14, fontweight='bold')
+    ax2.set_ylabel('Median Like Rate (Likes / Impressions)', fontsize=12, fontweight='bold')
+    ax2.set_title('Median Like Rate by Category\n(All 16 Categories, error bars = IQR)', fontsize=14, fontweight='bold')
     ax2.grid(axis='y', alpha=0.3)
     ax2.legend(loc='upper right')
-    ax2.set_ylim([0, max(mean_rates) * 1.15])
+    ax2.set_ylim([0, max(median_rates) * 1.15])
     
     plt.suptitle('Category Analysis: Prevalence and Mean Like Rate (Before Combined Importance)', 
                 fontsize=16, fontweight='bold', y=1.02)
@@ -605,7 +620,7 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     plt.savefig(output_dir / 'twitter_category_prevalence_and_rate_separate.pdf', dpi=300, bbox_inches='tight')
     plt.savefig(output_dir / 'twitter_category_prevalence_and_rate_separate.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("  ✓ Saved separate prevalence and like rate charts")
+    print("  ✓ Saved separate prevalence and median like rate charts (IQR error bars)")
     
     # 1. Category Importance Bar Chart (All 16 categories with error bars and Bonferroni correction)
     importance_with_errors = []
@@ -616,26 +631,25 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
         total_posts = len(df)
         category_count = category_mask.sum()
         
-        # Calculate standard error for mean rate
-        if len(category_rates) > 1:
-            se_mean_rate = stats.sem(category_rates)
-        else:
-            se_mean_rate = 0
+        # Robust spread for like rate around median (IQR)
+        med, q25, q75 = median_iqr(category_rates)
+        iqr_half = (q75 - q25) / 2.0 if len(category_rates) > 0 else 0.0
         
         # Calculate standard error for prevalence
         prevalence = (category_count / total_posts) * 100
         se_prevalence = np.sqrt((prevalence / 100) * (1 - prevalence / 100) / total_posts) * 100
         
-        # Approximate standard error for importance
-        mean_rate = row['Mean_Like_Rate']
-        se_importance = abs(prevalence) * se_mean_rate + abs(mean_rate) * se_prevalence
+        # Importance now based on prevalence × median like rate (robust)
+        median_rate = row['Median_Like_Rate']
+        importance_score = prevalence * median_rate
+        se_importance = abs(prevalence) * iqr_half + abs(median_rate) * se_prevalence
         
         importance_with_errors.append({
             'Category': row['Category'],
-            'Importance_Score': row['Importance_Score'],
+            'Importance_Score': importance_score,
             'SE_Importance': se_importance,
-            'Mean_Like_Rate': mean_rate,
-            'SE_Mean_Rate': se_mean_rate,
+            'Median_Like_Rate': median_rate,
+            'IQR_HalfWidth_Rate': iqr_half,
             'Prevalence': prevalence,
             'SE_Prevalence': se_prevalence
         })
@@ -698,9 +712,9 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     
     ax.set_xticks(range(len(categories)))
     ax.set_xticklabels(categories, rotation=45, ha='right', fontsize=9)
-    ax.set_ylabel('Importance Score\n(Prevalence × Mean Like Rate)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Importance Score\n(Prevalence × Median Like Rate)', fontsize=12, fontweight='bold')
     ax.set_title('Category Importance on Twitter/X (All 16 Categories)\n' + 
-                'Error bars = Standard Error, * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
+                'Error bars ≈ prevalence×(IQR/2) + median×SE(prevalence); * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
                 fontsize=14, fontweight='bold')
     ax.grid(axis='y', alpha=0.3)
     

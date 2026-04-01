@@ -1286,6 +1286,11 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     # Create charts directory
     charts_dir = output_dir / 'charts'
     charts_dir.mkdir(exist_ok=True)
+
+    def _save_pdf_png(path_no_ext: Path, dpi: int = 300):
+        """Save current matplotlib figure as both PDF and PNG."""
+        plt.savefig(path_no_ext.with_suffix('.pdf'), dpi=dpi, bbox_inches='tight')
+        plt.savefig(path_no_ext.with_suffix('.png'), dpi=dpi, bbox_inches='tight')
     
     # 1. Sentiment by Category
     print("\nCreating sentiment by category chart...")
@@ -1332,9 +1337,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
                va='center', fontsize=8)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_category.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_category', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_category.pdf")
+    print("  Saved: sentiment_by_category.pdf and sentiment_by_category.png")
     
     # 2. Sentiment by City (color coded by city size)
     print("Creating sentiment by city chart...")
@@ -1389,9 +1394,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax.legend(handles=legend_elements, loc='best', fontsize=10)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_city.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_city', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_city.pdf")
+    print("  Saved: sentiment_by_city.pdf and sentiment_by_city.png")
     
     # 3. Sentiment by City Size
     print("Creating sentiment by city size chart...")
@@ -1489,9 +1494,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_city_size.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_city_size', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_city_size.pdf")
+    print("  Saved: sentiment_by_city_size.pdf and sentiment_by_city_size.png")
     
     # 4. Sentiment by Source
     print("Creating sentiment by source chart...")
@@ -1577,9 +1582,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_source.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_source', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_source.pdf")
+    print("  Saved: sentiment_by_source.pdf and sentiment_by_source.png")
     
     # 5. Sentiment by Category Group
     print("Creating sentiment by category group chart...")
@@ -1686,9 +1691,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_category_group.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_category_group', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_category_group.pdf")
+    print("  Saved: sentiment_by_category_group.pdf and sentiment_by_category_group.png")
     
     # 6. Category x City Size Heatmap
     print("Creating category x city size heatmap...")
@@ -1710,9 +1715,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
                 ax.set_ylabel('Category', fontsize=12, fontweight='bold')
                 
                 plt.tight_layout()
-                plt.savefig(charts_dir / 'sentiment_category_city_size_heatmap.pdf', dpi=300, bbox_inches='tight')
+                _save_pdf_png(charts_dir / 'sentiment_category_city_size_heatmap', dpi=300)
                 plt.close()
-                print("  Saved: sentiment_category_city_size_heatmap.pdf")
+                print("  Saved: sentiment_category_city_size_heatmap.pdf and sentiment_category_city_size_heatmap.png")
         except Exception as e:
             print(f"  Warning: Could not create heatmap: {e}")
     
@@ -1827,9 +1832,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_by_city_grouping.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_by_city_grouping', dpi=300)
     plt.close()
-    print("  Saved: sentiment_by_city_grouping.pdf")
+    print("  Saved: sentiment_by_city_grouping.pdf and sentiment_by_city_grouping.png")
     
     # 8. Sentiment for All 16 Labels Chart
     print("Creating sentiment for all 16 labels chart...")
@@ -1938,9 +1943,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
     ax2.set_axisbelow(True)
     
     plt.tight_layout()
-    plt.savefig(charts_dir / 'sentiment_all_16_labels.pdf', dpi=300, bbox_inches='tight')
+    _save_pdf_png(charts_dir / 'sentiment_all_16_labels', dpi=300)
     plt.close()
-    print("  Saved: sentiment_all_16_labels.pdf")
+    print("  Saved: sentiment_all_16_labels.pdf and sentiment_all_16_labels.png")
     
     # 9. Significant Differences Chart (only Bonferroni significant)
     if significant_categories and len(significant_categories) > 0:
@@ -1987,9 +1992,9 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
                        f"p={row['p_value']:.4f}", va='center', fontsize=8)
             
             plt.tight_layout()
-            plt.savefig(charts_dir / 'significant_differences.pdf', dpi=300, bbox_inches='tight')
+            _save_pdf_png(charts_dir / 'significant_differences', dpi=300)
             plt.close()
-            print("  Saved: significant_differences.pdf")
+            print("  Saved: significant_differences.pdf and significant_differences.png")
         else:
             print("  No Bonferroni-corrected significant differences found")
     
@@ -2060,9 +2065,127 @@ def create_visualizations(output_dir, category_results, city_results, city_size_
         ax.legend(handles=legend_elements2, loc='lower right', fontsize=8, title='Significance')
         
         plt.tight_layout()
-        plt.savefig(charts_dir / 'all_categories_comparison.pdf', dpi=300, bbox_inches='tight')
+        _save_pdf_png(charts_dir / 'all_categories_comparison', dpi=300)
         plt.close()
-        print("  Saved: all_categories_comparison.pdf")
+        print("  Saved: all_categories_comparison.pdf and all_categories_comparison.png")
+
+    # 11. Per-category charts (one chart per label)
+    if category_df is not None:
+        print("Creating per-category charts (one per label)...")
+        per_category_dir = charts_dir / 'per_category'
+        per_category_dir.mkdir(exist_ok=True)
+
+        def _safe_filename(name: str) -> str:
+            safe = str(name).strip().lower()
+            safe = safe.replace('/', '_')
+            safe = safe.replace(' ', '_')
+            safe = safe.replace('__', '_')
+            safe = ''.join(ch for ch in safe if ch.isalnum() or ch in {'_', '-', '.'})
+            return safe or 'category'
+
+        for category in ALL_CATEGORIES:
+            cat_data = category_df[category_df['Category'] == category]
+            if len(cat_data) == 0:
+                continue
+
+            size_stats = calculate_sentiment_stats(cat_data, ['City_Size'], sentiment_col=sentiment_col)
+            if len(size_stats) == 0:
+                continue
+
+            # Enforce consistent ordering (Large then Small when present)
+            size_order = ['Large', 'Small']
+            size_stats['City_Size'] = pd.Categorical(size_stats['City_Size'], categories=size_order, ordered=True)
+            size_stats = size_stats.sort_values('City_Size')
+
+            fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+            short_name = (category.replace('Comment_', '')
+                          .replace('Critique_', '')
+                          .replace('Response_', '')
+                          .replace('Perception_', '')
+                          .replace('Racist_Flag', 'Racist'))
+
+            # Left: mean sentiment comparison with error bars
+            ax1 = axes[0]
+            colors = ['#3498db' if s == 'Large' else '#e67e22' for s in size_stats['City_Size']]
+
+            se_dict = calculate_standard_errors(cat_data, 'City_Size', value_col=sentiment_col)
+            mean_errors = [se_dict.get(size, 0) for size in size_stats['City_Size']]
+
+            ax1.bar(size_stats['City_Size'].astype(str), size_stats['Mean_Sentiment'],
+                    color=colors, alpha=0.75, edgecolor='black', linewidth=1,
+                    yerr=mean_errors, capsize=5)
+            ax1.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.6)
+            ax1.set_ylabel('Mean Sentiment Score', fontsize=11, fontweight='bold')
+            ax1.set_xlabel('City Size', fontsize=11, fontweight='bold')
+            ax1.set_title('Mean sentiment', fontsize=12, fontweight='bold')
+            ax1.set_ylim(-1, 1)
+            ax1.grid(axis='y', alpha=0.35, linestyle='-', linewidth=0.5)
+            ax1.set_axisbelow(True)
+
+            # Significance test (Large vs Small) if both exist
+            try:
+                large_vals = cat_data[cat_data['City_Size'] == 'Large'][sentiment_col].values
+                small_vals = cat_data[cat_data['City_Size'] == 'Small'][sentiment_col].values
+                if len(large_vals) >= 2 and len(small_vals) >= 2:
+                    _, p_value = test_significance(large_vals, small_vals)
+                    if p_value is not None:
+                        sig_marker = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else "ns"
+                        ax1.text(0.5, 0.03, f'p={p_value:.4g} {sig_marker}',
+                                 transform=ax1.transAxes, ha='center', va='bottom',
+                                 fontsize=10, fontweight='bold',
+                                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
+            except Exception:
+                pass
+
+            # Right: sentiment distribution
+            ax2 = axes[1]
+            x = np.arange(len(size_stats))
+            width = 0.25
+
+            pos_errors = []
+            neu_errors = []
+            neg_errors = []
+            for size in size_stats['City_Size'].astype(str):
+                subset = cat_data[cat_data['City_Size'] == size]
+                n = len(subset)
+                if n > 1:
+                    pos_pct = (subset[sentiment_col] == 1).sum() / n
+                    neu_pct = (subset[sentiment_col] == 0).sum() / n
+                    neg_pct = (subset[sentiment_col] == -1).sum() / n
+                    pos_errors.append(np.sqrt(pos_pct * (1 - pos_pct) / n) * 100)
+                    neu_errors.append(np.sqrt(neu_pct * (1 - neu_pct) / n) * 100)
+                    neg_errors.append(np.sqrt(neg_pct * (1 - neg_pct) / n) * 100)
+                else:
+                    pos_errors.append(0)
+                    neu_errors.append(0)
+                    neg_errors.append(0)
+
+            ax2.bar(x - width, size_stats['Positive_%'], width, label='Positive',
+                    color='#2ecc71', alpha=0.75, edgecolor='black', yerr=pos_errors, capsize=3)
+            ax2.bar(x, size_stats['Neutral_%'], width, label='Neutral',
+                    color='#95a5a6', alpha=0.75, edgecolor='black', yerr=neu_errors, capsize=3)
+            ax2.bar(x + width, size_stats['Negative_%'], width, label='Negative',
+                    color='#e74c3c', alpha=0.75, edgecolor='black', yerr=neg_errors, capsize=3)
+
+            ax2.set_xticks(x)
+            ax2.set_xticklabels(size_stats['City_Size'].astype(str))
+            ax2.set_ylim(0, 100)
+            ax2.set_ylabel('Percentage (%)', fontsize=11, fontweight='bold')
+            ax2.set_xlabel('City Size', fontsize=11, fontweight='bold')
+            ax2.set_title('Distribution', fontsize=12, fontweight='bold')
+            ax2.legend()
+            ax2.grid(axis='y', alpha=0.35, linestyle='-', linewidth=0.5)
+            ax2.set_axisbelow(True)
+
+            fig.suptitle(f'Sentiment by city size: {short_name} (n={len(cat_data):,})',
+                         fontsize=13, fontweight='bold', y=1.02)
+            plt.tight_layout()
+
+            out_name = f"sentiment_{_safe_filename(category)}_by_city_size.pdf"
+            out_base = (per_category_dir / out_name).with_suffix('')
+            _save_pdf_png(out_base, dpi=300)
+            plt.close()
     
     print(f"\nAll charts saved to: {charts_dir}")
 

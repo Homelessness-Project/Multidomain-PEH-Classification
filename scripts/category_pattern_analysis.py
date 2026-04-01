@@ -35,6 +35,18 @@ except:
     plt.style.use('ggplot')
 sns.set_palette("husl")
 
+# Robust summaries for heavy-tailed engagement (no normality assumption)
+def median_iqr(values):
+    """Return (median, q25, q75) for numeric array-like, ignoring NaNs."""
+    v = np.asarray(values, dtype=float)
+    v = v[~np.isnan(v)]
+    if v.size == 0:
+        return 0.0, 0.0, 0.0
+    med = float(np.median(v))
+    q25 = float(np.quantile(v, 0.25))
+    q75 = float(np.quantile(v, 0.75))
+    return med, q25, q75
+
 # Define all 16 categories (matching GPT4 output format)
 ALL_CATEGORIES = [
     'Comment_ask a genuine question',
@@ -594,8 +606,8 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # 0. Prevalence and Mean Score Comparison (Before combined importance chart)
-    # Calculate overall averages
-    overall_mean_score = df['Comment Score'].mean()
+    # Robust overall summary for skewed vote distributions
+    overall_median_score, _, _ = median_iqr(df['Comment Score'].values)
     overall_prevalence = 100.0  # All comments are in the dataset
     
     # Create figure with two subplots
@@ -606,11 +618,12 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     
     categories = importance_sorted['Category'].values
     prevalences = importance_sorted['Prevalence_Percent'].values
-    mean_scores = importance_sorted['Mean_Score'].values
+    median_scores = importance_sorted['Median_Score'].values
     
-    # Calculate standard errors for prevalence and mean scores
+    # Calculate standard errors for prevalence and robust spread for scores (IQR)
     se_prevalences = []
-    se_mean_scores = []
+    score_err_low = []
+    score_err_high = []
     for idx, row in importance_sorted.iterrows():
         category = row['Full_Category']
         category_mask = (df[category] == 1)
@@ -623,12 +636,10 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
         se_prevalence = np.sqrt((prevalence / 100) * (1 - prevalence / 100) / total_comments) * 100
         se_prevalences.append(se_prevalence)
         
-        # SE for mean score
-        if len(category_scores) > 1:
-            se_mean_score = stats.sem(category_scores)
-        else:
-            se_mean_score = 0
-        se_mean_scores.append(se_mean_score)
+        # Robust spread for score: IQR around the median (asymmetric error bar)
+        med, q25, q75 = median_iqr(category_scores)
+        score_err_low.append(max(0.0, med - q25))
+        score_err_high.append(max(0.0, q75 - med))
     
     # Plot 1: Prevalence vs Overall Average (100%)
     colors_prevalence = ['#3498db' if p > overall_prevalence else '#e74c3c' for p in prevalences]
@@ -644,20 +655,21 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     ax1.legend(loc='upper right')
     ax1.set_ylim([0, max(prevalences) * 1.15])
     
-    # Plot 2: Mean Score vs Overall Average
-    colors_score = ['#2ecc71' if s > overall_mean_score else '#e74c3c' for s in mean_scores]
-    bars2 = ax2.bar(range(len(categories)), mean_scores, yerr=se_mean_scores,
+    # Plot 2: Median score with IQR error bars (robust to heavy tails)
+    colors_score = ['#2ecc71' if s > overall_median_score else '#e74c3c' for s in median_scores]
+    yerr = np.vstack([score_err_low, score_err_high])
+    bars2 = ax2.bar(range(len(categories)), median_scores, yerr=yerr,
                     color=colors_score, alpha=0.7, edgecolor='black', linewidth=0.5,
                     capsize=3, error_kw={'elinewidth': 1.5, 'capthick': 1.5})
-    ax2.axhline(y=overall_mean_score, color='black', linestyle='--', linewidth=2, 
-                label=f'Overall Average ({overall_mean_score:.2f})')
+    ax2.axhline(y=overall_median_score, color='black', linestyle='--', linewidth=2,
+                label=f'Overall Median ({overall_median_score:.2f})')
     ax2.set_xticks(range(len(categories)))
     ax2.set_xticklabels(categories, rotation=45, ha='right', fontsize=9)
-    ax2.set_ylabel('Mean Comment Score', fontsize=12, fontweight='bold')
-    ax2.set_title('Mean Comment Score by Category\n(All 16 Categories)', fontsize=14, fontweight='bold')
+    ax2.set_ylabel('Median Comment Score', fontsize=12, fontweight='bold')
+    ax2.set_title('Median Comment Score by Category\n(All 16 Categories, error bars = IQR)', fontsize=14, fontweight='bold')
     ax2.grid(axis='y', alpha=0.3)
     ax2.legend(loc='upper right')
-    ax2.set_ylim([0, max(mean_scores) * 1.15])
+    ax2.set_ylim([0, max(median_scores) * 1.15])
     
     plt.suptitle('Category Analysis: Prevalence and Mean Score (Before Combined Importance)', 
                 fontsize=16, fontweight='bold', y=1.02)
@@ -665,7 +677,7 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     plt.savefig(output_dir / 'category_prevalence_and_score_separate.pdf', dpi=300, bbox_inches='tight')
     plt.savefig(output_dir / 'category_prevalence_and_score_separate.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("  ✓ Saved separate prevalence and mean score charts")
+    print("  ✓ Saved separate prevalence and median score charts (IQR error bars)")
     
     # 1. Category Importance Bar Chart (All 16 categories with error bars and Bonferroni correction)
     # Calculate standard errors for importance scores
@@ -677,27 +689,26 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
         total_comments = len(df)
         category_count = category_mask.sum()
         
-        # Calculate standard error for mean score
-        if len(category_scores) > 1:
-            se_mean_score = stats.sem(category_scores)
-        else:
-            se_mean_score = 0
+        # Robust spread for score around median (IQR)
+        med, q25, q75 = median_iqr(category_scores)
+        iqr_half = (q75 - q25) / 2.0 if len(category_scores) > 0 else 0.0
         
         # Calculate standard error for prevalence
         prevalence = (category_count / total_comments) * 100
         se_prevalence = np.sqrt((prevalence / 100) * (1 - prevalence / 100) / total_comments) * 100
         
-        # Approximate standard error for importance (using propagation of uncertainty)
-        # For product: SE(ab) ≈ |a|*SE(b) + |b|*SE(a) (simplified)
-        mean_score = row['Mean_Score']
-        se_importance = abs(prevalence) * se_mean_score + abs(mean_score) * se_prevalence
+        # Importance now based on prevalence × median score (robust)
+        median_score = row['Median_Score']
+        importance_score = prevalence * median_score
+        # Approximate uncertainty for product using robust spread for score
+        se_importance = abs(prevalence) * iqr_half + abs(median_score) * se_prevalence
         
         importance_with_errors.append({
             'Category': row['Category'],
-            'Importance_Score': row['Importance_Score'],
+            'Importance_Score': importance_score,
             'SE_Importance': se_importance,
-            'Mean_Score': mean_score,
-            'SE_Mean_Score': se_mean_score,
+            'Median_Score': median_score,
+            'IQR_HalfWidth_Score': iqr_half,
             'Prevalence': prevalence,
             'SE_Prevalence': se_prevalence
         })
@@ -771,9 +782,9 @@ def create_visualizations(df, prevalence_df, importance_df, cooccurrence_df, qua
     
     ax.set_xticks(range(len(categories)))
     ax.set_xticklabels(categories, rotation=45, ha='right', fontsize=9)
-    ax.set_ylabel('Importance Score\n(Prevalence × Mean Score)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Importance Score\n(Prevalence × Median Score)', fontsize=12, fontweight='bold')
     ax.set_title('Category Importance on Reddit (All 16 Categories)\n' + 
-                'Error bars = Standard Error, * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
+                'Error bars ≈ prevalence×(IQR/2) + median×SE(prevalence); * p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)',
                 fontsize=14, fontweight='bold')
     ax.grid(axis='y', alpha=0.3)
     
