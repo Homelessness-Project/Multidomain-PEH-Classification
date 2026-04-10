@@ -1,0 +1,65 @@
+source,label,n_merged,human_positive_count,gpt_positive_count,prevalence_human,prevalence_gpt,delta_prevalence_gpt_minus_human,precision_gpt_vs_human,recall_gpt_vs_human,f1_gpt_vs_human,low_human_positive_support,human_positive_rare_cap
+reddit,ask a genuine question,500,57,73,0.114,0.146,0.032,0.69863,0.894737,0.784615,False,5
+reddit,ask a rhetorical question,500,91,57,0.182,0.114,-0.068,0.824561,0.516484,0.635135,False,5
+reddit,provide a fact or claim,500,282,347,0.564,0.694,0.13,0.723343,0.890071,0.798092,False,5
+reddit,provide an observation,500,119,222,0.238,0.444,0.206,0.481982,0.89916,0.627566,False,5
+reddit,express their opinion,500,393,424,0.786,0.848,0.062,0.877358,0.946565,0.910649,False,5
+reddit,express others opinions,500,52,80,0.104,0.16,0.056,0.2875,0.442308,0.348485,False,5
+reddit,money aid allocation,500,65,117,0.13,0.234,0.104,0.470085,0.846154,0.604396,False,5
+reddit,government critique,500,69,116,0.138,0.232,0.094,0.448276,0.753623,0.562162,False,5
+reddit,societal critique,500,82,340,0.164,0.68,0.516,0.238235,0.987805,0.383886,False,5
+reddit,solutions/interventions,500,176,150,0.352,0.3,-0.052,0.78,0.664773,0.717791,False,5
+reddit,personal interaction,500,54,104,0.108,0.208,0.1,0.442308,0.851852,0.582278,False,5
+reddit,media portrayal,500,2,26,0.004,0.052,0.048,0.038462,0.5,0.071429,True,5
+reddit,not in my backyard,500,26,52,0.052,0.104,0.052,0.442308,0.884615,0.589744,False,5
+reddit,harmful generalization,500,65,128,0.13,0.256,0.126,0.367188,0.723077,0.487047,False,5
+reddit,deserving/undeserving,500,8,150,0.016,0.3,0.284,0.053333,1.0,0.101266,False,5
+reddit,racist,500,1,0,0.002,0.0,-0.002,0.0,0.0,0.0,True,5
+x,ask a genuine question,452,15,27,0.033186,0.059735,0.026549,0.481481,0.866667,0.619048,False,5
+x,ask a rhetorical question,452,39,41,0.086283,0.090708,0.004425,0.682927,0.717949,0.7,False,5
+x,provide a fact or claim,452,426,308,0.942478,0.681416,-0.261062,0.977273,0.706573,0.820163,False,5
+x,provide an observation,452,11,165,0.024336,0.365044,0.340708,0.066667,1.0,0.125,False,5
+x,express their opinion,452,239,291,0.528761,0.643805,0.115044,0.756014,0.920502,0.830189,False,5
+x,express others opinions,452,24,41,0.053097,0.090708,0.037611,0.268293,0.458333,0.338462,False,5
+x,money aid allocation,452,76,68,0.168142,0.150442,-0.017699,0.764706,0.684211,0.722222,False,5
+x,government critique,452,66,103,0.146018,0.227876,0.081858,0.543689,0.848485,0.662722,False,5
+x,societal critique,452,43,135,0.095133,0.298673,0.20354,0.222222,0.697674,0.337079,False,5
+x,solutions/interventions,452,147,185,0.325221,0.409292,0.084071,0.67027,0.843537,0.746988,False,5
+x,personal interaction,452,11,87,0.024336,0.192478,0.168142,0.126437,1.0,0.22449,False,5
+x,media portrayal,452,6,35,0.013274,0.077434,0.064159,0.028571,0.166667,0.04878,False,5
+x,not in my backyard,452,12,21,0.026549,0.04646,0.019912,0.190476,0.333333,0.242424,False,5
+x,harmful generalization,452,41,95,0.090708,0.210177,0.119469,0.378947,0.878049,0.529412,False,5
+x,deserving/undeserving,452,11,67,0.024336,0.14823,0.123894,0.119403,0.727273,0.205128,False,5
+x,racist,452,4,0,0.00885,0.0,-0.00885,0.0,0.0,0.0,True,5
+news,ask a genuine question,378,5,6,0.013228,0.015873,0.002646,0.666667,0.8,0.727273,True,5
+news,ask a rhetorical question,378,7,11,0.018519,0.029101,0.010582,0.545455,0.857143,0.666667,False,5
+news,provide a fact or claim,378,356,346,0.941799,0.915344,-0.026455,0.965318,0.938202,0.951567,False,5
+news,provide an observation,378,8,134,0.021164,0.354497,0.333333,0.044776,0.75,0.084507,False,5
+news,express their opinion,378,62,131,0.164021,0.346561,0.18254,0.366412,0.774194,0.497409,False,5
+news,express others opinions,378,31,85,0.082011,0.224868,0.142857,0.211765,0.580645,0.310345,False,5
+news,money aid allocation,378,103,77,0.272487,0.203704,-0.068783,0.701299,0.524272,0.6,False,5
+news,government critique,378,24,74,0.063492,0.195767,0.132275,0.297297,0.916667,0.44898,False,5
+news,societal critique,378,18,95,0.047619,0.251323,0.203704,0.168421,0.888889,0.283186,False,5
+news,solutions/interventions,378,184,254,0.486772,0.671958,0.185185,0.665354,0.918478,0.771689,False,5
+news,personal interaction,378,4,19,0.010582,0.050265,0.039683,0.157895,0.75,0.26087,True,5
+news,media portrayal,378,1,36,0.002646,0.095238,0.092593,0.0,0.0,0.0,True,5
+news,not in my backyard,378,0,12,0.0,0.031746,0.031746,0.0,0.0,0.0,True,5
+news,harmful generalization,378,4,23,0.010582,0.060847,0.050265,0.173913,1.0,0.296296,True,5
+news,deserving/undeserving,378,2,21,0.005291,0.055556,0.050265,0.095238,1.0,0.173913,True,5
+news,racist,378,0,0,0.0,0.0,0.0,0.0,0.0,0.0,True,5
+meeting_minutes,ask a genuine question,364,36,41,0.098901,0.112637,0.013736,0.658537,0.75,0.701299,False,5
+meeting_minutes,ask a rhetorical question,364,11,10,0.03022,0.027473,-0.002747,0.5,0.454545,0.47619,False,5
+meeting_minutes,provide a fact or claim,364,351,298,0.964286,0.818681,-0.145604,0.97651,0.82906,0.896764,False,5
+meeting_minutes,provide an observation,364,10,89,0.027473,0.244505,0.217033,0.089888,0.8,0.161616,False,5
+meeting_minutes,express their opinion,364,213,283,0.585165,0.777473,0.192308,0.720848,0.957746,0.822581,False,5
+meeting_minutes,express others opinions,364,4,69,0.010989,0.18956,0.178571,0.028986,0.5,0.054795,True,5
+meeting_minutes,money aid allocation,364,65,86,0.178571,0.236264,0.057692,0.662791,0.876923,0.754967,False,5
+meeting_minutes,government critique,364,44,81,0.120879,0.222527,0.101648,0.395062,0.727273,0.512,False,5
+meeting_minutes,societal critique,364,9,78,0.024725,0.214286,0.18956,0.102564,0.888889,0.183908,False,5
+meeting_minutes,solutions/interventions,364,171,222,0.46978,0.60989,0.14011,0.63964,0.830409,0.722646,False,5
+meeting_minutes,personal interaction,364,11,30,0.03022,0.082418,0.052198,0.266667,0.727273,0.390244,False,5
+meeting_minutes,media portrayal,364,1,17,0.002747,0.046703,0.043956,0.058824,1.0,0.111111,True,5
+meeting_minutes,not in my backyard,364,4,21,0.010989,0.057692,0.046703,0.190476,1.0,0.32,True,5
+meeting_minutes,harmful generalization,364,8,20,0.021978,0.054945,0.032967,0.15,0.375,0.214286,False,5
+meeting_minutes,deserving/undeserving,364,2,54,0.005495,0.148352,0.142857,0.037037,1.0,0.071429,True,5
+meeting_minutes,racist,364,0,0,0.0,0.0,0.0,0.0,0.0,0.0,True,5

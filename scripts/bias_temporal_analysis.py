@@ -335,6 +335,7 @@ def plot_bias_by_year(df, output_dir='output'):
     plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_year_all_sources.pdf'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -390,6 +391,7 @@ def plot_bias_by_half_year(df, output_dir='output'):
     plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_half_year_all_sources.pdf'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -422,6 +424,7 @@ def plot_bias_by_year_city(df, output_dir='output'):
     plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_year_by_city_size.pdf'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -481,6 +484,7 @@ def plot_bias_by_half_year_city(df, output_dir='output'):
     plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_half_year_by_city_size.pdf'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -574,21 +578,32 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     colors = [SOURCE_STYLE.get(s, {'color': 'gray'})['color'] for s in source_order]
     labels = [SOURCE_STYLE.get(s, {'name': s.capitalize()})['name'] for s in source_order]
     
-    # Create bars
-    bars_large = ax.bar(x - width/2, large_means, width, 
-                       yerr=large_stds, label='San Francisco Cluster (Large Cities)',
-                       color=colors, alpha=0.7, edgecolor='black', linewidth=1.5,
-                       capsize=5, error_kw={'linewidth': 2})
+    # Create bars (no error bars; significance markers already shown with Bonferroni correction)
+    bars_large = ax.bar(
+        x - width / 2,
+        large_means,
+        width,
+        label='San Francisco Cluster (Large Cities)',
+        color=colors,
+        alpha=0.7,
+        edgecolor='black',
+        linewidth=1.5,
+    )
     
-    bars_small = ax.bar(x + width/2, small_means, width,
-                       yerr=small_stds, label='South Bend Cluster (Small Cities)',
-                       color=colors, alpha=0.4, edgecolor='black', linewidth=1.5,
-                       hatch='///', capsize=5, error_kw={'linewidth': 2})
+    bars_small = ax.bar(
+        x + width / 2,
+        small_means,
+        width,
+        label='South Bend Cluster (Small Cities)',
+        color=colors,
+        alpha=0.4,
+        edgecolor='black',
+        linewidth=1.5,
+        hatch='///',
+    )
     
     # Add significance markers
-    # Calculate max height including error bars
-    max_bar_height = max([m + s for m, s in zip(large_means, large_stds)] + 
-                         [m + s for m, s in zip(small_means, small_stds)])
+    max_bar_height = max(large_means + small_means) if (large_means or small_means) else 0
     bracket_height = 0.05
     bracket_y_base = max_bar_height + 0.08
     
@@ -596,7 +611,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         sig_result = next((s for s in significance_results if s['source'] == source), None)
         if sig_result and sig_result['significant']:
             # Draw bracket between Large and Small bars
-            bracket_y = max(large_means[i] + large_stds[i], small_means[i] + small_stds[i]) + 0.05
+            bracket_y = max(large_means[i], small_means[i]) + 0.05
             ax.plot([x[i] - width/2, x[i] - width/2, x[i] + width/2, x[i] + width/2],
                    [bracket_y, bracket_y + bracket_height, bracket_y + bracket_height, bracket_y],
                    'k-', linewidth=1.5)
@@ -608,11 +623,11 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     for i, (bar_l, bar_s, count_l, count_s) in enumerate(zip(bars_large, bars_small, large_counts, small_counts)):
         if count_l > 0:
             height_l = bar_l.get_height()
-            ax.text(bar_l.get_x() + bar_l.get_width()/2., height_l + large_stds[i] + 0.02,
+            ax.text(bar_l.get_x() + bar_l.get_width()/2., height_l + 0.02,
                    f'n={count_l}', ha='center', va='bottom', fontsize=8, fontstyle='italic')
         if count_s > 0:
             height_s = bar_s.get_height()
-            ax.text(bar_s.get_x() + bar_s.get_width()/2., height_s + small_stds[i] + 0.02,
+            ax.text(bar_s.get_x() + bar_s.get_width()/2., height_s + 0.02,
                    f'n={count_s}', ha='center', va='bottom', fontsize=8, fontstyle='italic')
     
     ax.set_xlabel('Source', fontsize=12, fontweight='bold')
@@ -649,6 +664,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     
     output_path = Path(output_dir) / 'bias_by_source_city_size_bar_chart.pdf'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
     print(f"\nSaved: {output_path}")
     plt.close()
     
