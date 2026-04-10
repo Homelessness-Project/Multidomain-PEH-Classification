@@ -1,5 +1,8 @@
 pandas
 matplotlib
+plotly
+kaleido
+pillow
 scipy
 numpy
 seaborn
