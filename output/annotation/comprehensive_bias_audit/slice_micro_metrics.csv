@@ -1,0 +1,11 @@
+source,city_cluster,micro_precision,micro_recall,micro_f1,n_rows
+reddit,large_city_cluster,0.544568,0.833689,0.658804,150
+reddit,other_city,0.547696,0.824194,0.658081,200
+reddit,small_city_cluster,0.515646,0.836645,0.638047,150
+x,large_city_cluster,0.524972,0.76045,0.621142,235
+x,small_city_cluster,0.563802,0.788707,0.657555,217
+news,large_city_cluster,0.562016,0.814607,0.665138,148
+news,other_city,0.47619,0.878378,0.617577,141
+news,small_city_cluster,0.519084,0.866242,0.649165,90
+meeting_minutes,large_city_cluster,0.569118,0.871622,0.688612,164
+meeting_minutes,small_city_cluster,0.566064,0.820565,0.669959,200

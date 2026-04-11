@@ -1,0 +1,5 @@
+source,n_raw_human_rows,n_human_unique,n_gpt_unique,n_merged,n_dup_raw,micro_precision,micro_recall,micro_f1,macro_f1_mean_per_label,mean_abs_delta_prevalence
+reddit,506,505,500,500,1,0.536882,0.830739,0.65224,0.512784,0.12075
+x,456,456,456,452,0,0.54284,0.773698,0.638028,0.447007,0.104812
+news,382,379,379,379,3,0.518127,0.84796,0.643226,0.379544,0.096801
+meeting_minutes,364,364,364,364,0,0.567548,0.844681,0.678923,0.399615,0.097356

@@ -1,0 +1,161 @@
+source,city_cluster,label,n_slice,prevalence_human,prevalence_gpt,delta_prevalence
+reddit,large_city_cluster,ask a genuine question,150,0.113333,0.146667,0.033333
+reddit,large_city_cluster,ask a rhetorical question,150,0.173333,0.113333,-0.06
+reddit,large_city_cluster,provide a fact or claim,150,0.56,0.746667,0.186667
+reddit,large_city_cluster,provide an observation,150,0.213333,0.38,0.166667
+reddit,large_city_cluster,express their opinion,150,0.82,0.866667,0.046667
+reddit,large_city_cluster,express others opinions,150,0.133333,0.126667,-0.006667
+reddit,large_city_cluster,money aid allocation,150,0.14,0.266667,0.126667
+reddit,large_city_cluster,government critique,150,0.173333,0.286667,0.113333
+reddit,large_city_cluster,societal critique,150,0.153333,0.673333,0.52
+reddit,large_city_cluster,solutions/interventions,150,0.366667,0.306667,-0.06
+reddit,large_city_cluster,personal interaction,150,0.08,0.173333,0.093333
+reddit,large_city_cluster,media portrayal,150,0.006667,0.073333,0.066667
+reddit,large_city_cluster,not in my backyard,150,0.06,0.086667,0.026667
+reddit,large_city_cluster,harmful generalization,150,0.113333,0.253333,0.14
+reddit,large_city_cluster,deserving/undeserving,150,0.02,0.286667,0.266667
+reddit,large_city_cluster,racist,150,0.0,0.0,0.0
+reddit,other_city,ask a genuine question,200,0.1,0.14,0.04
+reddit,other_city,ask a rhetorical question,200,0.165,0.105,-0.06
+reddit,other_city,provide a fact or claim,200,0.565,0.66,0.095
+reddit,other_city,provide an observation,200,0.255,0.455,0.2
+reddit,other_city,express their opinion,200,0.76,0.805,0.045
+reddit,other_city,express others opinions,200,0.105,0.175,0.07
+reddit,other_city,money aid allocation,200,0.135,0.205,0.07
+reddit,other_city,government critique,200,0.12,0.205,0.085
+reddit,other_city,societal critique,200,0.19,0.655,0.465
+reddit,other_city,solutions/interventions,200,0.335,0.275,-0.06
+reddit,other_city,personal interaction,200,0.155,0.235,0.08
+reddit,other_city,media portrayal,200,0.005,0.045,0.04
+reddit,other_city,not in my backyard,200,0.055,0.105,0.05
+reddit,other_city,harmful generalization,200,0.14,0.255,0.115
+reddit,other_city,deserving/undeserving,200,0.01,0.345,0.335
+reddit,other_city,racist,200,0.005,0.0,-0.005
+reddit,small_city_cluster,ask a genuine question,150,0.133333,0.153333,0.02
+reddit,small_city_cluster,ask a rhetorical question,150,0.213333,0.126667,-0.086667
+reddit,small_city_cluster,provide a fact or claim,150,0.566667,0.686667,0.12
+reddit,small_city_cluster,provide an observation,150,0.24,0.493333,0.253333
+reddit,small_city_cluster,express their opinion,150,0.786667,0.886667,0.1
+reddit,small_city_cluster,express others opinions,150,0.073333,0.173333,0.1
+reddit,small_city_cluster,money aid allocation,150,0.113333,0.24,0.126667
+reddit,small_city_cluster,government critique,150,0.126667,0.213333,0.086667
+reddit,small_city_cluster,societal critique,150,0.14,0.72,0.58
+reddit,small_city_cluster,solutions/interventions,150,0.36,0.326667,-0.033333
+reddit,small_city_cluster,personal interaction,150,0.073333,0.206667,0.133333
+reddit,small_city_cluster,media portrayal,150,0.0,0.04,0.04
+reddit,small_city_cluster,not in my backyard,150,0.04,0.12,0.08
+reddit,small_city_cluster,harmful generalization,150,0.133333,0.26,0.126667
+reddit,small_city_cluster,deserving/undeserving,150,0.02,0.253333,0.233333
+reddit,small_city_cluster,racist,150,0.0,0.0,0.0
+x,large_city_cluster,ask a genuine question,235,0.038298,0.059574,0.021277
+x,large_city_cluster,ask a rhetorical question,235,0.102128,0.106383,0.004255
+x,large_city_cluster,provide a fact or claim,235,0.93617,0.655319,-0.280851
+x,large_city_cluster,provide an observation,235,0.034043,0.391489,0.357447
+x,large_city_cluster,express their opinion,235,0.587234,0.693617,0.106383
+x,large_city_cluster,express others opinions,235,0.055319,0.123404,0.068085
+x,large_city_cluster,money aid allocation,235,0.170213,0.170213,0.0
+x,large_city_cluster,government critique,235,0.161702,0.238298,0.076596
+x,large_city_cluster,societal critique,235,0.093617,0.344681,0.251064
+x,large_city_cluster,solutions/interventions,235,0.229787,0.306383,0.076596
+x,large_city_cluster,personal interaction,235,0.034043,0.217021,0.182979
+x,large_city_cluster,media portrayal,235,0.025532,0.085106,0.059574
+x,large_city_cluster,not in my backyard,235,0.029787,0.029787,0.0
+x,large_city_cluster,harmful generalization,235,0.102128,0.268085,0.165957
+x,large_city_cluster,deserving/undeserving,235,0.029787,0.144681,0.114894
+x,large_city_cluster,racist,235,0.017021,0.0,-0.017021
+x,small_city_cluster,ask a genuine question,217,0.02765,0.059908,0.032258
+x,small_city_cluster,ask a rhetorical question,217,0.069124,0.073733,0.004608
+x,small_city_cluster,provide a fact or claim,217,0.949309,0.709677,-0.239631
+x,small_city_cluster,provide an observation,217,0.013825,0.336406,0.322581
+x,small_city_cluster,express their opinion,217,0.465438,0.589862,0.124424
+x,small_city_cluster,express others opinions,217,0.050691,0.0553,0.004608
+x,small_city_cluster,money aid allocation,217,0.165899,0.129032,-0.036866
+x,small_city_cluster,government critique,217,0.129032,0.21659,0.087558
+x,small_city_cluster,societal critique,217,0.096774,0.248848,0.152074
+x,small_city_cluster,solutions/interventions,217,0.428571,0.520737,0.092166
+x,small_city_cluster,personal interaction,217,0.013825,0.165899,0.152074
+x,small_city_cluster,media portrayal,217,0.0,0.069124,0.069124
+x,small_city_cluster,not in my backyard,217,0.023041,0.064516,0.041475
+x,small_city_cluster,harmful generalization,217,0.078341,0.147465,0.069124
+x,small_city_cluster,deserving/undeserving,217,0.018433,0.152074,0.133641
+x,small_city_cluster,racist,217,0.0,0.0,0.0
+news,large_city_cluster,ask a genuine question,148,0.013514,0.02027,0.006757
+news,large_city_cluster,ask a rhetorical question,148,0.006757,0.033784,0.027027
+news,large_city_cluster,provide a fact or claim,148,0.952703,0.939189,-0.013514
+news,large_city_cluster,provide an observation,148,0.027027,0.277027,0.25
+news,large_city_cluster,express their opinion,148,0.162162,0.378378,0.216216
+news,large_city_cluster,express others opinions,148,0.094595,0.209459,0.114865
+news,large_city_cluster,money aid allocation,148,0.351351,0.209459,-0.141892
+news,large_city_cluster,government critique,148,0.101351,0.216216,0.114865
+news,large_city_cluster,societal critique,148,0.087838,0.297297,0.209459
+news,large_city_cluster,solutions/interventions,148,0.594595,0.668919,0.074324
+news,large_city_cluster,personal interaction,148,0.0,0.027027,0.027027
+news,large_city_cluster,media portrayal,148,0.0,0.067568,0.067568
+news,large_city_cluster,not in my backyard,148,0.0,0.033784,0.033784
+news,large_city_cluster,harmful generalization,148,0.006757,0.054054,0.047297
+news,large_city_cluster,deserving/undeserving,148,0.006757,0.054054,0.047297
+news,large_city_cluster,racist,148,0.0,0.0,0.0
+news,other_city,ask a genuine question,141,0.007092,0.014184,0.007092
+news,other_city,ask a rhetorical question,141,0.042553,0.035461,-0.007092
+news,other_city,provide a fact or claim,141,0.964539,0.900709,-0.06383
+news,other_city,provide an observation,141,0.014184,0.48227,0.468085
+news,other_city,express their opinion,141,0.177305,0.333333,0.156028
+news,other_city,express others opinions,141,0.085106,0.276596,0.191489
+news,other_city,money aid allocation,141,0.269504,0.248227,-0.021277
+news,other_city,government critique,141,0.056738,0.248227,0.191489
+news,other_city,societal critique,141,0.028369,0.297872,0.269504
+news,other_city,solutions/interventions,141,0.41844,0.617021,0.198582
+news,other_city,personal interaction,141,0.014184,0.06383,0.049645
+news,other_city,media portrayal,141,0.0,0.148936,0.148936
+news,other_city,not in my backyard,141,0.0,0.042553,0.042553
+news,other_city,harmful generalization,141,0.014184,0.092199,0.078014
+news,other_city,deserving/undeserving,141,0.007092,0.070922,0.06383
+news,other_city,racist,141,0.0,0.0,0.0
+news,small_city_cluster,ask a genuine question,90,0.022222,0.011111,-0.011111
+news,small_city_cluster,ask a rhetorical question,90,0.0,0.011111,0.011111
+news,small_city_cluster,provide a fact or claim,90,0.877778,0.888889,0.011111
+news,small_city_cluster,provide an observation,90,0.022222,0.277778,0.255556
+news,small_city_cluster,express their opinion,90,0.144444,0.311111,0.166667
+news,small_city_cluster,express others opinions,90,0.055556,0.166667,0.111111
+news,small_city_cluster,money aid allocation,90,0.144444,0.122222,-0.022222
+news,small_city_cluster,government critique,90,0.011111,0.077778,0.066667
+news,small_city_cluster,societal critique,90,0.011111,0.1,0.088889
+news,small_city_cluster,solutions/interventions,90,0.411111,0.755556,0.344444
+news,small_city_cluster,personal interaction,90,0.022222,0.066667,0.044444
+news,small_city_cluster,media portrayal,90,0.011111,0.055556,0.044444
+news,small_city_cluster,not in my backyard,90,0.0,0.011111,0.011111
+news,small_city_cluster,harmful generalization,90,0.011111,0.022222,0.011111
+news,small_city_cluster,deserving/undeserving,90,0.0,0.033333,0.033333
+news,small_city_cluster,racist,90,0.0,0.0,0.0
+meeting_minutes,large_city_cluster,ask a genuine question,164,0.091463,0.103659,0.012195
+meeting_minutes,large_city_cluster,ask a rhetorical question,164,0.030488,0.030488,0.0
+meeting_minutes,large_city_cluster,provide a fact or claim,164,0.97561,0.853659,-0.121951
+meeting_minutes,large_city_cluster,provide an observation,164,0.030488,0.237805,0.207317
+meeting_minutes,large_city_cluster,express their opinion,164,0.652439,0.817073,0.164634
+meeting_minutes,large_city_cluster,express others opinions,164,0.02439,0.195122,0.170732
+meeting_minutes,large_city_cluster,money aid allocation,164,0.219512,0.27439,0.054878
+meeting_minutes,large_city_cluster,government critique,164,0.115854,0.262195,0.146341
+meeting_minutes,large_city_cluster,societal critique,164,0.018293,0.268293,0.25
+meeting_minutes,large_city_cluster,solutions/interventions,164,0.536585,0.756098,0.219512
+meeting_minutes,large_city_cluster,personal interaction,164,0.012195,0.042683,0.030488
+meeting_minutes,large_city_cluster,media portrayal,164,0.0,0.054878,0.054878
+meeting_minutes,large_city_cluster,not in my backyard,164,0.0,0.060976,0.060976
+meeting_minutes,large_city_cluster,harmful generalization,164,0.0,0.04878,0.04878
+meeting_minutes,large_city_cluster,deserving/undeserving,164,0.0,0.140244,0.140244
+meeting_minutes,large_city_cluster,racist,164,0.0,0.0,0.0
+meeting_minutes,small_city_cluster,ask a genuine question,200,0.105,0.12,0.015
+meeting_minutes,small_city_cluster,ask a rhetorical question,200,0.03,0.025,-0.005
+meeting_minutes,small_city_cluster,provide a fact or claim,200,0.955,0.79,-0.165
+meeting_minutes,small_city_cluster,provide an observation,200,0.025,0.25,0.225
+meeting_minutes,small_city_cluster,express their opinion,200,0.53,0.745,0.215
+meeting_minutes,small_city_cluster,express others opinions,200,0.0,0.185,0.185
+meeting_minutes,small_city_cluster,money aid allocation,200,0.145,0.205,0.06
+meeting_minutes,small_city_cluster,government critique,200,0.125,0.19,0.065
+meeting_minutes,small_city_cluster,societal critique,200,0.03,0.17,0.14
+meeting_minutes,small_city_cluster,solutions/interventions,200,0.415,0.49,0.075
+meeting_minutes,small_city_cluster,personal interaction,200,0.045,0.115,0.07
+meeting_minutes,small_city_cluster,media portrayal,200,0.005,0.04,0.035
+meeting_minutes,small_city_cluster,not in my backyard,200,0.02,0.055,0.035
+meeting_minutes,small_city_cluster,harmful generalization,200,0.04,0.06,0.02
+meeting_minutes,small_city_cluster,deserving/undeserving,200,0.01,0.155,0.145
+meeting_minutes,small_city_cluster,racist,200,0.0,0.0,0.0
