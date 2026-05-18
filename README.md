@@ -359,3 +359,53 @@ To generate this yourself:
 ```bash
 python scripts/deidentify_comments.py
 ```
+
+---
+
+## NIMBY Bias Evaluation (Near vs Far)
+
+This repo includes scripts to evaluate whether LLM behavior shifts toward **“Not in My Backyard” (NIMBY)** framing when an intervention is described as **nearby** vs **far away**.
+
+### Generate synthetic near/far prompt pairs with Claude Code (resumable)
+
+Prompt templates live in `.claude/prompts/`:
+- `generate_synthetic_nimby_pairs.md`: request/task-style prompts
+- `generate_synthetic_nimby_pairs_statement.md`: **statement-only** prompts (no questions, no “write/draft/provide”, no `?`)
+- `_nimby_pairs_common.md`: shared constraints (including required homelessness keywords)
+
+Generate 500 **statement-style** pairs (chunked + resumable):
+
+```bash
+.venv/bin/python -u -B scripts/generate_synthetic_nimby_pairs_claude.py \
+  --n 500 \
+  --chunk_size 100 \
+  --resume \
+  --claude_model haiku \
+  --prompt_file .claude/prompts/generate_synthetic_nimby_pairs_statement.md \
+  --out output/nimby_bias_eval/synth_pairs_claude_statement.jsonl
+```
+
+### Prompt-only preference evaluation (1–5 scale) across 6 LLMs
+
+Given a JSONL of near/far pairs (e.g., the statement file above), each model rates **A vs B** on a 1–5 scale; A/B order is randomized by `--seed`, and results are mapped back to a **near-vs-far** 1–5 scale:
+- 1 = prefer **near**
+- 3 = neutral
+- 5 = prefer **far**
+
+Run on 500 statement pairs:
+
+```bash
+.venv/bin/python -u -B scripts/nimby_bias_eval.py \
+  --pairs_file output/nimby_bias_eval/synth_pairs_claude_statement.jsonl \
+  --prompt_only_preference \
+  --llm_models llama qwen phi4 gpt4 gemini grok \
+  --llm_max_new_tokens 5 \
+  --seed 42 \
+  --out_dir output/nimby_bias_eval \
+  --tag stmt_pref_500
+```
+
+Outputs:
+- `output/nimby_bias_eval/statement_pref_<model>_<tag>.csv`
+- `output/nimby_bias_eval/statement_pref_<model>_<tag>.summary.json`
+- `output/nimby_bias_eval/statement_pref_ALL_<tag>.csv`

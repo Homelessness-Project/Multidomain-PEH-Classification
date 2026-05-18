@@ -1,7 +1,17 @@
 import re
 from typing import Dict, List, Optional, Tuple
-import spacy
-from pydeidentify import Deidentifier
+
+# Optional deps (only required for de-identification utilities).
+# Keep these optional so the rest of the repo can run without spaCy installed.
+try:
+    import spacy  # type: ignore
+except Exception:  # pragma: no cover
+    spacy = None
+
+try:
+    from pydeidentify import Deidentifier  # type: ignore
+except Exception:  # pragma: no cover
+    Deidentifier = None
 
 def create_classification_prompt(comment: str, content_type: str = "reddit", few_shot_text: str = "none") -> str:
     """Creates the classification prompt for analyzing content about homelessness, with optional few-shot examples.
@@ -550,6 +560,8 @@ def create_output_row(
 def load_spacy_model():
     try:
         # Load English language model
+        if spacy is None:
+            raise ImportError("spaCy is not installed")
         nlp = spacy.load("en_core_web_sm")
         return nlp
     except OSError:
@@ -562,12 +574,15 @@ def deidentify_text(text, nlp=None):
     if not isinstance(text, str):
         return ""
     # First, use pydeidentify
+    if Deidentifier is None:
+        raise ImportError("pydeidentify is not installed")
     deidentifier = Deidentifier()
     text = str(deidentifier.deidentify(text))  # Convert DeidentifiedText to string
     
     # Then, apply custom regex/spaCy logic for further deidentification
     if nlp is None:
-        import spacy
+        if spacy is None:
+            raise ImportError("spaCy is not installed")
         nlp = spacy.load("en_core_web_sm")
     
     # Process text with spaCy
