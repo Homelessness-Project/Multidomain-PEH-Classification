@@ -1,0 +1,28 @@
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lccccccc}
+\toprule
+Category & BERT & RoBERTa & ModernBERT & LLaMA (LoRA) & Phi-4 (LoRA) & Qwen (LoRA) & Overall \\
+\midrule
+Ask Genuine Question & --- & -1.2 & -1.1 & -2.6 & --- & --- & +2.7 \\
+Ask Rhetorical Question & -2.2 & --- & 0 & --- & --- & -2.7 & +8.5 \\
+Provide Fact/Claim & --- & --- & --- & --- & --- & --- & +6.6 \\
+Provide Observation & --- & --- & --- & -2.5 & --- & -2.6 & +6.9 \\
+Express Opinion & --- & --- & --- & --- & --- & --- & +26.0 \\
+Express Others' Opinions & --- & --- & --- & --- & --- & --- & +43.2 \\
+Money/Aid Allocation & --- & --- & --- & --- & --- & --- & +25.1 \\
+Government Critique & --- & --- & --- & --- & --- & --- & +21.0 \\
+Societal Critique & --- & --- & --- & --- & --- & --- & +26.7 \\
+Solutions/Interventions & --- & --- & --- & --- & --- & --- & +24.9 \\
+Personal Interaction & --- & --- & --- & -1.0 & --- & -2.4 & +3.3 \\
+Media Portrayal & 0 & -1.1 & 0 & 0 & 0 & 0 & 0 \\
+Not in My Backyard & -1.1 & 0 & 0 & --- & --- & -1.9 & 0 \\
+Harmful Generalization & -1.6 & --- & --- & --- & --- & --- & +14.7 \\
+Deserving/Undeserving & -1.1 & --- & --- & --- & --- & --- & +8.3 \\
+\midrule
+\textit{Overall Avg} & +5.6 & +8.6 & +7.4 & +21.0 & +27.6 & +14.3 & +14.1 \\
+\bottomrule
+\end{tabular}
+\caption{Under-detection only (GPT-pseudolabel fine-tuned models, pooled). ``0'' = match; ``---'' = over-detection. Fine-tuned on GPT-4 pseudolabels; gold test split, val-opt thresholds. Gap $\hat{\pi}_{\mathrm{model}}-\pi_{\mathrm{human}}$ (pp), pooled across sources. Negative = under-detection. Overall: row mean; footer: column means.}
+\label{tab:finetuned_pseudolabel_negative_only_pooled}
+\end{table}

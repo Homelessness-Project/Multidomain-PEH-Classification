@@ -1,0 +1,32 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+Category & LLaMA & Phi-4 & Qwen & Gemini & Grok & GPT-4 & Overall \\
+\midrule
+Ask Genuine Question & 0 & -4.9 & 0 & 0 & -2.9 & +1.2 & -1.2 \\
+Ask Rhetorical Question & -4.1 & -7.2 & -2.8 & +3.3 & -2.0 & 0 & -2.1 \\
+Provide Fact/Claim & -55.1 & -61.9 & -23.2 & -1.2 & -34.3 & -7.6 & -30.5 \\
+Provide Observation & 0 & -4.9 & +36.7 & +22.1 & +18.2 & +36.8 & +18.1 \\
+Express Opinion & +16.4 & -16.4 & +25.2 & +7.0 & -20.2 & +10.7 & +3.8 \\
+Express Others' Opinions & +2.4 & -5.5 & +14.4 & +12.0 & +2.4 & +10.5 & +6.0 \\
+Money/Aid Allocation & -10.1 & -15.2 & +6.0 & +13.2 & -6.7 & +2.0 & -1.8 \\
+Government Critique & +19.5 & +9.2 & +26.9 & +23.0 & -1.6 & +11.7 & +14.8 \\
+Societal Critique & +21.8 & +3.8 & +16.3 & +17.8 & +2.2 & +27.6 & +14.9 \\
+Solutions/Interventions & -5.8 & -19.9 & +3.3 & +19.0 & -6.9 & +4.2 & -1.0 \\
+Personal Interaction & -1.6 & -2.9 & +19.2 & +9.5 & +1.5 & +11.0 & +6.1 \\
+Media Portrayal & +11.0 & +17.8 & +22.6 & +4.7 & +1.2 & +9.2 & +11.1 \\
+Not in My Backyard & +15.9 & +14.4 & +27.4 & +4.8 & +2.4 & +4.0 & +11.5 \\
+Harmful Generalization & +20.1 & 0 & +27.2 & +9.8 & 0 & +9.8 & +11.1 \\
+Deserving/Undeserving & +20.5 & +4.5 & +20.1 & +12.0 & +2.6 & +17.8 & +12.9 \\
+\midrule
+\textit{Overall Avg} & +3.4 & -6.0 & +14.6 & +10.4 & -2.9 & +9.9 & +4.9 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Prevalence gaps vs.\ soft labels (six prompt LLMs, gold subset, pooled). Gap $\hat{\pi}_{\mathrm{model}}-\pi_{\mathrm{human}}$ (pp), pooled over shots and four sources. $\tau{=}0.5$; negative = under-detection. \textit{Racist} omitted ($<$5 positive instances on several slices). Overall: row mean; footer: column means.}
+\label{tab:underdetection_delta_pooled}
+\end{table*}

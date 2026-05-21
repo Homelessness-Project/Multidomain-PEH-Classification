@@ -1,0 +1,51 @@
+source,category,mean_delta_prevalence
+meeting_minutes,provide an observation,0.20489925
+meeting_minutes,government critique,0.12957875
+meeting_minutes,societal critique,0.125
+meeting_minutes,media portrayal,0.11103491666666666
+meeting_minutes,express others opinions,0.10439558333333333
+meeting_minutes,not in my backyard,0.09043041666666668
+meeting_minutes,harmful generalization,0.08997250000000001
+meeting_minutes,deserving/undeserving,0.07554941666666666
+meeting_minutes,personal interaction,0.05769225
+meeting_minutes,express their opinion,0.037316916666666665
+meeting_minutes,solutions/interventions,0.0162545
+meeting_minutes,racist,0.01030225
+meeting_minutes,money aid allocation,0.008928583333333332
+meeting_minutes,ask a rhetorical question,0.0006867500000000004
+news,provide an observation,0.19808033333333333
+news,express their opinion,0.19742583333333333
+news,government critique,0.16121275
+news,societal critique,0.13634383333333333
+news,not in my backyard,0.13394425
+news,media portrayal,0.1330715
+news,harmful generalization,0.10558475
+news,deserving/undeserving,0.08355125000000001
+news,express others opinions,0.06697199999999999
+news,personal interaction,0.05933675
+news,solutions/interventions,0.0069808333333333345
+news,racist,0.00174525
+reddit,societal critique,0.22305466666666665
+reddit,deserving/undeserving,0.198114
+reddit,government critique,0.16789983333333333
+reddit,harmful generalization,0.14434983333333332
+reddit,not in my backyard,0.12958366666666668
+reddit,provide an observation,0.11009616666666666
+reddit,media portrayal,0.08513108333333334
+reddit,express others opinions,0.032871500000000005
+reddit,personal interaction,0.01821675
+reddit,racist,0.01733925
+reddit,money aid allocation,0.014135666666666666
+x,provide an observation,0.21162275
+x,deserving/undeserving,0.159905
+x,government critique,0.13249275000000002
+x,media portrayal,0.11440058333333332
+x,societal critique,0.11239033333333333
+x,personal interaction,0.10946641666666668
+x,not in my backyard,0.10508050000000001
+x,harmful generalization,0.10252191666666666
+x,express others opinions,0.03654966666666667
+x,express their opinion,0.033443
+x,solutions/interventions,0.0316155
+x,racist,0.017361083333333333
+x,ask a genuine question,0.0029239166666666662

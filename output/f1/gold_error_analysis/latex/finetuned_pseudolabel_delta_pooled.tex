@@ -1,0 +1,32 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+Category & BERT & RoBERTa & ModernBERT & LLaMA (LoRA) & Phi-4 (LoRA) & Qwen (LoRA) & Overall \\
+\midrule
+Ask Genuine Question & +3.7 & -1.2 & -1.1 & -2.6 & +14.0 & +3.6 & +2.7 \\
+Ask Rhetorical Question & -2.2 & +1.7 & 0 & +26.7 & +26.6 & -2.7 & +8.5 \\
+Provide Fact/Claim & +3.3 & +6.6 & +4.8 & +8.4 & +10.8 & +5.8 & +6.6 \\
+Provide Observation & +9.6 & +13.9 & +19.1 & -2.5 & +3.6 & -2.6 & +6.9 \\
+Express Opinion & +5.4 & +9.8 & +6.1 & +45.1 & +46.2 & +43.2 & +26.0 \\
+Express Others' Opinions & --- & +29.7 & +10.1 & +62.1 & +63.0 & +51.1 & +43.2 \\
+Money/Aid Allocation & +10.8 & +3.1 & +4.5 & +37.2 & +64.3 & +30.8 & +25.1 \\
+Government Critique & +14.3 & +1.9 & +7.9 & +18.1 & +52.6 & +31.0 & +21.0 \\
+Societal Critique & +13.2 & +16.4 & +20.5 & +47.1 & +48.9 & +14.3 & +26.7 \\
+Solutions/Interventions & +21.3 & +13.4 & +9.8 & +47.7 & +43.9 & +13.5 & +24.9 \\
+Personal Interaction & +2.9 & +5.4 & +4.8 & -1.0 & +9.9 & -2.4 & +3.3 \\
+Media Portrayal & 0 & -1.1 & 0 & 0 & 0 & 0 & 0 \\
+Not in My Backyard & -1.1 & 0 & 0 & +3.0 & +2.4 & -1.9 & 0 \\
+Harmful Generalization & -1.6 & +9.9 & +5.3 & +23.9 & +20.9 & +30.0 & +14.7 \\
+Deserving/Undeserving & -1.1 & +20.1 & +19.7 & +2.0 & +8.2 & +1.2 & +8.3 \\
+\midrule
+\textit{Overall Avg} & +5.6 & +8.6 & +7.4 & +21.0 & +27.6 & +14.3 & +14.1 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Prevalence gaps (GPT-pseudolabel fine-tuned models, pooled). Fine-tuned on GPT-4 pseudolabels; gold test split, val-opt thresholds. Gap $\hat{\pi}_{\mathrm{model}}-\pi_{\mathrm{human}}$ (pp), pooled across sources. \textit{Racist} omitted. Negative = under-detection. Overall: row mean; footer: column means.}
+\label{tab:finetuned_pseudolabel_delta_pooled}
+\end{table*}

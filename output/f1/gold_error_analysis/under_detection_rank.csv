@@ -1,0 +1,15 @@
+source,category,mean_delta_prevalence
+meeting_minutes,provide a fact or claim,-0.4315475833333333
+meeting_minutes,ask a genuine question,-0.02495425
+news,provide a fact or claim,-0.28512208333333333
+news,money aid allocation,-0.08224275
+news,ask a rhetorical question,-0.0013090000000000005
+news,ask a genuine question,-0.00021816666666666675
+reddit,express their opinion,-0.1164005
+reddit,solutions/interventions,-0.09547366666666668
+reddit,ask a rhetorical question,-0.08355733333333333
+reddit,provide a fact or claim,-0.075031
+reddit,ask a genuine question,-0.025805666666666668
+x,provide a fact or claim,-0.43019008333333336
+x,money aid allocation,-0.012609750000000001
+x,ask a rhetorical question,-0.0010963333333333346

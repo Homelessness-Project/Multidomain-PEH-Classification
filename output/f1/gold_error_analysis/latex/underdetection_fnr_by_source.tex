@@ -1,0 +1,90 @@
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+Category & LLaMA & Phi-4 & Qwen & Gemini & Grok & GPT-4 & Overall \\
+\midrule
+\multicolumn{8}{l}{\textit{Reddit}} \\
+Ask Genuine Question & 57.0 & 81.6 & 47.4 & 85.4 & 88.6 & 15.8 & 62.6 \\
+Ask Rhetorical Question & 95.1 & 97.3 & 92.3 & 70.2 & 76.9 & 37.4 & 78.2 \\
+Provide Fact/Claim & 58.9 & 74.5 & 34.6 & 21.2 & 53.2 & 10.1 & 42.1 \\
+Provide Observation & 76.1 & 85.3 & 17.6 & 50.2 & 59.7 & 7.6 & 49.4 \\
+Express Opinion & 29.6 & 42.1 & 21.5 & 14.3 & 53.6 & 4.1 & 27.5 \\
+Express Others' Opinions & 71.2 & 98.1 & 76.0 & 71.1 & 79.8 & 43.3 & 73.2 \\
+Money/Aid Allocation & 93.1 & 96.9 & 50.8 & 64.8 & 83.8 & 20.0 & 68.2 \\
+Government Critique & 36.2 & 46.4 & 13.8 & 52.7 & 80.4 & 21.0 & 41.8 \\
+Societal Critique & 28.7 & 78.7 & 41.5 & 42.2 & 75.0 & 1.8 & 44.6 \\
+Solutions/Interventions & 63.4 & 92.0 & 40.6 & 50.0 & 76.4 & 35.5 & 59.7 \\
+Personal Interaction & 94.4 & 93.5 & 51.9 & 76.8 & 83.3 & 10.2 & 68.3 \\
+Media Portrayal & 75.0$^*$ & 75.0$^*$ & 25.0$^*$ & 65.0$^*$ & 100.0$^*$ & 25.0$^*$ & 60.8 \\
+Not in My Backyard & 57.7 & 26.9 & 19.2 & 78.2 & 78.8 & 9.6 & 45.1 \\
+Harmful Generalization & 36.9 & 66.2 & 24.6 & 65.6 & 81.5 & 26.9 & 50.3 \\
+Deserving/Undeserving & 50.0 & 75.0 & 25.0 & 61.4 & 87.5 & 6.2 & 50.9 \\
+\midrule
+\textit{Reddit Avg} & 61.5 & 75.3 & 38.8 & 57.9 & 77.2 & 18.3 & 54.8 \\
+\addlinespace[0.4em]
+\multicolumn{8}{l}{\textit{News}} \\
+Ask Genuine Question & 70.0 & 80.0 & 50.0 & 100.0 & 100.0 & 80.0 & 80.0 \\
+Ask Rhetorical Question & 85.7 & 92.9 & 92.9 & 92.9 & 85.7 & 85.7 & 89.3 \\
+Provide Fact/Claim & 69.0 & 59.4 & 21.0 & 7.0 & 42.6 & 7.4 & 34.4 \\
+Provide Observation & 87.5 & 93.8 & 56.2 & 56.2 & 68.8 & 62.5 & 70.8 \\
+Express Opinion & 17.7 & 54.8 & 13.7 & 72.6 & 79.0 & 63.7 & 50.3 \\
+Express Others' Opinions & 93.5 & 100.0 & 64.5 & 66.1 & 82.3 & 69.4 & 79.3 \\
+Money/Aid Allocation & 88.8 & 93.2 & 32.0 & 58.3 & 82.0 & 67.0 & 70.2 \\
+Government Critique & 56.2 & 52.1 & 14.6 & 66.7 & 87.5 & 54.2 & 55.2 \\
+Societal Critique & 47.2 & 77.8 & 55.6 & 72.2 & 91.7 & 58.3 & 67.1 \\
+Solutions/Interventions & 53.5 & 60.6 & 25.5 & 23.6 & 54.1 & 38.3 & 42.6 \\
+Personal Interaction & 100.0$^*$ & 75.0$^*$ & 12.5$^*$ & 75.0$^*$ & 62.5$^*$ & 100.0$^*$ & 70.8 \\
+Media Portrayal & 100.0$^*$ & 0 & 0 & 100.0$^*$ & 50.0$^*$ & 100.0$^*$ & 58.3 \\
+Not in My Backyard & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+Harmful Generalization & 25.0$^*$ & 75.0$^*$ & 25.0$^*$ & 87.5$^*$ & 100.0$^*$ & 100.0$^*$ & 68.8 \\
+Deserving/Undeserving & 50.0$^*$ & 100.0$^*$ & 50.0$^*$ & 100.0$^*$ & 50.0$^*$ & 75.0$^*$ & 70.8 \\
+\midrule
+\textit{News Avg} & 63.0 & 67.6 & 34.2 & 65.2 & 69.1 & 64.1 & 60.5 \\
+\addlinespace[0.4em]
+\multicolumn{8}{l}{\textit{Meeting Minutes}} \\
+Ask Genuine Question & 69.4 & 72.2 & 45.8 & 79.2 & 77.8 & 86.1 & 71.8 \\
+Ask Rhetorical Question & 100.0 & 100.0 & 90.9 & 63.6 & 81.8 & 81.8 & 86.4 \\
+Provide Fact/Claim & 76.9 & 80.8 & 37.3 & 12.4 & 46.7 & 22.9 & 46.2 \\
+Provide Observation & 95.0 & 95.0 & 55.0 & 65.0 & 75.0 & 55.0 & 73.3 \\
+Express Opinion & 20.4 & 58.0 & 2.3 & 28.4 & 57.5 & 28.2 & 32.5 \\
+Express Others' Opinions & 75.0$^*$ & 100.0$^*$ & 87.5$^*$ & 75.0$^*$ & 75.0$^*$ & 87.5$^*$ & 83.3 \\
+Money/Aid Allocation & 75.4 & 84.6 & 33.8 & 49.2 & 72.3 & 62.3 & 62.9 \\
+Government Critique & 54.5 & 61.4 & 22.7 & 53.4 & 83.0 & 69.3 & 57.4 \\
+Societal Critique & 44.4 & 72.2 & 66.7 & 77.8 & 83.3 & 61.1 & 67.6 \\
+Solutions/Interventions & 59.4 & 57.0 & 23.4 & 21.6 & 54.1 & 41.5 & 42.8 \\
+Personal Interaction & 90.9 & 72.7 & 27.3 & 50.0 & 81.8 & 72.7 & 65.9 \\
+Media Portrayal & 50.0$^*$ & 100.0$^*$ & 0 & 100.0$^*$ & 100.0$^*$ & 100.0$^*$ & 75.0 \\
+Not in My Backyard & 50.0$^*$ & 37.5$^*$ & 25.0$^*$ & 100.0$^*$ & 75.0$^*$ & 87.5$^*$ & 62.5 \\
+Harmful Generalization & 50.0 & 75.0 & 50.0 & 75.0 & 93.8 & 56.2 & 66.7 \\
+Deserving/Undeserving & 75.0$^*$ & 50.0$^*$ & 25.0$^*$ & 75.0$^*$ & 75.0$^*$ & 75.0$^*$ & 62.5 \\
+\midrule
+\textit{Meeting Minutes Avg} & 65.8 & 74.4 & 39.5 & 61.7 & 75.5 & 65.8 & 63.8 \\
+\addlinespace[0.4em]
+\multicolumn{8}{l}{\textit{X (Twitter)}} \\
+Ask Genuine Question & 70.0 & 90.0 & 50.0 & 90.0 & 93.3 & 86.7 & 80.0 \\
+Ask Rhetorical Question & 75.6 & 93.6 & 50.0 & 67.9 & 83.3 & 78.2 & 74.8 \\
+Provide Fact/Claim & 65.9 & 83.3 & 41.2 & 19.2 & 49.1 & 29.1 & 47.9 \\
+Provide Observation & 77.3 & 95.5 & 45.5 & 68.2 & 77.3 & 27.3 & 65.2 \\
+Express Opinion & 14.6 & 42.3 & 6.9 & 33.5 & 67.8 & 29.9 & 32.5 \\
+Express Others' Opinions & 90.0 & 96.0 & 64.0 & 84.0 & 96.0 & 84.0 & 85.7 \\
+Money/Aid Allocation & 68.4 & 82.2 & 48.0 & 55.3 & 81.6 & 77.6 & 68.9 \\
+Government Critique & 44.7 & 54.5 & 12.1 & 45.5 & 83.3 & 59.8 & 50.0 \\
+Societal Critique & 53.5 & 79.1 & 59.3 & 70.9 & 88.4 & 55.8 & 67.8 \\
+Solutions/Interventions & 52.4 & 58.8 & 28.2 & 41.2 & 62.2 & 51.7 & 49.1 \\
+Personal Interaction & 86.4 & 100.0 & 22.7 & 68.2 & 90.9 & 54.5 & 70.5 \\
+Media Portrayal & 78.6 & 78.6 & 92.9 & 85.7 & 85.7 & 85.7 & 84.5 \\
+Not in My Backyard & 54.2 & 70.8 & 29.2 & 100.0 & 91.7 & 91.7 & 72.9 \\
+Harmful Generalization & 52.4 & 80.5 & 17.1 & 56.1 & 89.0 & 57.3 & 58.7 \\
+Deserving/Undeserving & 54.5 & 63.6 & 63.6 & 54.5 & 95.5 & 72.7 & 67.4 \\
+\midrule
+\textit{X (Twitter) Avg} & 62.6 & 77.9 & 42.0 & 62.7 & 82.3 & 62.8 & 65.1 \\
+\midrule
+\textit{Overall Avg (pooled)} & 60.8 & 72.1 & 38.8 & 61.1 & 74.4 & 52.6 & 60.0 \\
+\bottomrule
+\end{tabular}
+}
+\caption{False-negative rates by source (six prompt LLMs). Mean FNR (\%), zero/few-shot pooled; higher = more missed human positives. {$^*$}${<}5$ human positives in that source.}
+\label{tab:underdetection_fnr_by_source}
+\end{table*}
