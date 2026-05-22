@@ -77,6 +77,23 @@ INDICATOR_CATEGORIES = [
 LARGE_CITIES = ['san francisco', 'portland', 'buffalo', 'baltimore', 'el paso']
 SMALL_CITIES = ['kalamazoo', 'south bend', 'rockford', 'scranton', 'fayetteville']
 
+
+def _title_case_city(city: str) -> str:
+    return ' '.join(word.capitalize() for word in city.split())
+
+
+LARGE_CITY_CLUSTER_CITIES = ', '.join(_title_case_city(c) for c in LARGE_CITIES)
+SMALL_CITY_CLUSTER_CITIES = ', '.join(_title_case_city(c) for c in SMALL_CITIES)
+LARGE_CITY_CLUSTER_LEGEND = f'Large City Cluster ({LARGE_CITY_CLUSTER_CITIES})'
+SMALL_CITY_CLUSTER_LEGEND = f'Small City Cluster ({SMALL_CITY_CLUSTER_CITIES})'
+CITY_CLUSTER_PANEL_TITLES = {
+    'Large': f'Large City Cluster\n({LARGE_CITY_CLUSTER_CITIES})',
+    'Small': f'Small City Cluster\n({SMALL_CITY_CLUSTER_CITIES})',
+}
+
+# Y-axis label for bias_score (= count of active Negative Bias Frame labels, 0-5)
+BIAS_SCORE_YLABEL = "Mean Negative Bias Frame Score (0-5)"
+
 # Source mappings
 SOURCE_FILES = {
     'twitter': {
@@ -275,28 +292,60 @@ def create_time_periods(df):
     
     return df
 
-def calculate_bias_by_period(df, period_col='year'):
-    """Calculate average bias by time period"""
-    results = df.groupby([period_col, 'source']).agg({
-        'bias_score': ['mean', 'std', 'count']
-    }).reset_index()
-    
-    results.columns = [period_col, 'source', 'avg_bias', 'std_bias', 'count']
-    
+def _sem(series):
+    """Standard error of the mean for post-level scores in a bin."""
+    n = len(series)
+    if n <= 1:
+        return 0.0
+    return float(series.std(ddof=1) / np.sqrt(n))
+
+
+def _aggregate_bias_by_group(df, group_cols):
+    """Mean bias per group with SEM for error bars (post-level scores in each bin)."""
+    results = (
+        df.groupby(group_cols)['bias_score']
+        .agg(
+            mean_bias='mean',
+            sem=_sem,
+            count='count',
+        )
+        .reset_index()
+    )
     return results
 
+
+def calculate_bias_by_period(df, period_col='year'):
+    """Mean bias by time period and source (one series per source)."""
+    return _aggregate_bias_by_group(df, [period_col, 'source'])
+
+
 def calculate_bias_by_period_city(df, period_col='year'):
-    """Calculate average bias by time period and city size"""
-    results = df.groupby([period_col, 'source', 'city_size']).agg({
-        'bias_score': ['mean', 'std', 'count']
-    }).reset_index()
-    
-    results.columns = [period_col, 'source', 'city_size', 'avg_bias', 'std_bias', 'count']
-    
-    # Filter out Unknown city sizes
-    results = results[results['city_size'] != 'Unknown']
-    
-    return results
+    """Mean bias by time period, source, and city size."""
+    results = _aggregate_bias_by_group(df, [period_col, 'source', 'city_size'])
+    return results[results['city_size'] != 'Unknown']
+
+
+def _plot_mean_sem(ax, x, period_data, style):
+    """Line/scatter of mean with SEM error bars (uncertainty of the mean, not post-level SD)."""
+    y = period_data['mean_bias']
+    yerr = period_data['sem']
+    marker_size = 10 if len(period_data) == 1 else 6
+    if len(period_data) == 1:
+        ax.scatter(
+            x, y,
+            marker=style['marker'], color=style['color'], label=style['name'],
+            s=150, zorder=5, edgecolors='black', linewidths=1.5,
+        )
+    else:
+        ax.plot(
+            x, y,
+            marker=style['marker'], color=style['color'], label=style['name'],
+            linewidth=2, markersize=marker_size, linestyle='-',
+        )
+    ax.errorbar(
+        x, y, yerr=yerr, fmt='none',
+        color=style['color'], alpha=0.4, capsize=3, zorder=4,
+    )
 
 # ============================================================================
 # VISUALIZATIONS
@@ -310,8 +359,47 @@ SOURCE_STYLE = {
     'meeting_minutes': {'color': '#9C27B0', 'marker': 'D', 'name': 'Meeting Minutes'}  # Purple, diamond
 }
 
+
+def _set_fig_title_subtitle(fig, title, subtitle=None, top=None):
+    """Title and subtitle on separate lines above axes; tight vertical spacing."""
+    title_lines = title.count('\n') + 1
+    y_title = 0.97
+    line_h = 0.026  # figure-fraction per title line (fontsize 14)
+    y_after_title = y_title - title_lines * line_h
+
+    fig.text(
+        0.5, y_title, title,
+        transform=fig.transFigure,
+        ha='center', va='top', fontsize=14, fontweight='bold', linespacing=1.15,
+    )
+    if subtitle:
+        y_sub = y_after_title - 0.008
+        fig.text(
+            0.5, y_sub, subtitle,
+            transform=fig.transFigure,
+            ha='center', va='top', fontsize=9, style='italic', color='#444444',
+        )
+        if top is None:
+            top = y_sub - 0.032
+    elif top is None:
+        top = y_after_title - 0.015
+
+    fig.subplots_adjust(top=top)
+
+
+def _save_figure(fig, output_path, right=0.96, bottom=0.14, left=0.09, top=None):
+    """Save without bbox_inches='tight' so figure titles are not clipped or overlapped."""
+    output_path = Path(output_path)
+    adjust = {'bottom': bottom, 'right': right, 'left': left}
+    if top is not None:
+        adjust['top'] = top
+    fig.subplots_adjust(**adjust)
+    fig.savefig(output_path, dpi=300)
+    fig.savefig(output_path.with_suffix('.png'), dpi=300)
+
+
 def plot_bias_by_year(df, output_dir='output'):
-    """Plot average bias by year for all sources"""
+    """Plot mean Negative Bias Frame score by year (four source-specific series)."""
     year_data = calculate_bias_by_period(df, period_col='year')
     
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -319,28 +407,25 @@ def plot_bias_by_year(df, output_dir='output'):
     for source in year_data['source'].unique():
         source_data = year_data[year_data['source'] == source].sort_values('year')
         style = SOURCE_STYLE.get(source, {'color': 'gray', 'marker': 'o', 'name': source.capitalize()})
-        ax.plot(source_data['year'], source_data['avg_bias'], 
-                marker=style['marker'], color=style['color'], label=style['name'], 
-                linewidth=2, markersize=8, linestyle='-')
-        # Add error bars
-        ax.errorbar(source_data['year'], source_data['avg_bias'], 
-                   yerr=source_data['std_bias'], color=style['color'], alpha=0.3, capsize=3)
+        _plot_mean_sem(ax, source_data['year'], source_data, style)
     
     ax.set_xlabel('Year', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Average Bias Score', fontsize=12, fontweight='bold')
-    ax.set_title('Average Bias Score by Year Across Four Sources', fontsize=14, fontweight='bold')
+    ax.set_ylabel(BIAS_SCORE_YLABEL, fontsize=12, fontweight='bold')
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5) by Year Across Four Sources',
+        'Error bars: SEM (std / sqrt(n)) of post-level scores within each year x source bin',
+    )
     ax.legend(title='Source', fontsize=10)
     ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_year_all_sources.pdf'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
+    _save_figure(fig, output_path)
     print(f"Saved: {output_path}")
     plt.close()
 
 def plot_bias_by_half_year(df, output_dir='output'):
-    """Plot average bias by 6-month periods for all sources"""
+    """Plot mean Negative Bias Frame score by 6-month period (four source-specific series)."""
     half_year_data = calculate_bias_by_period(df, period_col='year_half')
     
     # Sort by period number for proper ordering
@@ -351,7 +436,7 @@ def plot_bias_by_half_year(df, output_dir='output'):
     # Create mapping from period to x-axis position
     period_to_pos = {period: idx for idx, period in enumerate(period_order)}
     
-    fig, ax = plt.subplots(figsize=(16, 6))
+    fig, ax = plt.subplots(figsize=(14, 5.2))
     
     for source in half_year_data['source'].unique():
         source_data = half_year_data[half_year_data['source'] == source].copy()
@@ -362,36 +447,22 @@ def plot_bias_by_half_year(df, output_dir='output'):
         
         if len(source_data) > 0:
             style = SOURCE_STYLE.get(source, {'color': 'gray', 'marker': 'o', 'name': source.capitalize()})
-            # Use larger markers for single points to make them more visible
-            marker_size = 10 if len(source_data) == 1 else 6
-            
-            if len(source_data) == 1:
-                # For single points, use scatter plot to make them more visible
-                ax.scatter(source_data['x_pos'], source_data['avg_bias'], 
-                          marker=style['marker'], color=style['color'], label=style['name'], 
-                          s=150, zorder=5, edgecolors='black', linewidths=1.5)
-            else:
-                # For multiple points, use line plot
-                ax.plot(source_data['x_pos'], source_data['avg_bias'], 
-                        marker=style['marker'], color=style['color'], label=style['name'], 
-                        linewidth=2, markersize=marker_size, linestyle='-')
-            
-            # Add error bars
-            ax.errorbar(source_data['x_pos'], source_data['avg_bias'], 
-                       yerr=source_data['std_bias'], color=style['color'], alpha=0.3, capsize=3)
+            _plot_mean_sem(ax, source_data['x_pos'], source_data, style)
     
     ax.set_xticks(range(len(period_order)))
     ax.set_xticklabels(period_order, rotation=45, ha='right')
     ax.set_xlabel('6-Month Period', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Average Bias Score', fontsize=12, fontweight='bold')
-    ax.set_title('Average Bias Score by 6-Month Period Across Four Sources', fontsize=14, fontweight='bold')
-    ax.legend(title='Source', fontsize=10)
+    ax.set_ylabel(BIAS_SCORE_YLABEL, fontsize=12, fontweight='bold')
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5) by 6-Month Period\nAcross Four Sources',
+        'Error bars: SEM (std / sqrt(n)) of post-level scores within each 6-month x source bin',
+    )
+    ax.legend(title='Source', fontsize=9, loc='upper right', framealpha=0.9)
     ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_half_year_all_sources.pdf'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
+    _save_figure(fig, output_path, right=0.98, bottom=0.15, left=0.07)
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -400,6 +471,12 @@ def plot_bias_by_year_city(df, output_dir='output'):
     year_city_data = calculate_bias_by_period_city(df, period_col='year')
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5) by Year',
+        'Error bars: SEM (std / sqrt(n)) within each year x source x city-cluster bin',
+        top=0.88,
+    )
     
     for idx, city_size in enumerate(['Large', 'Small']):
         ax = axes[idx]
@@ -408,23 +485,16 @@ def plot_bias_by_year_city(df, output_dir='output'):
         for source in city_data['source'].unique():
             source_data = city_data[city_data['source'] == source].sort_values('year')
             style = SOURCE_STYLE.get(source, {'color': 'gray', 'marker': 'o', 'name': source.capitalize()})
-            ax.plot(source_data['year'], source_data['avg_bias'], 
-                    marker=style['marker'], color=style['color'], label=style['name'], 
-                    linewidth=2, markersize=8, linestyle='-')
-            # Add error bars
-            ax.errorbar(source_data['year'], source_data['avg_bias'], 
-                       yerr=source_data['std_bias'], color=style['color'], alpha=0.3, capsize=3)
+            _plot_mean_sem(ax, source_data['year'], source_data, style)
         
         ax.set_xlabel('Year', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Average Bias Score', fontsize=12, fontweight='bold')
-        ax.set_title(f'Average Bias Score by Year - {city_size} Cities', fontsize=14, fontweight='bold')
+        ax.set_ylabel(BIAS_SCORE_YLABEL, fontsize=12, fontweight='bold')
+        ax.set_title(CITY_CLUSTER_PANEL_TITLES[city_size], fontsize=11, fontweight='bold')
         ax.legend(title='Source', fontsize=10)
         ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_year_by_city_size.pdf'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
+    _save_figure(fig, output_path, right=0.88)
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -441,6 +511,12 @@ def plot_bias_by_half_year_city(df, output_dir='output'):
     period_to_pos = {period: idx for idx, period in enumerate(period_order)}
     
     fig, axes = plt.subplots(1, 2, figsize=(20, 6))
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5) by 6-Month Period',
+        'Error bars: SEM (std / sqrt(n)) within each 6-month x source x city-cluster bin',
+        top=0.88,
+    )
     
     for idx, city_size in enumerate(['Large', 'Small']):
         ax = axes[idx]
@@ -455,36 +531,18 @@ def plot_bias_by_half_year_city(df, output_dir='output'):
             
             if len(source_data) > 0:
                 style = SOURCE_STYLE.get(source, {'color': 'gray', 'marker': 'o', 'name': source.capitalize()})
-                # Use larger markers for single points to make them more visible
-                marker_size = 10 if len(source_data) == 1 else 6
-                
-                if len(source_data) == 1:
-                    # For single points, use scatter plot to make them more visible
-                    ax.scatter(source_data['x_pos'], source_data['avg_bias'], 
-                              marker=style['marker'], color=style['color'], label=style['name'], 
-                              s=150, zorder=5, edgecolors='black', linewidths=1.5)
-                else:
-                    # For multiple points, use line plot
-                    ax.plot(source_data['x_pos'], source_data['avg_bias'], 
-                            marker=style['marker'], color=style['color'], label=style['name'], 
-                            linewidth=2, markersize=marker_size, linestyle='-')
-                
-                # Add error bars
-                ax.errorbar(source_data['x_pos'], source_data['avg_bias'], 
-                           yerr=source_data['std_bias'], color=style['color'], alpha=0.3, capsize=3)
+                _plot_mean_sem(ax, source_data['x_pos'], source_data, style)
         
         ax.set_xticks(range(len(period_order)))
         ax.set_xticklabels(period_order, rotation=45, ha='right')
         ax.set_xlabel('6-Month Period', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Average Bias Score', fontsize=12, fontweight='bold')
-        ax.set_title(f'Average Bias Score by 6-Month Period - {city_size} Cities', fontsize=14, fontweight='bold')
+        ax.set_ylabel(BIAS_SCORE_YLABEL, fontsize=12, fontweight='bold')
+        ax.set_title(CITY_CLUSTER_PANEL_TITLES[city_size], fontsize=11, fontweight='bold')
         ax.legend(title='Source', fontsize=10)
         ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
     output_path = Path(output_dir) / 'bias_by_half_year_by_city_size.pdf'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
+    _save_figure(fig, output_path, right=0.88, bottom=0.22)
     print(f"Saved: {output_path}")
     plt.close()
 
@@ -494,9 +552,9 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     # Filter to only Large and Small cities
     df_filtered = df[df['city_size'].isin(['Large', 'Small'])].copy()
     
-    # Calculate mean bias by source and city size
-    summary = df_filtered.groupby(['source', 'city_size'])['bias_score'].agg(['mean', 'std', 'count']).reset_index()
-    summary.columns = ['source', 'city_size', 'mean_bias', 'std_bias', 'count']
+    # Mean bias by source and city size (bar heights; no error bars on this figure)
+    summary = df_filtered.groupby(['source', 'city_size'])['bias_score'].agg(['mean', 'count']).reset_index()
+    summary.columns = ['source', 'city_size', 'mean_bias', 'count']
     
     # Perform statistical tests with Bonferroni correction
     # Compare Large vs Small for each source: 4 comparisons
@@ -518,25 +576,25 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         small_data = source_data[source_data['city_size'] == 'Small']['bias_score']
         
         if len(large_data) > 0 and len(small_data) > 0:
-            # Perform t-test
-            t_stat, p_value = stats.ttest_ind(large_data, small_data)
+            t_stat, p_value = stats.ttest_ind(large_data, small_data, equal_var=False)
             
             is_significant = p_value < bonferroni_alpha
             significance_results.append({
                 'source': source,
                 'large_mean': large_data.mean(),
                 'small_mean': small_data.mean(),
-                'large_std': large_data.std(),
-                'small_std': small_data.std(),
                 'large_count': len(large_data),
                 'small_count': len(small_data),
                 'p_value': p_value,
                 'significant': is_significant,
-                't_statistic': t_stat
+                't_statistic': t_stat,
             })
             
             sig_marker = "***" if is_significant else ""
-            print(f"{source.capitalize()}: Large={large_data.mean():.3f} vs Small={small_data.mean():.3f}, p={p_value:.6f} {sig_marker}")
+            print(
+                f"{source.capitalize()}: Large mean={large_data.mean():.3f} vs "
+                f"Small mean={small_data.mean():.3f}, p={p_value:.6f} {sig_marker}"
+            )
     
     # Create grouped bar chart
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -546,10 +604,8 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     width = 0.35
     
     large_means = []
-    large_stds = []
     large_counts = []
     small_means = []
-    small_stds = []
     small_counts = []
     
     for source in source_order:
@@ -558,20 +614,16 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         
         if len(large_row) > 0:
             large_means.append(large_row.iloc[0]['mean_bias'])
-            large_stds.append(large_row.iloc[0]['std_bias'])
             large_counts.append(large_row.iloc[0]['count'])
         else:
             large_means.append(0)
-            large_stds.append(0)
             large_counts.append(0)
         
         if len(small_row) > 0:
             small_means.append(small_row.iloc[0]['mean_bias'])
-            small_stds.append(small_row.iloc[0]['std_bias'])
             small_counts.append(small_row.iloc[0]['count'])
         else:
             small_means.append(0)
-            small_stds.append(0)
             small_counts.append(0)
     
     # Get colors for each source
@@ -583,7 +635,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         x - width / 2,
         large_means,
         width,
-        label='San Francisco Cluster (Large Cities)',
+        label=LARGE_CITY_CLUSTER_LEGEND,
         color=colors,
         alpha=0.7,
         edgecolor='black',
@@ -594,7 +646,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         x + width / 2,
         small_means,
         width,
-        label='South Bend Cluster (Small Cities)',
+        label=SMALL_CITY_CLUSTER_LEGEND,
         color=colors,
         alpha=0.4,
         edgecolor='black',
@@ -631,22 +683,21 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
                    f'n={count_s}', ha='center', va='bottom', fontsize=8, fontstyle='italic')
     
     ax.set_xlabel('Source', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Negative Bias Frame Score', fontsize=12, fontweight='bold')
-    ax.set_title('Negative Bias Frame Score: San Francisco Cluster vs South Bend Cluster by Source', 
-                 fontsize=14, fontweight='bold', pad=20)
-    
-    # Add subtitle with bias categories
-    bias_categories_text = ('Average Bias Score (0-5) Category Classification: Rhetorical question, '
-                           'Not in my backyard, Harmful generalization, Deserving/undeserving, Racist')
-    ax.text(0.5, 1.02, bias_categories_text, 
-           transform=ax.transAxes, fontsize=10, ha='center', 
-           style='italic', color='gray')
+    ax.set_ylabel(BIAS_SCORE_YLABEL, fontsize=12, fontweight='bold')
+    bias_categories_text = (
+        'Categories: rhetorical question, not in my backyard, harmful generalization, '
+        'deserving/undeserving, racist (sum of active labels per post, 0-5)'
+    )
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5): Large City Cluster vs Small City Cluster by Source',
+        bias_categories_text,
+        top=0.82,
+    )
     
     # Add Bonferroni correction note
-    bonferroni_note = f'* p < 0.0125 (Bonferroni corrected, α = 0.05/4 comparisons)'
-    ax.text(0.5, -0.12, bonferroni_note, 
-           transform=ax.transAxes, fontsize=9, ha='center', 
-           style='italic', color='black')
+    bonferroni_note = '* p < 0.0125 (Bonferroni corrected, α = 0.05/4 comparisons)'
+    fig.text(0.5, 0.02, bonferroni_note, ha='center', fontsize=9, style='italic')
     
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=0, ha='center')
@@ -656,15 +707,11 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     ax.set_ylim(bottom=0, top=y_max_with_markers)
     
     # Position legend to avoid overlap with significance markers
-    ax.legend(fontsize=10, loc='upper right', bbox_to_anchor=(0.98, 0.98))
+    ax.legend(fontsize=8, loc='upper right', bbox_to_anchor=(0.98, 0.98))
     ax.grid(True, alpha=0.3, axis='y')
     
-    # Adjust layout to accommodate footnote
-    plt.tight_layout(rect=[0, 0.05, 1, 0.98])
-    
     output_path = Path(output_dir) / 'bias_by_source_city_size_bar_chart.pdf'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.savefig(output_path.with_suffix('.png'), dpi=300, bbox_inches='tight')
+    _save_figure(fig, output_path, right=0.92, bottom=0.18)
     print(f"\nSaved: {output_path}")
     plt.close()
     

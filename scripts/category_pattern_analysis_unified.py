@@ -55,7 +55,16 @@ ALL_CATEGORIES = [
 LARGE_CITIES = ['san francisco', 'portland', 'buffalo', 'baltimore', 'el paso']
 SMALL_CITIES = ['kalamazoo', 'south bend', 'rockford', 'scranton', 'fayetteville']
 
-# Statistical constants
+# Negative Bias Frame (5 labels; subset of ALL_CATEGORIES)
+NEGATIVE_BIAS_FRAME_CATEGORIES = [
+    'Comment_ask a rhetorical question',
+    'Perception_not in my backyard',
+    'Perception_harmful generalization',
+    'Perception_deserving/undeserving',
+    'Racist_Flag',
+]
+
+# Statistical constants (16-category analyses)
 BONFERRONI_ALPHA = 0.05 / len(ALL_CATEGORIES)  # 0.003125
 N_COMPARISONS = len(ALL_CATEGORIES)  # 16
 
@@ -408,16 +417,22 @@ def analyze_category_importance(df, source_name):
     
     return importance_df
 
-def analyze_engagement_differences(df, source_name):
+def analyze_engagement_differences(df, source_name, categories=None, analysis_label='CATEGORY'):
     """Analyze engagement metric differences by category (robust + nonparametric).
 
     Uses median differences (category - overall) and Mann–Whitney U test against the
     complement set (category==1 vs category==0). This avoids normality assumptions.
     """
+    categories = categories or ALL_CATEGORIES
+    n_comparisons = len(categories)
+
     print("\n" + "="*80)
-    print(f"ANALYSIS 3: ENGAGEMENT DIFFERENCES BY CATEGORY ({source_name.upper()})")
+    print(f"ANALYSIS 3: ENGAGEMENT DIFFERENCES BY {analysis_label} ({source_name.upper()})")
     print("="*80)
-    print("Comparing each category's distribution to all others (Mann–Whitney U; robust to non-normality)")
+    print(
+        f"Comparing each of {n_comparisons} categories to all others "
+        f"(Mann–Whitney U; Bonferroni α = 0.05/{n_comparisons})"
+    )
     
     results = []
     metric_col = 'Engagement_Metric'
@@ -427,7 +442,7 @@ def analyze_engagement_differences(df, source_name):
     
     print(f"\nOverall median {metric_name}: {overall_median:.6f} (IQR: {overall_q25:.6f}–{overall_q75:.6f})")
     
-    for category in ALL_CATEGORIES:
+    for category in categories:
         category_metrics = df[df[category] == 1][metric_col].values
         other_metrics = df[df[category] == 0][metric_col].values
         n_category = len(category_metrics)
@@ -447,7 +462,7 @@ def analyze_engagement_differences(df, source_name):
             p_value = 1.0
         
         # Bonferroni correction
-        p_value_corrected = min(p_value * N_COMPARISONS, 1.0)
+        p_value_corrected = min(p_value * n_comparisons, 1.0)
         is_significant = p_value_corrected < 0.05
         
         if is_significant:
@@ -875,19 +890,36 @@ def create_avg_impressions_chart(df, display_name, output_dir, file_source):
     
     return results_df
 
-def create_engagement_differences_chart(df, engagement_diff_df, display_name, output_dir, metric_name, file_source):
+def create_engagement_differences_chart(
+    df,
+    engagement_diff_df,
+    display_name,
+    output_dir,
+    metric_name,
+    file_source,
+    filename_stem=None,
+    chart_title=None,
+    n_comparisons=None,
+    fig_height_per_category=1.2,
+    bold_y_labels=False,
+):
     """Create engagement differences chart (horizontal bar chart)
     
     Args:
         display_name: Name for titles (e.g., "X" or "Reddit")
         file_source: Name for file paths (e.g., "x" or "reddit")
+        filename_stem: Output base name without extension (default: {source}_category_engagement_differences)
+        chart_title: Optional override for main title line
+        n_comparisons: Bonferroni family size for subtitle (default: 16)
     """
     if len(engagement_diff_df) == 0:
         return
     
+    n_comparisons = n_comparisons or len(ALL_CATEGORIES)
     engagement_diff_sorted = engagement_diff_df.sort_values('Difference', ascending=True)
     
-    fig, ax = plt.subplots(figsize=(14, 8))
+    fig_height = max(2.5, fig_height_per_category * len(engagement_diff_sorted))
+    fig, ax = plt.subplots(figsize=(14, fig_height))
     
     categories = engagement_diff_sorted['Category'].values
     differences = engagement_diff_sorted['Difference'].values
@@ -916,13 +948,20 @@ def create_engagement_differences_chart(df, engagement_diff_df, display_name, ou
     
     ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
     ax.set_yticks(range(len(categories)))
-    ax.set_yticklabels(categories, fontsize=10)
+    y_label_kw = {'fontsize': 10}
+    if bold_y_labels:
+        y_label_kw['fontweight'] = 'bold'
+    ax.set_yticklabels(categories, **y_label_kw)
     ax.set_xlabel(f'Median {metric_name} Difference (Category - Overall Median)', 
                   fontsize=12, fontweight='bold')
-    ax.set_title(f'{metric_name} Differences by Category on {display_name}\n' + 
-                'Comparing each category to all others (Mann–Whitney U)\n' +
-                '* p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected)', 
-                fontsize=14, fontweight='bold')
+    title_line = chart_title or f'{metric_name} Differences by Category on {display_name}'
+    ax.set_title(
+        title_line + '\n'
+        'Comparing each category to all others (Mann–Whitney U)\n'
+        f'* p<0.05, ** p<0.01, *** p<0.001 (Bonferroni corrected, α = 0.05/{n_comparisons})',
+        fontsize=14,
+        fontweight='bold',
+    )
     ax.grid(axis='x', alpha=0.3)
     
     from matplotlib.patches import Patch
@@ -934,11 +973,11 @@ def create_engagement_differences_chart(df, engagement_diff_df, display_name, ou
     ax.legend(handles=legend_elements, loc='lower right')
     
     plt.tight_layout()
-    filename = f'{file_source.lower()}_category_engagement_differences'
+    filename = filename_stem or f'{file_source.lower()}_category_engagement_differences'
     plt.savefig(output_dir / f'{filename}.pdf', dpi=300, bbox_inches='tight')
     plt.savefig(output_dir / f'{filename}.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("  ✓ Saved engagement differences chart")
+    print(f"  ✓ Saved engagement differences chart: {filename}.pdf")
 
 def create_visualizations(df, prevalence_df, importance_df, engagement_diff_df, display_name, file_source):
     """Create all bar chart visualizations with error bars
@@ -960,6 +999,26 @@ def create_visualizations(df, prevalence_df, importance_df, engagement_diff_df, 
     create_prevalence_engagement_chart(df, importance_df, display_name, output_dir, metric_name, file_source)
     importance_errors_df = create_importance_chart(df, importance_df, display_name, output_dir, metric_name, file_source)
     create_engagement_differences_chart(df, engagement_diff_df, display_name, output_dir, metric_name, file_source)
+
+    bias_engagement_diff_df = analyze_engagement_differences(
+        df,
+        display_name,
+        categories=NEGATIVE_BIAS_FRAME_CATEGORIES,
+        analysis_label='NEGATIVE BIAS FRAME',
+    )
+    create_engagement_differences_chart(
+        df,
+        bias_engagement_diff_df,
+        display_name,
+        output_dir,
+        metric_name,
+        file_source,
+        filename_stem=f'{file_source.lower()}_negative_bias_frame_engagement_differences',
+        chart_title=f'{metric_name} Differences by Negative Bias Frame Category on {display_name}',
+        n_comparisons=len(NEGATIVE_BIAS_FRAME_CATEGORIES),
+        fig_height_per_category=0.6,
+        bold_y_labels=True,
+    )
     
     # Create average impressions chart for X/Twitter
     avg_impressions_df = None
@@ -968,13 +1027,21 @@ def create_visualizations(df, prevalence_df, importance_df, engagement_diff_df, 
     
     print(f"\nAll visualizations saved to: {output_dir}/")
     
-    return importance_errors_df, avg_impressions_df
+    return importance_errors_df, avg_impressions_df, bias_engagement_diff_df
 
 # ============================================================================
 # SAVE RESULTS
 # ============================================================================
 
-def save_all_results(prevalence_df, importance_df, engagement_diff_df, importance_errors_df, source_name, avg_impressions_df=None):
+def save_all_results(
+    prevalence_df,
+    importance_df,
+    engagement_diff_df,
+    importance_errors_df,
+    source_name,
+    avg_impressions_df=None,
+    bias_engagement_diff_df=None,
+):
     """Save all results to CSV files in source-specific folder"""
     print("\n" + "="*80)
     print(f"SAVING RESULTS TO CSV ({source_name.upper()})")
@@ -998,6 +1065,12 @@ def save_all_results(prevalence_df, importance_df, engagement_diff_df, importanc
         df_to_save.to_csv(filepath, index=False)
         files_saved.append(filepath)
         print(f"  ✓ Saved {description}: {filepath}")
+
+    if bias_engagement_diff_df is not None and len(bias_engagement_diff_df) > 0:
+        filepath = output_dir / 'negative_bias_frame_engagement_differences.csv'
+        bias_engagement_diff_df.to_csv(filepath, index=False)
+        files_saved.append(filepath)
+        print(f"  ✓ Saved negative bias frame engagement differences: {filepath}")
     
     if importance_errors_df is not None:
         filepath = output_dir / 'category_pattern_analysis_importance_with_errors.csv'
@@ -1069,12 +1142,20 @@ Examples:
             engagement_diff_df = analyze_engagement_differences(df, display_name)
             
             # Create visualizations (use display name for titles, source for file paths)
-            importance_errors_df, avg_impressions_df = create_visualizations(df, prevalence_df, importance_df, 
-                                                         engagement_diff_df, display_name, source)
+            importance_errors_df, avg_impressions_df, bias_engagement_diff_df = create_visualizations(
+                df, prevalence_df, importance_df, engagement_diff_df, display_name, source
+            )
             
             # Save all results (use source for file paths)
-            save_all_results(prevalence_df, importance_df, engagement_diff_df, 
-                          importance_errors_df, source, avg_impressions_df)
+            save_all_results(
+                prevalence_df,
+                importance_df,
+                engagement_diff_df,
+                importance_errors_df,
+                source,
+                avg_impressions_df,
+                bias_engagement_diff_df,
+            )
             
             # Summary
             print("\n" + "="*80)

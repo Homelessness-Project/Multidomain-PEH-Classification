@@ -1,0 +1,6 @@
+Category,Full_Category,N_Category,Mean_Category,Overall_Mean,Median_Category,Q25_Category,Q75_Category,Overall_Median,Difference,P_Value,P_Value_Corrected,Significant,Direction,Cohens_D
+ask a rhetorical question,Comment_ask a rhetorical question,3868,8.355739400206826,12.39547508818342,2.0,0.0,9.0,3.0,-1.0,2.5955642142785355e-35,1.2977821071392677e-34,True,LOWER,
+not in my backyard,Perception_not in my backyard,3404,17.849588719153935,12.39547508818342,5.0,1.0,15.0,3.0,2.0,5.218197909401727e-19,2.6090989547008635e-18,True,HIGHER,
+harmful generalization,Perception_harmful generalization,10236,15.58450566627589,12.39547508818342,4.0,1.0,14.0,3.0,1.0,2.7374861185841928e-37,1.3687430592920964e-36,True,HIGHER,
+deserving/undeserving,Perception_deserving/undeserving,11998,14.881730288381396,12.39547508818342,4.0,1.0,13.0,3.0,1.0,1.1342183904470842e-30,5.671091952235421e-30,True,HIGHER,
+racist,Racist_Flag,58,5.5344827586206895,12.39547508818342,2.0,1.0,5.0,3.0,-1.0,0.25630309859414635,1.0,False,NS,
