@@ -169,8 +169,78 @@ def summarize_source_per_category(
 
 def pct(n: int, d: int) -> str:
     if d <= 0:
-        return "0.0%"
-    return f"{(100.0 * n / d):.1f}%"
+        return r"0.0\%"
+    return f"{(100.0 * n / d):.1f}\\%"
+
+
+def _sum_category_stats(per_cat_list: List[Dict[str, Dict[str, int]]]) -> Dict[str, Dict[str, int]]:
+    """Pool per-category agreement counts across multiple sources."""
+    combined: Dict[str, Dict[str, int]] = {}
+    keys = ("full_positive", "two_of_three_positive", "two_of_three_negative", "full_negative", "total")
+    for cat in CATEGORIES:
+        combined[cat] = {k: 0 for k in keys}
+        for per_cat in per_cat_list:
+            c = per_cat.get(cat, {})
+            for k in keys:
+                combined[cat][k] += int(c.get(k, 0))
+    return combined
+
+
+def _category_totals(per_cat: Dict[str, Dict[str, int]]) -> Dict[str, int]:
+    totals = {"full_positive": 0, "two_of_three_positive": 0, "two_of_three_negative": 0, "full_negative": 0, "total": 0}
+    for cat in CATEGORIES:
+        for k in totals:
+            totals[k] += int(per_cat[cat].get(k, 0))
+    return totals
+
+
+def append_breakdown_table(
+    lines: List[str],
+    *,
+    source_label: str,
+    n_items: int,
+    per_cat: Dict[str, Dict[str, int]],
+    label_suffix: str,
+) -> None:
+    totals = _category_totals(per_cat)
+
+    lines.append(r"\begin{table*}[htbp]")
+    lines.append(r"\centering")
+    lines.append(r"\begin{tabular}{lrrrrr}")
+    lines.append(r"\toprule")
+    lines.append(r"Category & 3/3 Pos & 2/3 Pos & 2/3 Neg & 3/3 Neg & Total \\")
+    lines.append(r"\midrule")
+
+    for cat in CATEGORIES:
+        c = per_cat[cat]
+        total = int(c["total"])
+        lines.append(
+            f"{cat} "
+            f"& {c['full_positive']} ({pct(int(c['full_positive']), total)}) "
+            f"& {c['two_of_three_positive']} ({pct(int(c['two_of_three_positive']), total)}) "
+            f"& {c['two_of_three_negative']} ({pct(int(c['two_of_three_negative']), total)}) "
+            f"& {c['full_negative']} ({pct(int(c['full_negative']), total)}) "
+            f"& {total} \\\\"
+        )
+
+    lines.append(r"\midrule")
+    lines.append(
+        f"TOTAL "
+        f"& {totals['full_positive']} ({pct(int(totals['full_positive']), int(totals['total']))}) "
+        f"& {totals['two_of_three_positive']} ({pct(int(totals['two_of_three_positive']), int(totals['total']))}) "
+        f"& {totals['two_of_three_negative']} ({pct(int(totals['two_of_three_negative']), int(totals['total']))}) "
+        f"& {totals['full_negative']} ({pct(int(totals['full_negative']), int(totals['total']))}) "
+        f"& {totals['total']} \\\\"
+    )
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(
+        rf"\caption{{Annotator agreement breakdown by category for {source_label} "
+        rf"(gold-standard set; $n={n_items}$ items). Raw scores: 0--3.}}"
+    )
+    lines.append(rf"\label{{tab:annotator_agreement_breakdown_{label_suffix}}}")
+    lines.append(r"\end{table*}")
+    lines.append("")
 
 
 def main() -> None:
@@ -190,57 +260,36 @@ def main() -> None:
     lines.append("% Gold-standard only (matched by normalized text).")
     lines.append("")
 
+    per_source_results: List[tuple[str, int, Dict[str, Dict[str, int]]]] = []
+
     for source, rel_csv, raw_text_col in SOURCES:
         csv_path = Path(rel_csv)
         if not csv_path.exists():
             continue
 
         n_items, per_cat = summarize_source_per_category(source, csv_path, raw_text_col)
-
-        # totals across categories for this source
-        totals = {"full_positive": 0, "two_of_three_positive": 0, "two_of_three_negative": 0, "full_negative": 0, "total": 0}
-        for cat in CATEGORIES:
-            for k in totals:
-                totals[k] += int(per_cat[cat].get(k, 0))
-
-        lines.append(r"\begin{table*}[htbp]")
-        lines.append(r"\centering")
-        lines.append(r"\begin{tabular}{lrrrrr}")
-        lines.append(r"\toprule")
-        lines.append(rf"Category & 3/3 Pos & 2/3 Pos & 2/3 Neg & 3/3 Neg & Total \\")
-        lines.append(r"\midrule")
-
-        for cat in CATEGORIES:
-            c = per_cat[cat]
-            total = int(c["total"])
-            lines.append(
-                f"{cat} "
-                f"& {c['full_positive']} ({pct(int(c['full_positive']), total)}) "
-                f"& {c['two_of_three_positive']} ({pct(int(c['two_of_three_positive']), total)}) "
-                f"& {c['two_of_three_negative']} ({pct(int(c['two_of_three_negative']), total)}) "
-                f"& {c['full_negative']} ({pct(int(c['full_negative']), total)}) "
-                f"& {total} \\\\"
-            )
-
-        lines.append(r"\midrule")
-        lines.append(
-            f"TOTAL "
-            f"& {totals['full_positive']} ({pct(int(totals['full_positive']), int(totals['total']))}) "
-            f"& {totals['two_of_three_positive']} ({pct(int(totals['two_of_three_positive']), int(totals['total']))}) "
-            f"& {totals['two_of_three_negative']} ({pct(int(totals['two_of_three_negative']), int(totals['total']))}) "
-            f"& {totals['full_negative']} ({pct(int(totals['full_negative']), int(totals['total']))}) "
-            f"& {totals['total']} \\\\"
+        per_source_results.append((source, n_items, per_cat))
+        append_breakdown_table(
+            lines,
+            source_label=source,
+            n_items=n_items,
+            per_cat=per_cat,
+            label_suffix=source,
         )
-        lines.append(r"\bottomrule")
-        lines.append(r"\end{tabular}")
-        lines.append(
-            rf"\caption{{Annotator agreement breakdown by category for {source} (gold-standard set; $n={n_items}$ items). Raw scores: 0--3.}}"
+
+    if per_source_results:
+        combined_per_cat = _sum_category_stats([r[2] for r in per_source_results])
+        combined_n_items = sum(r[1] for r in per_source_results)
+        append_breakdown_table(
+            lines,
+            source_label="all four sources combined (Reddit, X, News, Meeting Minutes)",
+            n_items=combined_n_items,
+            per_cat=combined_per_cat,
+            label_suffix="all_sources",
         )
-        lines.append(rf"\label{{tab:annotator_agreement_breakdown_{source}}}")
-        lines.append(r"\end{table*}")
-        lines.append("")
 
     out_path.write_text("\n".join(lines))
+    print(f"Wrote {out_path} ({len(per_source_results)} per-source tables + combined)")
 
 
 if __name__ == "__main__":
