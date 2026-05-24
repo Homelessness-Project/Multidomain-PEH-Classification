@@ -1,28 +1,25 @@
-\begin{table*}[htbp]
-\centering
-\centering\caption{Soft-label Macro and Micro F1 Scores for All Models by Data Source}
-\label{tab:detailed_f1_scores}
+\begin{table*}[htpb!]
 \resizebox{\textwidth}{!}{
-\begin{tabular}{lcccccccccccc}
+\begin{tabular}{lcccccccccccccccccc}
 \toprule
-Data Source & \multicolumn{2}{c}{GPT-4} & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{Gemini} & BERT \\
-& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Fine-tuned \\
+Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} \\
+& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few \\
 \midrule
-Reddit (Macro) & 75.00 & \textbf{76.95} & 64.92 & 59.94 & 66.09 & 70.58 & 60.62 & 63.35 & 60.05 & 61.98 & 60.67 & 63.47 & 27.69 \\
-Reddit (Micro) & 80.62 & \textbf{82.93} & 80.69 & 69.16 & 73.91 & 79.95 & 81.35 & 79.03 & 77.18 & 77.14 & 69.42 & 72.28 & 33.30 \\
-\addlinespace[0.5em]
-X (Twitter) (Macro) & 65.00 & 65.96 & 64.99 & 59.59 & 60.20 & \textbf{70.98} & 55.98 & 66.73 & 63.67 & 65.02 & 68.34 & 68.21 & 16.31 \\
-X (Twitter) (Micro) & 77.15 & 78.55 & 83.46 & 69.75 & 71.01 & 79.78 & 82.44 & 82.15 & \textbf{83.69} & 81.84 & 79.63 & 79.55 & 58.90 \\
-\addlinespace[0.5em]
-News (Macro) & 67.84 & 70.56 & 64.17 & 56.11 & 54.91 & \textbf{73.02} & 59.81 & 71.39 & 66.96 & 68.75 & 69.55 & 72.21 & 17.51 \\
-News (Micro) & 81.04 & 83.02 & 85.45 & 73.61 & 63.38 & 84.62 & 86.88 & \textbf{87.06} & 85.75 & 85.96 & 81.79 & 84.29 & 65.56 \\
-\addlinespace[0.5em]
-Meeting Minutes (Macro) & 66.59 & 70.50 & 65.67 & 61.49 & 64.31 & \textbf{74.96} & 60.31 & 63.97 & 66.56 & 70.70 & 70.87 & 73.10 & 21.45 \\
-Meeting Minutes (Micro) & 78.42 & 81.06 & \textbf{84.89} & 74.69 & 73.61 & 83.84 & 84.51 & 80.53 & 84.39 & 84.32 & 80.63 & 82.43 & 75.75 \\
-\addlinespace[0.5em]
-Weighted Avg (Macro) & 73.73 & \textbf{75.78} & 64.96 & 59.95 & 65.43 & 70.95 & 60.33 & 63.73 & 60.83 & 62.88 & 61.96 & 64.56 & 26.44 \\
-Weighted Avg (Micro) & 80.29 & \textbf{82.56} & 81.22 & 69.66 & 73.53 & 80.30 & 81.73 & 79.46 & 78.19 & 78.06 & 70.99 & 73.60 & 38.24 \\
+Reddit (Macro) & 19.42 & 29.66 & 15.33 & 24.09 & 35.62 & 38.24 & 50.90 & \textbf{51.52} & 38.51 & 38.61 & 50.57 & 51.28 \\
+Reddit (Micro) & 41.41 & 40.71 & 32.06 & 39.38 & 49.80 & 53.99 & 65.18 & \textbf{66.36} & 47.94 & 50.80 & 63.13 & 65.22 \\
+News (Macro) & 15.05 & 15.94 & 17.11 & 21.30 & 22.62 & 25.12 & 35.99 & \textbf{39.08} & 26.04 & 28.69 & 34.79 & 37.93 \\
+News (Micro) & 36.57 & 28.33 & 26.85 & 50.13 & 35.31 & 55.25 & 65.03 & \textbf{68.81} & 51.66 & 54.10 & 61.20 & 64.26 \\
+Meeting Minutes (Macro) & 13.84 & 21.54 & 18.12 & 20.81 & 26.82 & 30.32 & 38.06 & \textbf{41.38} & 29.46 & 34.46 & 37.70 & 39.96 \\
+Meeting Minutes (Micro) & 39.97 & 38.94 & 29.31 & 39.55 & 46.09 & 60.04 & 66.64 & \textbf{71.12} & 48.63 & 62.39 & 61.13 & 67.89 \\
+X (Twitter) (Macro) & 16.57 & 25.50 & 11.90 & 26.60 & 28.00 & 35.45 & 45.06 & \textbf{45.91} & 26.57 & 35.37 & 43.21 & 44.65 \\
+X (Twitter) (Micro) & 39.56 & 39.32 & 21.84 & 44.07 & 39.45 & 54.99 & 66.30 & \textbf{67.39} & 46.70 & 54.00 & 60.39 & 63.59 \\
+\midrule
+Family Avg (Macro) & \multicolumn{2}{c}{19.69} & \multicolumn{2}{c}{19.41} & \multicolumn{2}{c}{30.27} & \multicolumn{2}{c}{\textbf{43.49}} & \multicolumn{2}{c}{32.21} & \multicolumn{2}{c}{42.51} \\
+Family Avg (Micro) & \multicolumn{2}{c}{38.10} & \multicolumn{2}{c}{35.40} & \multicolumn{2}{c}{49.36} & \multicolumn{2}{c}{\textbf{67.11}} & \multicolumn{2}{c}{52.03} & \multicolumn{2}{c}{63.35} \\
 \bottomrule
 \end{tabular}
 }
+\centering
+\caption{Soft Label Macro and Micro F1 Scores for All Models by Data Source}
+\label{tab:detailed_f1_scores_soft}
 \end{table*}

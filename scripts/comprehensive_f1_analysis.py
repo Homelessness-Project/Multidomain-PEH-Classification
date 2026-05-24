@@ -17,6 +17,85 @@ SHOT_TYPES = ['zero_shot', 'few_shot']
 # Soft label threshold
 SOFT_LABEL_THRESHOLD = 0.5
 
+# Category order (matches gold / compare_zero_few_lora_results.py)
+EVAL_CATEGORIES = [
+    "ask a genuine question",
+    "ask a rhetorical question",
+    "provide a fact or claim",
+    "provide an observation",
+    "express their opinion",
+    "express others opinions",
+    "money aid allocation",
+    "government critique",
+    "societal critique",
+    "solutions/interventions",
+    "personal interaction",
+    "media portrayal",
+    "not in my backyard",
+    "harmful generalization",
+    "deserving/undeserving",
+    "racist",
+]
+
+SOURCE_GOLD_CONFIG = {
+    "reddit": {
+        "gold_file": "gold_standard/sampled_reddit_comments.csv",
+        "gold_text_col": "Comment",
+        "pred_text_col": "Comment",
+    },
+    "x": {
+        "gold_file": "gold_standard/sampled_twitter_posts.csv",
+        "gold_text_col": "Deidentified_text",
+        "pred_text_col": "Comment",
+    },
+    "news": {
+        "gold_file": "gold_standard/sampled_lexisnexis_news.csv",
+        "gold_text_col": "Deidentified_paragraph_text",
+        "pred_text_col": "Comment",
+    },
+    "meeting_minutes": {
+        "gold_file": "gold_standard/sampled_meeting_minutes.csv",
+        "gold_text_col": "Deidentified_paragraph",
+        "pred_text_col": "Comment",
+    },
+}
+
+
+def normalize_text(text: str) -> str:
+    return " ".join(str(text).split()).strip().lower()
+
+
+def load_gold_soft_label_by_text(source: str) -> dict[str, np.ndarray]:
+    """Map normalized gold text -> soft-label vector (16 categories), row-aligned with gold CSV."""
+    cfg = SOURCE_GOLD_CONFIG[source]
+    gold_df = pd.read_csv(cfg["gold_file"], low_memory=False)
+    soft_df = pd.read_csv(f"output/annotation/soft_labels/{source}_soft_labels.csv", low_memory=False)
+    n = min(len(gold_df), len(soft_df))
+    gold_df = gold_df.iloc[:n].reset_index(drop=True)
+    soft_df = soft_df.iloc[:n].reset_index(drop=True)
+    gold_df["_norm"] = gold_df[cfg["gold_text_col"]].apply(normalize_text)
+    return dict(zip(gold_df["_norm"], soft_df[EVAL_CATEGORIES].to_numpy(dtype=float)))
+
+
+def f1_macro_micro(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, float, list[float]]:
+    """Macro = mean per-label F1; micro = global TP/FP/FN over all label slots."""
+    label_f1s: list[float] = []
+    for i in range(y_true.shape[1]):
+        yt = y_true[:, i]
+        yp = y_pred[:, i]
+        tp = int(np.sum((yt == 1) & (yp == 1)))
+        fp = int(np.sum((yt == 0) & (yp == 1)))
+        fn = int(np.sum((yt == 1) & (yp == 0)))
+        denom = 2 * tp + fp + fn
+        label_f1s.append(0.0 if denom == 0 else (2 * tp / denom))
+    macro = float(np.mean(label_f1s)) if label_f1s else 0.0
+    tp = int(np.sum((y_true == 1) & (y_pred == 1)))
+    fp = int(np.sum((y_true == 0) & (y_pred == 1)))
+    fn = int(np.sum((y_true == 1) & (y_pred == 0)))
+    denom = 2 * tp + fp + fn
+    micro = 0.0 if denom == 0 else (2 * tp / denom)
+    return macro, micro, label_f1s
+
 
 def write_main_tex_soft(output_dir: str) -> None:
     """
@@ -170,13 +249,11 @@ def map_columns_to_soft_labels(df, source):
     
     return df_mapped
 
-def calculate_metrics(predictions, soft_labels, source):
-    """Calculate macro F1 and per-category metrics."""
-    if predictions is None or soft_labels is None:
+def calculate_metrics(predictions, source: str):
+    """Macro/micro F1 on gold subset: merge preds by text, τ=0.5 soft gold, mean per-label F1."""
+    if predictions is None:
         return None
 
-    # Lazy import so the module can be imported without sklearn installed
-    # (e.g., to build main.tex from already-generated tables).
     try:
         from sklearn.metrics import f1_score, precision_score, recall_score  # type: ignore
     except ModuleNotFoundError as e:
@@ -184,63 +261,53 @@ def calculate_metrics(predictions, soft_labels, source):
             "scikit-learn is required to compute soft-label F1 metrics. "
             "Install it (pip install scikit-learn) or run table generation in an environment that has it."
         ) from e
-    
-    # Get common categories between predictions and soft labels
-    pred_cols = [col for col in predictions.columns if col not in ['Comment', 'City', 'City_original']]
-    soft_cols = [col for col in soft_labels.columns if col not in ['Comment', 'City']]
-    
-    common_categories = list(set(pred_cols) & set(soft_cols))
-    print(f"Common categories for {source}: {len(common_categories)}")
-    
-    if not common_categories:
+
+    label_by_text = load_gold_soft_label_by_text(source)
+    cfg = SOURCE_GOLD_CONFIG[source]
+    pred_text_col = cfg["pred_text_col"]
+
+    if pred_text_col not in predictions.columns:
+        print(f"No prediction text column {pred_text_col!r} for {source}")
         return None
-    
-    # Calculate metrics for each category
+
+    df = predictions.copy()
+    df["_norm"] = df[pred_text_col].apply(normalize_text)
+    df = df[df["_norm"].isin(label_by_text.keys())].copy()
+    if df.empty:
+        print(f"No gold-aligned predictions for {source}")
+        return None
+
+    y_true = np.vstack([label_by_text[t] for t in df["_norm"]])
+    y_true = (y_true >= SOFT_LABEL_THRESHOLD).astype(int)
+
+    pred_cols = []
+    for cat in EVAL_CATEGORIES:
+        if cat in df.columns:
+            pred_cols.append((df[cat].fillna(0).astype(float).values > 0.5).astype(int))
+        else:
+            pred_cols.append(np.zeros(len(df), dtype=int))
+    y_pred = np.column_stack(pred_cols)
+
+    macro_f1, micro_f1, label_f1s = f1_macro_micro(y_true, y_pred)
+
     category_metrics = {}
-    all_true = []
-    all_pred = []
-    
-    for category in common_categories:
-        if category in predictions.columns and category in soft_labels.columns:
-            # Get predictions and true labels
-            pred_values = predictions[category].fillna(0).astype(int)
-            soft_values = soft_labels[category].fillna(0)
-            
-            # Convert soft labels to binary using threshold
-            true_values = (soft_values >= SOFT_LABEL_THRESHOLD).astype(int)
-            
-            # Ensure same length
-            min_len = min(len(pred_values), len(true_values))
-            pred_values = pred_values[:min_len]
-            true_values = true_values[:min_len]
-            
-            # Calculate metrics
-            f1 = f1_score(true_values, pred_values, average='binary', zero_division=0)
-            precision = precision_score(true_values, pred_values, average='binary', zero_division=0)
-            recall = recall_score(true_values, pred_values, average='binary', zero_division=0)
-            
-            category_metrics[category] = {
-                'f1': f1,
-                'precision': precision,
-                'recall': recall
-            }
-            
-            all_true.extend(true_values)
-            all_pred.extend(pred_values)
-    
-    # Calculate overall metrics
-    if all_true and all_pred:
-        macro_f1 = f1_score(all_true, all_pred, average='macro', zero_division=0)
-        micro_f1 = f1_score(all_true, all_pred, average='micro', zero_division=0)
-    else:
-        macro_f1 = 0
-        micro_f1 = 0
-    
+    for cat, f1_val in zip(EVAL_CATEGORIES, label_f1s):
+        yt = y_true[:, EVAL_CATEGORIES.index(cat)]
+        yp = y_pred[:, EVAL_CATEGORIES.index(cat)]
+        category_metrics[cat] = {
+            "f1": f1_val,
+            "precision": precision_score(yt, yp, average="binary", zero_division=0),
+            "recall": recall_score(yt, yp, average="binary", zero_division=0),
+        }
+
+    print(f"Gold-aligned eval for {source}: n={len(df)}, macro F1={macro_f1:.4f}, micro F1={micro_f1:.4f}")
+
     return {
-        'macro_f1': macro_f1,
-        'micro_f1': micro_f1,
-        'category_metrics': category_metrics,
-        'num_categories': len(common_categories)
+        "macro_f1": macro_f1,
+        "micro_f1": micro_f1,
+        "category_metrics": category_metrics,
+        "num_categories": len(EVAL_CATEGORIES),
+        "n_eval": len(df),
     }
 
 def create_latex_table(summary_df):
@@ -290,231 +357,115 @@ def create_latex_table(summary_df):
     
     return "\n".join(latex_table)
 
+def _metric_cell(summary_df: pd.DataFrame, source: str, model: str, shot_type: str, col: str) -> Optional[float]:
+    key = f"{model}_{shot_type}"
+    rows = summary_df[(summary_df["Source"] == source) & (summary_df["Model"] == key)]
+    if rows.empty:
+        return None
+    return float(rows.iloc[0][col])
+
+
+def _format_metric_row(
+    summary_df: pd.DataFrame,
+    row_label: str,
+    metric_col: str,
+    source: Optional[str],
+) -> list[str]:
+    """Build one table row; bold best per source when source is set."""
+    row = [row_label]
+    values: list[float] = []
+    for model in PROMPT_MODELS:
+        for shot_type in ("zero_shot", "few_shot"):
+            val = _metric_cell(summary_df, source, model, shot_type, metric_col)
+            if val is None:
+                row.append("--")
+            else:
+                values.append(val)
+                row.append(f"{val * 100:.2f}")
+    if source is not None and values:
+        best = max(values)
+        for i, v in enumerate(values):
+            if v == best:
+                row[i + 1] = f"\\textbf{{{row[i + 1]}}}"
+    return row
+
+
+def _family_avg_multicol(summary_df: pd.DataFrame, metric_col: str) -> tuple[list[str], float]:
+    """Mean across sources of zero/few for each model; return multicolumn cells and best value."""
+    cells = []
+    avgs = []
+    for model in PROMPT_MODELS:
+        vals = []
+        for source in SOURCES:
+            for shot in ("zero_shot", "few_shot"):
+                v = _metric_cell(summary_df, source, model, shot, metric_col)
+                if v is not None:
+                    vals.append(v)
+        if vals:
+            avg = float(np.mean(vals)) * 100
+            avgs.append(avg)
+            cells.append(f"\\multicolumn{{2}}{{c}}{{{avg:.2f}}}")
+        else:
+            cells.append("\\multicolumn{2}{c}{--}")
+    return cells, max(avgs) if avgs else 0.0
+
+
 def create_detailed_latex_table(summary_df):
-    """Create detailed LaTeX table with all models"""
-    latex_table = []
-    latex_table.append(r"\begin{table*}[htbp]")
-    latex_table.append(r"\centering")
-    latex_table.append(r"\centering\caption{Soft-label Macro and Micro F1 Scores for All Models by Data Source}")
-    latex_table.append(r"\label{tab:detailed_f1_scores}")
-    latex_table.append(r"\resizebox{\textwidth}{!}{")
-    latex_table.append(r"\begin{tabular}{lcccccccccccc}")
-    latex_table.append(r"\toprule")
-    latex_table.append(r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} & BERT \\")
-    latex_table.append(r"& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Fine-tuned \\")
-    latex_table.append(r"\midrule")
-    
-    # Dynamically read sample sizes from complete dataset files
-    sample_sizes = {}
-    source_file_mapping = {
-        'reddit': 'complete_dataset/all_reddit_comments.csv',
-        'x': 'complete_dataset/all_twitter_posts.csv',
-        'news': 'complete_dataset/all_newspaper_articles.csv',
-        'meeting_minutes': 'complete_dataset/all_meeting_minutes.csv'
+    """Paper-style soft-label F1 table (gold-aligned macro = mean per-label F1)."""
+    source_labels = {
+        "reddit": "Reddit",
+        "x": "X (Twitter)",
+        "news": "News",
+        "meeting_minutes": "Meeting Minutes",
     }
-    
-    for source, file_path in source_file_mapping.items():
-        try:
-            # Count lines in the CSV file (subtract 1 for header)
-            with open(file_path, 'r') as f:
-                line_count = sum(1 for line in f) - 1  # Subtract header
-            sample_sizes[source] = line_count
-            print(f"Read {source}: {line_count} samples from {file_path}")
-        except FileNotFoundError:
-            print(f"Warning: {file_path} not found, using default size of 1000")
-            sample_sizes[source] = 1000
-        except Exception as e:
-            print(f"Error reading {file_path}: {e}, using default size of 1000")
-            sample_sizes[source] = 1000
-    
-    total_samples = sum(sample_sizes.values())
-    print(f"Total samples across all sources: {total_samples}")
-    
-    # Store all values for weighted average calculation
-    all_macro_values = {model: {'zero': [], 'few': []} for model in PROMPT_MODELS}
-    all_micro_values = {model: {'zero': [], 'few': []} for model in PROMPT_MODELS}
-    bert_macro_values = []
-    bert_micro_values = []
-    
-    # Group by source
+
+    latex_table = [
+        r"\begin{table*}[htpb!]",
+        r"\resizebox{\textwidth}{!}{",
+        r"\begin{tabular}{lcccccccccccccccccc}",
+        r"\toprule",
+        r"Data Source & \multicolumn{2}{c}{LLaMA} & \multicolumn{2}{c}{Phi-4} & \multicolumn{2}{c}{Qwen} & \multicolumn{2}{c}{Gemini} & \multicolumn{2}{c}{Grok} & \multicolumn{2}{c}{GPT-4} \\",
+        r"& Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few & Zero & Few \\",
+        r"\midrule",
+    ]
+
     for source in SOURCES:
-        source_data = summary_df[summary_df['Source'] == source]
-        if source_data.empty:
-            continue
-        
-        # Format source name
-        source_display = source.replace('_', ' ').title()
-        if source_display == 'X':
-            source_display = 'X (Twitter)'
-        
-        # Create macro F1 row
-        macro_row = [f"{source_display} (Macro)"]
-        macro_values = []
-        
-        # Add macro F1 data for each model
-        for model in PROMPT_MODELS:
-            for shot_type in ['zero_shot', 'few_shot']:
-                model_key = f"{model}_{shot_type}"
-                model_data = source_data[source_data['Model'] == model_key]
-                
-                if not model_data.empty:
-                    macro_f1 = model_data.iloc[0]['Macro_F1']
-                    macro_values.append(macro_f1)
-                    # Round to 2 significant figures only at the end
-                    macro_row.append(f"{macro_f1 * 100:.2f}")
-                    
-                    # Store for weighted average
-                    if shot_type == 'zero_shot':
-                        all_macro_values[model]['zero'].append((macro_f1, sample_sizes[source]))
-                    else:
-                        all_macro_values[model]['few'].append((macro_f1, sample_sizes[source]))
-                else:
-                    macro_values.append(0)
-                    macro_row.append("--")
-        
-        # Add BERT macro F1 data
-        bert_data = source_data[source_data['Model'] == 'bert_finetuned']
-        if not bert_data.empty:
-            bert_macro = bert_data.iloc[0]['Macro_F1']
-            macro_values.append(bert_macro)
-            # Round to 2 significant figures only at the end
-            macro_row.append(f"{bert_macro * 100:.2f}")
-            bert_macro_values.append((bert_macro, sample_sizes[source]))
-        else:
-            macro_values.append(0)
-            macro_row.append("--")
-        
-        # Find best macro F1 and bold it
-        valid_macro_values = [v for v in macro_values if v > 0]
-        if valid_macro_values:
-            best_macro = max(valid_macro_values)
-            for i, val in enumerate(macro_values):
-                if val == best_macro and val > 0:
-                    macro_row[i + 1] = f"\\textbf{{{macro_row[i + 1]}}}"
-        
-        latex_table.append(" & ".join(macro_row) + " \\\\")
-        
-        # Create micro F1 row
-        micro_row = [f"{source_display} (Micro)"]
-        micro_values = []
-        
-        # Add micro F1 data for each model
-        for model in PROMPT_MODELS:
-            for shot_type in ['zero_shot', 'few_shot']:
-                model_key = f"{model}_{shot_type}"
-                model_data = source_data[source_data['Model'] == model_key]
-                
-                if not model_data.empty:
-                    micro_f1 = model_data.iloc[0]['Micro_F1']
-                    micro_values.append(micro_f1)
-                    # Round to 2 significant figures only at the end
-                    micro_row.append(f"{micro_f1 * 100:.2f}")
-                    
-                    # Store for weighted average
-                    if shot_type == 'zero_shot':
-                        all_micro_values[model]['zero'].append((micro_f1, sample_sizes[source]))
-                    else:
-                        all_micro_values[model]['few'].append((micro_f1, sample_sizes[source]))
-                else:
-                    micro_values.append(0)
-                    micro_row.append("--")
-        
-        # Add BERT micro F1 data
-        bert_data = source_data[source_data['Model'] == 'bert_finetuned']
-        if not bert_data.empty:
-            bert_micro = bert_data.iloc[0]['Micro_F1']
-            micro_values.append(bert_micro)
-            # Round to 2 significant figures only at the end
-            micro_row.append(f"{bert_micro * 100:.2f}")
-            bert_micro_values.append((bert_micro, sample_sizes[source]))
-        else:
-            micro_values.append(0)
-            micro_row.append("--")
-        
-        # Find best micro F1 and bold it
-        valid_micro_values = [v for v in micro_values if v > 0]
-        if valid_micro_values:
-            best_micro = max(valid_micro_values)
-            for i, val in enumerate(micro_values):
-                if val == best_micro and val > 0:
-                    micro_row[i + 1] = f"\\textbf{{{micro_row[i + 1]}}}"
-        
-        latex_table.append(" & ".join(micro_row) + " \\\\")
-        
-        # Add a small gap between sources
-        if source != SOURCES[-1]:  # Don't add gap after last source
-            latex_table.append(r"\addlinespace[0.5em]")
-    
-    # Calculate weighted averages
-    def calculate_weighted_average(values_weights):
-        if not values_weights:
-            return 0
-        total_weight = sum(weight for _, weight in values_weights)
-        weighted_sum = sum(value * weight for value, weight in values_weights)
-        return weighted_sum / total_weight if total_weight > 0 else 0
-    
-    # Add weighted average rows
-    latex_table.append(r"\addlinespace[0.5em]")
-    
-    # Weighted average macro F1 row
-    weighted_macro_row = ["Weighted Avg (Macro)"]
-    weighted_macro_values = []
-    
-    for model in PROMPT_MODELS:
-        for shot_type in ['zero', 'few']:
-            weighted_avg = calculate_weighted_average(all_macro_values[model][shot_type])
-            weighted_macro_values.append(weighted_avg)
-            # Round to 2 significant figures only at the end
-            weighted_macro_row.append(f"{weighted_avg * 100:.2f}")
-    
-    # Add BERT weighted average
-    bert_weighted_macro = calculate_weighted_average(bert_macro_values)
-    weighted_macro_values.append(bert_weighted_macro)
-    # Round to 2 significant figures only at the end
-    weighted_macro_row.append(f"{bert_weighted_macro * 100:.2f}")
-    
-    # Bold best weighted macro F1
-    valid_weighted_macro = [v for v in weighted_macro_values if v > 0]
-    if valid_weighted_macro:
-        best_weighted_macro = max(valid_weighted_macro)
-        for i, val in enumerate(weighted_macro_values):
-            if val == best_weighted_macro and val > 0:
-                weighted_macro_row[i + 1] = f"\\textbf{{{weighted_macro_row[i + 1]}}}"
-    
-    latex_table.append(" & ".join(weighted_macro_row) + " \\\\")
-    
-    # Weighted average micro F1 row
-    weighted_micro_row = ["Weighted Avg (Micro)"]
-    weighted_micro_values = []
-    
-    for model in PROMPT_MODELS:
-        for shot_type in ['zero', 'few']:
-            weighted_avg = calculate_weighted_average(all_micro_values[model][shot_type])
-            weighted_micro_values.append(weighted_avg)
-            # Round to 2 significant figures only at the end
-            weighted_micro_row.append(f"{weighted_avg * 100:.2f}")
-    
-    # Add BERT weighted average
-    bert_weighted_micro = calculate_weighted_average(bert_micro_values)
-    weighted_micro_values.append(bert_weighted_micro)
-    # Round to 2 significant figures only at the end
-    weighted_micro_row.append(f"{bert_weighted_micro * 100:.2f}")
-    
-    # Bold best weighted micro F1
-    valid_weighted_micro = [v for v in weighted_micro_values if v > 0]
-    if valid_weighted_micro:
-        best_weighted_micro = max(valid_weighted_micro)
-        for i, val in enumerate(weighted_micro_values):
-            if val == best_weighted_micro and val > 0:
-                weighted_micro_row[i + 1] = f"\\textbf{{{weighted_micro_row[i + 1]}}}"
-    
-    latex_table.append(" & ".join(weighted_micro_row) + " \\\\")
-    
-    latex_table.append(r"\bottomrule")
-    latex_table.append(r"\end{tabular}")
-    latex_table.append(r"}")
-    latex_table.append(r"\end{table*}")
-    
+        label = source_labels.get(source, source)
+        latex_table.append(
+            " & ".join(_format_metric_row(summary_df, f"{label} (Macro)", "Macro_F1", source)) + " \\\\"
+        )
+        latex_table.append(
+            " & ".join(_format_metric_row(summary_df, f"{label} (Micro)", "Micro_F1", source)) + " \\\\"
+        )
+
+    latex_table.append(r"\midrule")
+    macro_cells, best_macro = _family_avg_multicol(summary_df, "Macro_F1")
+    micro_cells, best_micro = _family_avg_multicol(summary_df, "Micro_F1")
+    macro_cells = [
+        c.replace(f"{{{best_macro:.2f}}}", f"{{\\textbf{{{best_macro:.2f}}}}}")
+        if "--" not in c and f"{{{best_macro:.2f}}}" in c
+        else c
+        for c in macro_cells
+    ]
+    micro_cells = [
+        c.replace(f"{{{best_micro:.2f}}}", f"{{\\textbf{{{best_micro:.2f}}}}}")
+        if "--" not in c and f"{{{best_micro:.2f}}}" in c
+        else c
+        for c in micro_cells
+    ]
+    latex_table.append("Family Avg (Macro) & " + " & ".join(macro_cells) + " \\\\")
+    latex_table.append("Family Avg (Micro) & " + " & ".join(micro_cells) + " \\\\")
+    latex_table.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"}",
+            r"\centering",
+            r"\caption{Soft Label Macro and Micro F1 Scores for All Models by Data Source}",
+            r"\label{tab:detailed_f1_scores_soft}",
+            r"\end{table*}",
+        ]
+    )
     return "\n".join(latex_table)
 
 def load_soft_label_positive_counts():
@@ -866,7 +817,7 @@ def main():
                 predictions_mapped = map_columns_to_soft_labels(predictions, source)
                 
                 # Calculate metrics
-                metrics = calculate_metrics(predictions_mapped, soft_labels, source)
+                metrics = calculate_metrics(predictions_mapped, source)
                 if metrics:
                     all_results[source][f"{model}_{shot_type}"] = metrics
                     print(f"Macro F1: {metrics['macro_f1']:.4f}")

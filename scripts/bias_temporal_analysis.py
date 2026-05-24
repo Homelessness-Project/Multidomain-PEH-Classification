@@ -17,8 +17,10 @@ Usage:
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import seaborn as sns
 from pathlib import Path
+import textwrap
 import warnings
 from datetime import datetime
 from scipy import stats
@@ -75,7 +77,7 @@ INDICATOR_CATEGORIES = [
 
 # City size groupings
 LARGE_CITIES = ['san francisco', 'portland', 'buffalo', 'baltimore', 'el paso']
-SMALL_CITIES = ['kalamazoo', 'south bend', 'rockford', 'scranton', 'fayetteville']
+SMALL_CITIES = ['south bend', 'kalamazoo', 'rockford', 'scranton', 'fayetteville']
 
 
 def _title_case_city(city: str) -> str:
@@ -84,11 +86,22 @@ def _title_case_city(city: str) -> str:
 
 LARGE_CITY_CLUSTER_CITIES = ', '.join(_title_case_city(c) for c in LARGE_CITIES)
 SMALL_CITY_CLUSTER_CITIES = ', '.join(_title_case_city(c) for c in SMALL_CITIES)
-LARGE_CITY_CLUSTER_LEGEND = f'Large City Cluster ({LARGE_CITY_CLUSTER_CITIES})'
-SMALL_CITY_CLUSTER_LEGEND = f'Small City Cluster ({SMALL_CITY_CLUSTER_CITIES})'
+
+
+def _cluster_legend_label(cluster_name: str, cities: list[str]) -> str:
+    """Wrap five city names across two lines so legend text is not clipped."""
+    names = [_title_case_city(c) for c in cities]
+    mid = (len(names) + 1) // 2
+    line1 = ', '.join(names[:mid])
+    line2 = ', '.join(names[mid:])
+    return f'{cluster_name}\n({line1},\n{line2})'
+
+
+LARGE_CITY_CLUSTER_LEGEND = _cluster_legend_label('Large City Cluster', LARGE_CITIES)
+SMALL_CITY_CLUSTER_LEGEND = _cluster_legend_label('Small City Cluster', SMALL_CITIES)
 CITY_CLUSTER_PANEL_TITLES = {
-    'Large': f'Large City Cluster\n({LARGE_CITY_CLUSTER_CITIES})',
-    'Small': f'Small City Cluster\n({SMALL_CITY_CLUSTER_CITIES})',
+    'Large': LARGE_CITY_CLUSTER_LEGEND,
+    'Small': SMALL_CITY_CLUSTER_LEGEND,
 }
 
 # Y-axis label for bias_score (= count of active Negative Bias Frame labels, 0-5)
@@ -360,29 +373,37 @@ SOURCE_STYLE = {
 }
 
 
-def _set_fig_title_subtitle(fig, title, subtitle=None, top=None):
-    """Title and subtitle on separate lines above axes; tight vertical spacing."""
+def _set_fig_title_subtitle(
+    fig, title, subtitle=None, top=None, title_fontsize=13, subtitle_wrap=88,
+):
+    """Title and subtitle above axes with spacing that avoids overlap."""
     title_lines = title.count('\n') + 1
-    y_title = 0.97
-    line_h = 0.026  # figure-fraction per title line (fontsize 14)
-    y_after_title = y_title - title_lines * line_h
+    y_title = 0.98
+    title_line_h = 0.038 if title_fontsize >= 13 else 0.030
+    y_after_title = y_title - title_lines * title_line_h
 
     fig.text(
         0.5, y_title, title,
         transform=fig.transFigure,
-        ha='center', va='top', fontsize=14, fontweight='bold', linespacing=1.15,
+        ha='center', va='top', fontsize=title_fontsize, fontweight='bold', linespacing=1.2,
     )
     if subtitle:
-        y_sub = y_after_title - 0.008
+        if subtitle_wrap and subtitle_wrap > 0:
+            wrapped = '\n'.join(textwrap.wrap(subtitle, width=subtitle_wrap))
+        else:
+            wrapped = subtitle
+        subtitle_lines = wrapped.count('\n') + 1
+        y_sub = y_after_title - 0.022
         fig.text(
-            0.5, y_sub, subtitle,
+            0.5, y_sub, wrapped,
             transform=fig.transFigure,
-            ha='center', va='top', fontsize=9, style='italic', color='#444444',
+            ha='center', va='top', fontsize=8.5, style='italic', color='#444444',
+            linespacing=1.25,
         )
         if top is None:
-            top = y_sub - 0.032
+            top = y_sub - subtitle_lines * 0.024 - 0.010
     elif top is None:
-        top = y_after_title - 0.015
+        top = y_after_title - 0.020
 
     fig.subplots_adjust(top=top)
 
@@ -596,8 +617,8 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
                 f"Small mean={small_data.mean():.3f}, p={p_value:.6f} {sig_marker}"
             )
     
-    # Create grouped bar chart
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # Create grouped bar chart (compact layout; legend overlays Meeting Minutes column)
+    fig, ax = plt.subplots(figsize=(10, 5.2))
     
     # Prepare data for grouped bars
     x = np.arange(len(source_order))
@@ -635,7 +656,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         x - width / 2,
         large_means,
         width,
-        label=LARGE_CITY_CLUSTER_LEGEND,
+        label='_nolegend_',
         color=colors,
         alpha=0.7,
         edgecolor='black',
@@ -646,7 +667,7 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         x + width / 2,
         small_means,
         width,
-        label=SMALL_CITY_CLUSTER_LEGEND,
+        label='_nolegend_',
         color=colors,
         alpha=0.4,
         edgecolor='black',
@@ -688,12 +709,6 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
         'Categories: rhetorical question, not in my backyard, harmful generalization, '
         'deserving/undeserving, racist (sum of active labels per post, 0-5)'
     )
-    _set_fig_title_subtitle(
-        fig,
-        'Mean Negative Bias Frame Score (0-5): Large City Cluster vs Small City Cluster by Source',
-        bias_categories_text,
-        top=0.82,
-    )
     
     # Add Bonferroni correction note
     bonferroni_note = '* p < 0.0125 (Bonferroni corrected, α = 0.05/4 comparisons)'
@@ -702,16 +717,59 @@ def plot_bias_by_city_size_bar_chart(df, output_dir='output'):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=0, ha='center')
     
-    # Set y-axis limit before adding legend to ensure proper spacing
-    y_max_with_markers = max_bar_height + 0.25  # Extra space for significance markers
+    # Set y-axis limit (room for significance markers; legend sits in plot over Meeting Minutes)
+    y_max_with_markers = max_bar_height + 0.22
     ax.set_ylim(bottom=0, top=y_max_with_markers)
     
-    # Position legend to avoid overlap with significance markers
-    ax.legend(fontsize=8, loc='upper right', bbox_to_anchor=(0.98, 0.98))
+    cluster_legend_handles = [
+        Patch(
+            facecolor='#888888',
+            alpha=0.7,
+            edgecolor='black',
+            linewidth=1.2,
+            label=LARGE_CITY_CLUSTER_LEGEND,
+        ),
+        Patch(facecolor='none', edgecolor='none', linewidth=0, label=' '),
+        Patch(
+            facecolor='#888888',
+            alpha=0.4,
+            edgecolor='black',
+            linewidth=1.2,
+            hatch='///',
+            label=SMALL_CITY_CLUSTER_LEGEND,
+        ),
+    ]
+    mm_idx = (
+        source_order.index('meeting_minutes')
+        if 'meeting_minutes' in source_order
+        else len(source_order) - 1
+    )
+    mm_bar_top = max(large_means[mm_idx], small_means[mm_idx])
+    legend_y = min(mm_bar_top + 0.38, y_max_with_markers * 0.72)
+    ax.legend(
+        handles=cluster_legend_handles,
+        fontsize=7.5,
+        loc='lower center',
+        bbox_to_anchor=(x[mm_idx], legend_y),
+        bbox_transform=ax.transData,
+        borderaxespad=0.35,
+        labelspacing=0.55,
+        handlelength=1.1,
+        handleheight=0.9,
+        frameon=True,
+        framealpha=0.92,
+        edgecolor='#cccccc',
+    )
     ax.grid(True, alpha=0.3, axis='y')
-    
+
+    _set_fig_title_subtitle(
+        fig,
+        'Mean Negative Bias Frame Score (0-5) by Source: Large vs Small City Cluster',
+        bias_categories_text,
+        subtitle_wrap=0,
+    )
     output_path = Path(output_dir) / 'bias_by_source_city_size_bar_chart.pdf'
-    _save_figure(fig, output_path, right=0.92, bottom=0.18)
+    _save_figure(fig, output_path, right=0.97, bottom=0.14, left=0.10, top=fig.subplotpars.top)
     print(f"\nSaved: {output_path}")
     plt.close()
     
