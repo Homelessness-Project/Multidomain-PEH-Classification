@@ -1,0 +1,17 @@
+NIMBY qualitative error analysis (gold-standard set)
+Items: 1702 | Gold NIMBY+: 42
+Consensus FP (gold-, >=3 models tag NIMBY): 117 (6.9%)
+Any-model FP: 988 (58.0%)
+Mean model votes on consensus FP: 3.34
+
+Top trigger enrichment (FP vs true negative rate delta):
+  question_mark: FP 32.48% vs TN 9.67% (Δ +22.81%, OR 4.49)
+  housing_general: FP 89.74% vs TN 72.17% (Δ +17.57%, OR 3.37)
+  rhetorical_cue: FP 6.84% vs TN 0.15% (Δ +6.69%, OR 49.25)
+  proximity_local: FP 9.40% vs TN 3.87% (Δ +5.53%, OR 2.58)
+  opposition_verbs: FP 8.55% vs TN 4.02% (Δ +4.53%, OR 2.23)
+  development: FP 10.26% vs TN 7.59% (Δ +2.67%, OR 1.39)
+  explicit_nimby: FP 2.56% vs TN 0.00% (Δ +2.56%, OR 263.13)
+  policy_numbers: FP 4.27% vs TN 5.51% (Δ -1.23%, OR 0.77)
+
+Opposition-verb rate delta (FP - TN): +4.53%

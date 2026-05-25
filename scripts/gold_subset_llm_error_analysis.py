@@ -11,6 +11,9 @@ Usage (repo root):
     python scripts/gold_subset_llm_error_analysis.py --top 8 --shot few_shot
     python scripts/gold_subset_llm_error_analysis.py --models gpt4 gemini --sources news
 
+Companion qualitative NIMBY analysis (lexical triggers, example exports):
+    python scripts/nimby_qualitative_error_analysis.py
+
 Outputs (default output/f1/gold_error_analysis/):
     per_model_category.csv   # one row per source × model × shot × category
     model_summary.csv        # totals / macro rates per source × model × shot
